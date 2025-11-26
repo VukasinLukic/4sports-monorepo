@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.figma.com)",
+      "Bash(move:*)",
+      "Bash(move tehnology-stack.md docsTECHNOLOGY_STACK.md)",
+      "Bash(move struktura-projekta.md docsPROJECT_STRUCTURE.md)",
+      "Bash(move DESIGN_GUIDELINES.md docs )",
+      "Bash(move ARCHITECTURE.md docs )",
+      "Bash(move API_SPEC.md docs )",
+      "Bash(move IMPLEMENTATION_PLAN.md docs )",
+      "Bash(tree:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
