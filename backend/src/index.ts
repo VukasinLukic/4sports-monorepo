@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { connectDB } from './config/db';
 import { initializeFirebase } from './config/firebase';
+import routes from './routes';
 
 // Load environment variables
 dotenv.config();
@@ -55,8 +56,8 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
-// app.use('/api/v1', routes);
+// API Routes
+app.use('/api/v1', routes);
 
 // 404 handler - route not found
 app.use((req: Request, res: Response) => {
