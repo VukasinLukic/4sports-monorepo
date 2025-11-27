@@ -36,8 +36,9 @@
 
 #### Tvoj Branch Naming:
 ```bash
-web/feature-name
-web/fix-bug-name
+imamo sledece grane:
+main, development, i nemanja, mihajlo, vukasin
+#### Kako Radiš Sa Gitom:
 ```
 
 **Primeri:**
@@ -57,9 +58,10 @@ git branch
 
 # Povuci najnovije izmene
 git pull origin main
-
-# Napravi svoj feature branch
-git checkout -b web/tvoj-feature-name
+# idi na dev
+git checkout -b development
+# Napravi svoj branch iz dev
+git checkout -b vukasin
 ```
 
 **Tokom Rada:**

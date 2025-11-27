@@ -42,9 +42,8 @@ mobile/fix-bug-name
 ```
 
 **Primeri:**
-- `mobile/qr-scanner`
-- `mobile/attendance-screen`
-- `mobile/fix-camera-permissions`
+imamo sledece grane:
+main, development, i nemanja, mihajlo, vukasin
 
 #### Kako Radiš Sa Gitom:
 
@@ -58,10 +57,12 @@ git branch
 
 # Povuci najnovije izmene
 git pull origin main
-
-# Napravi svoj feature branch
-git checkout -b mobile/tvoj-feature-name
+# idi na dev
+git checkout -b development
+# Napravi svoj branch iz dev
+git checkout -b mihajlo
 ```
+
 
 **Tokom Rada:**
 ```bash
@@ -72,7 +73,7 @@ git add .
 git commit -m "mobile: add QR code scanner for attendance"
 
 # Pushuj na GitHub
-git push origin mobile/tvoj-feature-name
+git push origin mihajlo
 ```
 
 **Kada Završiš Feature:**
