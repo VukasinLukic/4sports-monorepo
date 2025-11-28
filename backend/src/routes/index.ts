@@ -10,6 +10,7 @@ import medicalCheckRoutes from './medicalCheckRoutes';
 import financeRoutes from './financeRoutes';
 import postRoutes from './postRoutes';
 import notificationRoutes from './notificationRoutes';
+import uploadRoutes from './uploadRoutes';
 
 /**
  * Main Router
@@ -28,6 +29,7 @@ router.use('/medical-checks', medicalCheckRoutes);
 router.use('/finances', financeRoutes);
 router.use('/posts', postRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/upload', uploadRoutes);
 
 /**
  * Future Routes (Phase 3+)
