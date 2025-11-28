@@ -3,6 +3,8 @@ import authRoutes from './authRoutes';
 import inviteRoutes from './inviteRoutes';
 import groupRoutes from './groupRoutes';
 import memberRoutes from './memberRoutes';
+import eventRoutes from './eventRoutes';
+import attendanceRoutes from './attendanceRoutes';
 
 /**
  * Main Router
@@ -10,29 +12,12 @@ import memberRoutes from './memberRoutes';
  */
 const router = express.Router();
 
-/**
- * Authentication Routes
- * @route /api/v1/auth/*
- */
 router.use('/auth', authRoutes);
-
-/**
- * Invite Code Routes
- * @route /api/v1/invites/*
- */
 router.use('/invites', inviteRoutes);
-
-/**
- * Group Routes
- * @route /api/v1/groups/*
- */
 router.use('/groups', groupRoutes);
-
-/**
- * Member Routes
- * @route /api/v1/members/*
- */
 router.use('/members', memberRoutes);
+router.use('/events', eventRoutes);
+router.use('/attendance', attendanceRoutes);
 
 /**
  * Future Routes (Phase 3+)
