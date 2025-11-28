@@ -1,5 +1,6 @@
 import express from 'express';
 import authRoutes from './authRoutes';
+import inviteRoutes from './inviteRoutes';
 
 /**
  * Main Router
@@ -12,6 +13,12 @@ const router = express.Router();
  * @route /api/v1/auth/*
  */
 router.use('/auth', authRoutes);
+
+/**
+ * Invite Code Routes
+ * @route /api/v1/invites/*
+ */
+router.use('/invites', inviteRoutes);
 
 /**
  * Future Routes (Phase 3+)

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { getAuth } from '../config/firebase';
 import User from '../models/User';
 import Club from '../models/Club';
+import { validateInviteCode } from './inviteController';
 
 /**
  * Register New User
@@ -107,83 +108,70 @@ export const register = async (
         });
       }
 
-      // TODO: Phase 3 - Implement InviteCode validation
-      // For now, return error since InviteCode model doesn't exist yet
-      return res.status(501).json({
-        success: false,
-        error: {
-          code: 'NOT_IMPLEMENTED',
-          message:
-            'Invite code validation will be implemented in Phase 3. For now, only OWNER registration is supported.',
-        },
-      });
+      // Validate invite code
+      const validation = await validateInviteCode(inviteCode);
 
-      // FUTURE CODE (Phase 3):
-      // const invite = await InviteCode.findOne({
-      //   code: inviteCode,
-      //   isActive: true,
-      // });
-      //
-      // if (!invite || invite.expiresAt < new Date()) {
-      //   return res.status(400).json({
-      //     success: false,
-      //     error: {
-      //       code: 'INVALID_CODE',
-      //       message: 'Invalid or expired invite code',
-      //     },
-      //   });
-      // }
-      //
-      // // Validate invite type
-      // if (role === 'COACH' && invite.type !== 'COACH') {
-      //   return res.status(400).json({
-      //     success: false,
-      //     error: {
-      //       code: 'INVALID_CODE_TYPE',
-      //       message: 'This invite code is not valid for COACH role',
-      //     },
-      //   });
-      // }
-      //
-      // if (role === 'PARENT' && invite.type !== 'MEMBER') {
-      //   return res.status(400).json({
-      //     success: false,
-      //     error: {
-      //       code: 'INVALID_CODE_TYPE',
-      //       message: 'This invite code is not valid for PARENT role',
-      //     },
-      //   });
-      // }
-      //
-      // clubId = invite.clubId;
-      //
-      // // Check club member limit for PARENT role
-      // if (role === 'PARENT') {
-      //   const club = await Club.findById(clubId);
-      //   if (!club) {
-      //     return res.status(404).json({
-      //       success: false,
-      //       error: {
-      //         code: 'CLUB_NOT_FOUND',
-      //         message: 'Associated club not found',
-      //       },
-      //     });
-      //   }
-      //
-      //   if (!club.canAddMembers()) {
-      //     return res.status(403).json({
-      //       success: false,
-      //       error: {
-      //         code: 'MEMBER_LIMIT_REACHED',
-      //         message: `Club has reached its member limit of ${club.memberLimit}`,
-      //       },
-      //     });
-      //   }
-      // }
-      //
-      // // Increment invite code usage
-      // invite.usedCount += 1;
-      // await invite.save();
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_INVITE_CODE',
+            message: validation.error || 'Invalid invite code',
+          },
+        });
+      }
+
+      const invite = validation.inviteCode;
+
+      // Validate invite type matches role
+      if (role === 'COACH' && invite.type !== 'COACH') {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_CODE_TYPE',
+            message: 'This invite code is not valid for COACH role',
+          },
+        });
+      }
+
+      if (role === 'PARENT' && invite.type !== 'MEMBER') {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_CODE_TYPE',
+            message: 'This invite code is not valid for PARENT role',
+          },
+        });
+      }
+
+      // Check if club has space for new members (PARENT only)
+      if (role === 'PARENT') {
+        const club = await Club.findById(invite.clubId);
+        if (!club) {
+          return res.status(404).json({
+            success: false,
+            error: {
+              code: 'CLUB_NOT_FOUND',
+              message: 'Club associated with invite code not found',
+            },
+          });
+        }
+
+        if (!club.canAddMembers(1)) {
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'MEMBER_LIMIT_REACHED',
+              message: 'Club has reached member limit',
+            },
+          });
+        }
+      }
+
+      clubId = invite.clubId;
+
+      // Store invite for later usage increment
+      // Will be incremented after successful user creation
     }
 
     // ========================================
@@ -206,7 +194,17 @@ export const register = async (
     }
 
     // ========================================
-    // 7. RETURN SUCCESS RESPONSE
+    // 7. INCREMENT INVITE CODE USAGE (if COACH/PARENT)
+    // ========================================
+    if (role !== 'OWNER' && inviteCode) {
+      const validation = await validateInviteCode(inviteCode);
+      if (validation.valid && validation.inviteCode) {
+        await validation.inviteCode.incrementUsage();
+      }
+    }
+
+    // ========================================
+    // 8. RETURN SUCCESS RESPONSE
     // ========================================
     return res.status(201).json({
       success: true,
