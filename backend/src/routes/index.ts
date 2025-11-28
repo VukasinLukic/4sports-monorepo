@@ -1,6 +1,8 @@
 import express from 'express';
 import authRoutes from './authRoutes';
 import inviteRoutes from './inviteRoutes';
+import groupRoutes from './groupRoutes';
+import memberRoutes from './memberRoutes';
 
 /**
  * Main Router
@@ -19,6 +21,18 @@ router.use('/auth', authRoutes);
  * @route /api/v1/invites/*
  */
 router.use('/invites', inviteRoutes);
+
+/**
+ * Group Routes
+ * @route /api/v1/groups/*
+ */
+router.use('/groups', groupRoutes);
+
+/**
+ * Member Routes
+ * @route /api/v1/members/*
+ */
+router.use('/members', memberRoutes);
 
 /**
  * Future Routes (Phase 3+)
