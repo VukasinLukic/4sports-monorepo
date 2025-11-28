@@ -5,6 +5,8 @@ import groupRoutes from './groupRoutes';
 import memberRoutes from './memberRoutes';
 import eventRoutes from './eventRoutes';
 import attendanceRoutes from './attendanceRoutes';
+import paymentRoutes from './paymentRoutes';
+import medicalCheckRoutes from './medicalCheckRoutes';
 
 /**
  * Main Router
@@ -18,6 +20,8 @@ router.use('/groups', groupRoutes);
 router.use('/members', memberRoutes);
 router.use('/events', eventRoutes);
 router.use('/attendance', attendanceRoutes);
+router.use('/payments', paymentRoutes);
+router.use('/medical-checks', medicalCheckRoutes);
 
 /**
  * Future Routes (Phase 3+)
