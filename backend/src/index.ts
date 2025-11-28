@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { connectDB } from './config/db';
 import { initializeFirebase } from './config/firebase';
+import { startScheduler } from './services/schedulerService';
 import routes from './routes';
 
 // Load environment variables
@@ -80,6 +81,9 @@ const startServer = async () => {
 
     // Initialize Firebase Admin SDK
     initializeFirebase();
+
+    // Start scheduled jobs
+    startScheduler();
 
     // Start Express server
     app.listen(PORT, () => {
