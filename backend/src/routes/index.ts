@@ -8,6 +8,7 @@ import attendanceRoutes from './attendanceRoutes';
 import paymentRoutes from './paymentRoutes';
 import medicalCheckRoutes from './medicalCheckRoutes';
 import financeRoutes from './financeRoutes';
+import postRoutes from './postRoutes';
 
 /**
  * Main Router
@@ -24,6 +25,7 @@ router.use('/attendance', attendanceRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/medical-checks', medicalCheckRoutes);
 router.use('/finances', financeRoutes);
+router.use('/posts', postRoutes);
 
 /**
  * Future Routes (Phase 3+)
