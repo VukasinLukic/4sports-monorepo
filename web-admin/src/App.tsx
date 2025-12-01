@@ -6,10 +6,12 @@ import { DashboardPage } from './features/dashboard/DashboardPage';
 import { NotFoundPage } from './features/dashboard/NotFoundPage';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
+import { DevModeBanner } from './components/shared/DevModeBanner';
 
 function App() {
   return (
     <AuthProvider>
+      <DevModeBanner />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
