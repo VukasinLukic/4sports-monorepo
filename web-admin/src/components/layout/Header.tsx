@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Bell, User, LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { GlobalSearch } from '@/components/shared/GlobalSearch';
 
 const routeNameMap: Record<string, string> = {
   '/': 'Dashboard',
@@ -42,6 +43,7 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          <GlobalSearch />
           <Button variant="ghost" size="icon" className="relative">
             <Bell size={20} />
             <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs">

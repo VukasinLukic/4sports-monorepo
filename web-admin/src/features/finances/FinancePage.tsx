@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { AddFinanceDialog } from './AddFinanceDialog';
 import { useFinances, useFinanceSummary, useDeleteFinanceEntry } from './useFinances';
+import { useDashboard } from '../dashboard/useDashboard';
 import { FinanceEntry } from '@/types';
 import {
   Plus,
@@ -42,6 +43,7 @@ export function FinancePage() {
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
 
   const { data: summary, isLoading: summaryLoading } = useFinanceSummary();
+  const { data: dashboardData } = useDashboard();
   const { data: entries, isLoading: entriesLoading, isError, refetch } = useFinances({
     type: typeFilter,
   });
@@ -162,7 +164,12 @@ export function FinancePage() {
             <CardTitle>Income vs Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <BalanceChart />
+            <BalanceChart
+              data={{
+                income: summary?.totalIncome || 0,
+                expense: summary?.totalExpenses || 0,
+              }}
+            />
           </CardContent>
         </Card>
 
@@ -171,7 +178,7 @@ export function FinancePage() {
             <CardTitle>Monthly Trends</CardTitle>
           </CardHeader>
           <CardContent>
-            <MonthlyFinanceChart />
+            <MonthlyFinanceChart data={dashboardData?.monthlyFinance || []} />
           </CardContent>
         </Card>
       </div>

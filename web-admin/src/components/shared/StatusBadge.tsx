@@ -2,10 +2,10 @@ import { Badge } from '@/components/ui/badge';
 
 interface StatusBadgeProps {
   status: 'PAID' | 'UNPAID' | 'VALID' | 'EXPIRED';
-  type: 'payment' | 'medical';
+  type?: 'payment' | 'medical';
 }
 
-export function StatusBadge({ status, type }: StatusBadgeProps) {
+export function StatusBadge({ status }: StatusBadgeProps) {
   const isPositive = status === 'PAID' || status === 'VALID';
 
   return (

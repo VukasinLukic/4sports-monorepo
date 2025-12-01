@@ -1,5 +1,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -11,10 +20,11 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { FilterPanel } from '@/components/shared/FilterPanel';
 import { GenerateInviteDialog } from './GenerateInviteDialog';
 import { useCoaches, useDeleteCoach } from './useCoaches';
 import { Coach } from '@/types';
-import { Plus, Trash2, UserPlus, AlertTriangle } from 'lucide-react';
+import { Trash2, UserPlus, AlertTriangle, Search } from 'lucide-react';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
 
@@ -22,6 +32,8 @@ export function CoachListPage() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
+  const [search, setSearch] = useState('');
+  const [contractStatusFilter, setContractStatusFilter] = useState<'ALL' | 'EXPIRING' | 'EXPIRED' | 'VALID'>('ALL');
 
   const { data: coaches, isLoading, isError, refetch } = useCoaches();
   const deleteCoachMutation = useDeleteCoach();
@@ -62,6 +74,31 @@ export function CoachListPage() {
     });
   };
 
+  const handleClearFilters = () => {
+    setSearch('');
+    setContractStatusFilter('ALL');
+  };
+
+  // Client-side filtering
+  const filteredCoaches = coaches?.filter((coach) => {
+    // Search filter
+    if (search && !coach.fullName.toLowerCase().includes(search.toLowerCase())) {
+      return false;
+    }
+
+    // Contract status filter
+    if (contractStatusFilter !== 'ALL') {
+      const isExpired = isContractExpired(coach.contractExpiryDate);
+      const isExpiring = isContractExpiringSoon(coach.contractExpiryDate);
+
+      if (contractStatusFilter === 'EXPIRED' && !isExpired) return false;
+      if (contractStatusFilter === 'EXPIRING' && !isExpiring) return false;
+      if (contractStatusFilter === 'VALID' && (isExpired || isExpiring)) return false;
+    }
+
+    return true;
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -94,6 +131,44 @@ export function CoachListPage() {
         </Button>
       </div>
 
+      <FilterPanel onClear={handleClearFilters} title="Advanced Filters">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Search */}
+          <div className="space-y-2">
+            <Label htmlFor="search">Search by Name</Label>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="search"
+                placeholder="Search by name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+
+          {/* Contract Status Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="contract-status">Contract Status</Label>
+            <Select
+              value={contractStatusFilter}
+              onValueChange={(value) => setContractStatusFilter(value as any)}
+            >
+              <SelectTrigger id="contract-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Contracts</SelectItem>
+                <SelectItem value="VALID">Valid Contracts</SelectItem>
+                <SelectItem value="EXPIRING">Expiring Soon (30 days)</SelectItem>
+                <SelectItem value="EXPIRED">Expired Contracts</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </FilterPanel>
+
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -108,8 +183,8 @@ export function CoachListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {coaches && coaches.length > 0 ? (
-                coaches.map((coach) => (
+              {filteredCoaches && filteredCoaches.length > 0 ? (
+                filteredCoaches.map((coach) => (
                   <TableRow key={coach.id}>
                     <TableCell>
                       <div className="font-medium">{coach.fullName}</div>

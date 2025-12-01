@@ -1,4 +1,13 @@
-import { Member, Coach, FinanceEntry, FinanceSummary, DashboardStats } from '@/types';
+import {
+  Member,
+  Coach,
+  FinanceEntry,
+  FinanceSummary,
+  DashboardStats,
+  ClubSettings,
+  UserProfile,
+  Subscription,
+} from '@/types';
 
 // Mock Members Data
 export const mockMembers: Member[] = [
@@ -323,4 +332,32 @@ export const mockDashboardStats: DashboardStats = {
     { month: 'Nov', revenue: 65000, expenses: 52000 },
     { month: 'Dec', revenue: 68000, expenses: 55000 },
   ],
+};
+
+// Mock Club Settings
+export const mockClubSettings: ClubSettings = {
+  id: '1',
+  clubName: '4Sports Football Academy',
+  address: 'Bulevar Oslobođenja 123, Novi Sad 21000',
+  phoneNumber: '+381 21 123 4567',
+  email: 'info@4sports.rs',
+  logoUrl: undefined,
+};
+
+// Mock User Profile
+export const mockUserProfile: UserProfile = {
+  id: '1',
+  fullName: 'Dragan Stojković',
+  email: 'dragan.stojkovic@4sports.rs',
+  phoneNumber: '+381 64 123 4567',
+  profileImage: undefined,
+  role: 'ADMIN',
+};
+
+// Mock Subscription
+export const mockSubscription: Subscription = {
+  plan: 'FREE',
+  memberLimit: 50,
+  currentMembersCount: 8,
+  validUntil: undefined,
 };

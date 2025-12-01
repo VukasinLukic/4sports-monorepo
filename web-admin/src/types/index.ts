@@ -107,3 +107,43 @@ export interface FinanceSummary {
   currentMonthIncome: number;
   currentMonthExpenses: number;
 }
+
+// Settings Types
+export interface ClubSettings {
+  id: string;
+  clubName: string;
+  address: string;
+  phoneNumber: string;
+  email: string;
+  logoUrl?: string;
+}
+
+export interface UpdateClubSettingsData {
+  clubName?: string;
+  address?: string;
+  phoneNumber?: string;
+  email?: string;
+  logoUrl?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  profileImage?: string;
+  role: 'ADMIN' | 'COACH';
+}
+
+export interface UpdateUserProfileData {
+  fullName?: string;
+  phoneNumber?: string;
+  profileImage?: string;
+}
+
+export interface Subscription {
+  plan: 'FREE' | 'BASIC' | 'PRO';
+  memberLimit: number;
+  currentMembersCount: number;
+  validUntil?: string;
+}

@@ -16,9 +16,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { FilterPanel } from '@/components/shared/FilterPanel';
 import { AddMemberDialog } from './AddMemberDialog';
 import { EditMemberDialog } from './EditMemberDialog';
 import { useMembers, useDeleteMember } from './useMembers';
@@ -26,11 +27,15 @@ import { Member } from '@/types';
 import { Plus, Pencil, Trash2, Search, User } from 'lucide-react';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
+import { Label } from '@/components/ui/label';
 
 export function MemberListPage() {
   const [search, setSearch] = useState('');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL');
   const [medicalStatusFilter, setMedicalStatusFilter] = useState<'ALL' | 'VALID' | 'EXPIRED'>('ALL');
+  const [genderFilter, setGenderFilter] = useState<'ALL' | 'MALE' | 'FEMALE'>('ALL');
+  const [minAge, setMinAge] = useState('');
+  const [maxAge, setMaxAge] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -60,6 +65,23 @@ export function MemberListPage() {
       setSelectedMember(null);
     }
   };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setPaymentStatusFilter('ALL');
+    setMedicalStatusFilter('ALL');
+    setGenderFilter('ALL');
+    setMinAge('');
+    setMaxAge('');
+  };
+
+  // Client-side filtering for gender and age
+  const filteredMembers = members?.filter((member) => {
+    if (genderFilter !== 'ALL' && member.gender !== genderFilter) return false;
+    if (minAge && member.age < parseInt(minAge)) return false;
+    if (maxAge && member.age > parseInt(maxAge)) return false;
+    return true;
+  });
 
   if (isLoading) {
     return (
@@ -93,29 +115,31 @@ export function MemberListPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search */}
+      <FilterPanel onClear={handleClearFilters} title="Advanced Filters">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Search */}
+          <div className="space-y-2">
+            <Label htmlFor="search">Search by Name</Label>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
+                id="search"
                 placeholder="Search by name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8"
               />
             </div>
+          </div>
 
-            {/* Payment Status Filter */}
+          {/* Payment Status Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="payment-status">Payment Status</Label>
             <Select
               value={paymentStatusFilter}
               onValueChange={(value) => setPaymentStatusFilter(value as any)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="payment-status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -124,13 +148,16 @@ export function MemberListPage() {
                 <SelectItem value="UNPAID">Unpaid</SelectItem>
               </SelectContent>
             </Select>
+          </div>
 
-            {/* Medical Status Filter */}
+          {/* Medical Status Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="medical-status">Medical Status</Label>
             <Select
               value={medicalStatusFilter}
               onValueChange={(value) => setMedicalStatusFilter(value as any)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="medical-status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -140,8 +167,54 @@ export function MemberListPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Gender Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="gender">Gender</Label>
+            <Select
+              value={genderFilter}
+              onValueChange={(value) => setGenderFilter(value as any)}
+            >
+              <SelectTrigger id="gender">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Genders</SelectItem>
+                <SelectItem value="MALE">Male</SelectItem>
+                <SelectItem value="FEMALE">Female</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Min Age Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="min-age">Min Age</Label>
+            <Input
+              id="min-age"
+              type="number"
+              placeholder="Min age"
+              value={minAge}
+              onChange={(e) => setMinAge(e.target.value)}
+              min="0"
+              max="100"
+            />
+          </div>
+
+          {/* Max Age Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="max-age">Max Age</Label>
+            <Input
+              id="max-age"
+              type="number"
+              placeholder="Max age"
+              value={maxAge}
+              onChange={(e) => setMaxAge(e.target.value)}
+              min="0"
+              max="100"
+            />
+          </div>
+        </div>
+      </FilterPanel>
 
       <Card>
         <CardContent className="p-0">
@@ -157,8 +230,8 @@ export function MemberListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members && members.length > 0 ? (
-                members.map((member) => (
+              {filteredMembers && filteredMembers.length > 0 ? (
+                filteredMembers.map((member) => (
                   <TableRow key={member.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">

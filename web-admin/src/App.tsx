@@ -9,10 +9,12 @@ import { DashboardPage } from './features/dashboard/DashboardPage';
 import { MemberListPage } from './features/members/MemberListPage';
 import { CoachListPage } from './features/coaches/CoachListPage';
 import { FinancePage } from './features/finances/FinancePage';
+import { SettingsPage } from './features/settings/SettingsPage';
 import { NotFoundPage } from './features/dashboard/NotFoundPage';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 import { DevModeBanner } from './components/shared/DevModeBanner';
+import { Toaster } from './components/ui/toaster';
 
 function App() {
   return (
@@ -63,10 +65,21 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <SettingsPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      <Toaster />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
