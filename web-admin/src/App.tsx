@@ -7,6 +7,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { MemberListPage } from './features/members/MemberListPage';
+import { CoachListPage } from './features/coaches/CoachListPage';
 import { NotFoundPage } from './features/dashboard/NotFoundPage';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
@@ -37,6 +38,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <MemberListPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/coaches"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <CoachListPage />
                   </Layout>
                 </ProtectedRoute>
               }

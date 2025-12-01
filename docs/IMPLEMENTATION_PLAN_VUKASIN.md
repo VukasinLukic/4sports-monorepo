@@ -589,22 +589,22 @@ cd 4sports-monorepo
 
 ---
 
-### PHASE 6: Members Management (14-16 sati)
+### PHASE 6: Members Management (14-16 sati) ✅ COMPLETED
 
 **Cilj:** CRUD operacije za članove kluba.
 
 #### 6.1 Members API Hooks
-- [ ] Napravi `src/features/members/useMembers.ts`
-- [ ] `useQuery` za fetch members list
-- [ ] `useMutation` za create member
-- [ ] `useMutation` za update member
-- [ ] `useMutation` za delete member
-- [ ] Filter i search functionality
+- [x] Napravi `src/features/members/useMembers.ts`
+- [x] `useQuery` za fetch members list
+- [x] `useMutation` za create member
+- [x] `useMutation` za update member
+- [x] `useMutation` za delete member
+- [x] Filter i search functionality
 
 #### 6.2 Members List Page
-- [ ] Napravi `src/features/members/MemberListPage.tsx`
-- [ ] shadcn/ui Table komponenta
-- [ ] Columns:
+- [x] Napravi `src/features/members/MemberListPage.tsx`
+- [x] shadcn/ui Table komponenta
+- [x] Columns:
   - Avatar/Profile image
   - Full Name
   - Age
@@ -612,25 +612,25 @@ cd 4sports-monorepo
   - Payment Status (badge: green/red)
   - Medical Status (badge: green/red)
   - Actions (Edit, Delete buttons)
-- [ ] Search input (search by name)
-- [ ] Filters:
+- [x] Search input (search by name)
+- [x] Filters:
   - Payment Status (All, Paid, Unpaid)
   - Medical Status (All, Valid, Expired)
   - Group filter
-- [ ] Pagination (ako ima mnogo članova)
+- [ ] Pagination (ako ima mnogo članova) - SKIPPED FOR NOW
 
 #### 6.3 Member Status Badges
-- [ ] Napravi `src/components/shared/StatusBadge.tsx`
-- [ ] Props: status (PAID/UNPAID, VALID/EXPIRED), type
-- [ ] Colors:
+- [x] Napravi `src/components/shared/StatusBadge.tsx`
+- [x] Props: status (PAID/UNPAID, VALID/EXPIRED), type
+- [x] Colors:
   - PAID / VALID → Green badge
   - UNPAID / EXPIRED → Red badge
-- [ ] Uppercase text, rounded corners
+- [x] Uppercase text, rounded corners
 
 #### 6.4 Add Member Dialog
-- [ ] Napravi `src/features/members/AddMemberDialog.tsx`
-- [ ] shadcn/ui Dialog komponenta
-- [ ] Form fields:
+- [x] Napravi `src/features/members/AddMemberDialog.tsx`
+- [x] shadcn/ui Dialog komponenta
+- [x] Form fields:
   - Full Name
   - Date of Birth
   - Group (select dropdown)
@@ -638,24 +638,24 @@ cd 4sports-monorepo
   - Gender (select)
   - Height, Weight (optional)
   - Position (optional)
-- [ ] Validacija
-- [ ] OnSubmit: Call API to create member
-- [ ] Success: Refresh members list
-- [ ] Error handling
+- [x] Validacija
+- [x] OnSubmit: Call API to create member
+- [x] Success: Refresh members list
+- [x] Error handling
 
 #### 6.5 Edit Member Dialog
-- [ ] Napravi `src/features/members/EditMemberDialog.tsx`
-- [ ] Slično kao Add, ali prefilled sa postojećim data
-- [ ] Update API call
+- [x] Napravi `src/features/members/EditMemberDialog.tsx`
+- [x] Slično kao Add, ali prefilled sa postojećim data
+- [x] Update API call
 
 #### 6.6 Delete Confirmation Dialog
-- [ ] Napravi `src/components/shared/ConfirmDialog.tsx`
-- [ ] Reusable confirm dialog
-- [ ] Props: title, message, onConfirm, onCancel
-- [ ] Danger styling za delete akcije
+- [x] Napravi `src/components/shared/ConfirmDialog.tsx`
+- [x] Reusable confirm dialog
+- [x] Props: title, message, onConfirm, onCancel
+- [x] Danger styling za delete akcije
 
 #### 6.7 Member Details Page (Optional - Ako Ima Vremena)
-- [ ] `/members/:memberId`
+- [ ] `/members/:memberId` - SKIPPED (Optional)
 - [ ] Prikaz svih detalja člana
 - [ ] QR kod display
 - [ ] Attendance history
@@ -663,53 +663,53 @@ cd 4sports-monorepo
 - [ ] Medical history
 
 #### 6.8 Test Members CRUD
-- [ ] Test add member
-- [ ] Test edit member
-- [ ] Test delete member
-- [ ] Test filters i search
-- [ ] Test pagination
-- [ ] **Commit:** `web: implement members management`
+- [x] Test add member
+- [x] Test edit member
+- [x] Test delete member
+- [x] Test filters i search
+- [ ] Test pagination - SKIPPED
+- [x] **Commit:** `web: implement members management`
 
 ---
 
-### PHASE 7: Coaches & Contracts (8-10 sati)
+### PHASE 7: Coaches & Contracts (8-10 sati) ✅ COMPLETED
 
 **Cilj:** Upravljanje trenerima i njihovim ugovorima.
 
 #### 7.1 Coaches API Hooks
-- [ ] Napravi `src/features/coaches/useCoaches.ts`
-- [ ] Fetch coaches list
-- [ ] Create/Update/Delete mutations
+- [x] Napravi `src/features/coaches/useCoaches.ts`
+- [x] Fetch coaches list
+- [x] Create/Update/Delete mutations
 
 #### 7.2 Coaches List Page
-- [ ] Napravi `src/features/coaches/CoachListPage.tsx`
-- [ ] Table sa kolonama:
+- [x] Napravi `src/features/coaches/CoachListPage.tsx`
+- [x] Table sa kolonama:
   - Name
   - Email
   - Phone
   - Groups (broj grupa koje vodi)
   - Contract Expiry Date
   - Actions
-- [ ] Add Coach button (generate invite code)
+- [x] Add Coach button (generate invite code)
 
 #### 7.3 Generate Coach Invite Code Dialog
-- [ ] Napravi `src/features/coaches/GenerateInviteDialog.tsx`
-- [ ] Button: Generate Invite Code
-- [ ] API call: `POST /invites/generate` (type: COACH)
-- [ ] Display generisan kod
-- [ ] Copy to clipboard button
-- [ ] Share via email option (optional)
+- [x] Napravi `src/features/coaches/GenerateInviteDialog.tsx`
+- [x] Button: Generate Invite Code
+- [x] API call: `POST /invites/generate` (type: COACH)
+- [x] Display generisan kod
+- [x] Copy to clipboard button
+- [ ] Share via email option (optional) - SKIPPED
 
 #### 7.4 Contract Management
-- [ ] U Coaches table dodaj kolonu "Contract Expiry"
-- [ ] Warning badge ako expires uskoro (30 dana)
-- [ ] Edit contract dialog (update expiry date)
+- [x] U Coaches table dodaj kolonu "Contract Expiry"
+- [x] Warning badge ako expires uskoro (30 dana)
+- [x] Edit contract dialog (update expiry date) - Implemented in API hooks
 
 #### 7.5 Test Coaches
-- [ ] Test lista trenera
-- [ ] Test generate invite kod
-- [ ] Test contract expiry warnings
-- [ ] **Commit:** `web: add coaches and contracts management`
+- [x] Test lista trenera
+- [x] Test generate invite kod
+- [x] Test contract expiry warnings
+- [x] **Commit:** `web: add coaches and contracts management`
 
 ---
 
