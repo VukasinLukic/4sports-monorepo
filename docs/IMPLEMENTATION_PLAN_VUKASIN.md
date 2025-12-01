@@ -713,30 +713,30 @@ cd 4sports-monorepo
 
 ---
 
-### PHASE 8: Finances (10-12 sati)
+### PHASE 8: Finances (10-12 sati) ✅ COMPLETED
 
 **Cilj:** Pregled finansija i manuelni unos prihoda/rashoda.
 
 #### 8.1 Finances API Hooks
-- [ ] Napravi `src/features/finances/useFinances.ts`
-- [ ] Fetch all finance entries
-- [ ] Fetch summary stats
-- [ ] Create/Update/Delete mutations
+- [x] Napravi `src/features/finances/useFinances.ts`
+- [x] Fetch all finance entries
+- [x] Fetch summary stats
+- [x] Create/Update/Delete mutations
 
 #### 8.2 Finance Overview Page
-- [ ] Napravi `src/features/finances/FinancePage.tsx`
-- [ ] Top section:
+- [x] Napravi `src/features/finances/FinancePage.tsx`
+- [x] Top section:
   - Total Income (current month)
   - Total Expenses (current month)
   - Net Profit/Loss
-- [ ] Tabs:
+- [x] Tabs:
   - All Transactions
   - Membership Payments (auto-generated)
   - Manual Entries (income/expense owner dodaje)
 
 #### 8.3 Transactions Table
-- [ ] Table sa svim transakcijama
-- [ ] Columns:
+- [x] Table sa svim transakcijama
+- [x] Columns:
   - Date
   - Type (Income/Expense)
   - Category
@@ -744,32 +744,32 @@ cd 4sports-monorepo
   - Amount
   - Recorded By
   - Actions (Edit/Delete - samo za manual entries)
-- [ ] Filters:
+- [x] Filters:
   - Type (All, Income, Expense)
-  - Date range
-  - Category
+  - Date range - SKIPPED (implementiran samo Type filter)
+  - Category - SKIPPED
 
 #### 8.4 Add Manual Finance Entry Dialog
-- [ ] Napravi `src/features/finances/AddFinanceDialog.tsx`
-- [ ] Form:
+- [x] Napravi `src/features/finances/AddFinanceDialog.tsx`
+- [x] Form:
   - Type (Income / Expense)
   - Category (Equipment, Rent, Salary, Other)
   - Amount
   - Description
   - Date
-  - Upload Invoice (optional - file upload)
-- [ ] API call: Create finance entry
+  - Upload Invoice (optional - file upload) - SKIPPED
+- [x] API call: Create finance entry
 
 #### 8.5 Financial Summary Charts
-- [ ] Reuse charts from dashboard
-- [ ] Monthly trends
-- [ ] Category breakdown (pie chart)
+- [x] Reuse charts from dashboard
+- [x] Monthly trends
+- [x] Category breakdown (pie chart)
 
 #### 8.6 Test Finances
-- [ ] Test add income/expense
-- [ ] Test filters
-- [ ] Test summary calculations
-- [ ] **Commit:** `web: implement finances overview`
+- [x] Test add income/expense
+- [x] Test filters
+- [x] Test summary calculations
+- [x] **Commit:** `web: implement finances overview`
 
 ---
 

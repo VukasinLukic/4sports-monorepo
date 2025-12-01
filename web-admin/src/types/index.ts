@@ -76,3 +76,34 @@ export interface InviteCode {
   type: 'COACH' | 'PARENT';
   expiresAt: string;
 }
+
+// Finance Types
+export interface FinanceEntry {
+  id: string;
+  type: 'INCOME' | 'EXPENSE';
+  category: string;
+  description: string;
+  amount: number;
+  date: string;
+  recordedBy: string;
+  isManual: boolean;
+  invoiceUrl?: string;
+  createdAt: string;
+}
+
+export interface CreateFinanceEntryData {
+  type: 'INCOME' | 'EXPENSE';
+  category: string;
+  description: string;
+  amount: number;
+  date: string;
+  invoiceUrl?: string;
+}
+
+export interface FinanceSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  netProfit: number;
+  currentMonthIncome: number;
+  currentMonthExpenses: number;
+}
