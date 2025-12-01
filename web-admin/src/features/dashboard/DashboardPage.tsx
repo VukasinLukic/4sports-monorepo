@@ -3,6 +3,10 @@ import { useDashboard } from './useDashboard';
 import { KPICard } from './KPICard';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
+import { MemberGrowthChart } from '@/components/charts/MemberGrowthChart';
+import { BalanceChart } from '@/components/charts/BalanceChart';
+import { RevenueByQuarterChart } from '@/components/charts/RevenueByQuarterChart';
+import { MonthlyFinanceChart } from '@/components/charts/MonthlyFinanceChart';
 
 export const DashboardPage = () => {
   const { data, isLoading, error, refetch } = useDashboard();
@@ -64,6 +68,15 @@ export const DashboardPage = () => {
           </>
         ) : null}
       </div>
+
+      {!isLoading && data && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <MemberGrowthChart data={data.memberGrowth} />
+          <BalanceChart data={data.balanceData} />
+          <RevenueByQuarterChart data={data.quarterlyRevenue} />
+          <MonthlyFinanceChart data={data.monthlyFinance} />
+        </div>
+      )}
     </div>
   );
 };
