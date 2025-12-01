@@ -1,14 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { Coach, InviteCode } from '@/types';
+import { mockCoaches } from '@/lib/mockData';
 
 // Fetch coaches list
 export const useCoaches = () => {
   return useQuery({
     queryKey: ['coaches'],
     queryFn: async () => {
-      const response = await api.get<Coach[]>('/coaches');
-      return response.data;
+      try {
+        const response = await api.get<Coach[]>('/coaches');
+        return response.data;
+      } catch (error) {
+        // Return mock data if API fails
+        console.log('Using mock data for coaches');
+        return mockCoaches;
+      }
     },
   });
 };

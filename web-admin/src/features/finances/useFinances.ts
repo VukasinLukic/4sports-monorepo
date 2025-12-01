@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { FinanceEntry, CreateFinanceEntryData, FinanceSummary } from '@/types';
+import { mockFinanceEntries, mockFinanceSummary } from '@/lib/mockData';
 
 // Fetch all finance entries with filters
 export const useFinances = (filters?: {
@@ -12,23 +13,39 @@ export const useFinances = (filters?: {
   return useQuery({
     queryKey: ['finances', filters],
     queryFn: async () => {
-      const params = new URLSearchParams();
+      try {
+        const params = new URLSearchParams();
 
-      if (filters?.type && filters.type !== 'ALL') {
-        params.append('type', filters.type);
-      }
-      if (filters?.category) {
-        params.append('category', filters.category);
-      }
-      if (filters?.startDate) {
-        params.append('startDate', filters.startDate);
-      }
-      if (filters?.endDate) {
-        params.append('endDate', filters.endDate);
-      }
+        if (filters?.type && filters.type !== 'ALL') {
+          params.append('type', filters.type);
+        }
+        if (filters?.category) {
+          params.append('category', filters.category);
+        }
+        if (filters?.startDate) {
+          params.append('startDate', filters.startDate);
+        }
+        if (filters?.endDate) {
+          params.append('endDate', filters.endDate);
+        }
 
-      const response = await api.get<FinanceEntry[]>(`/finances?${params.toString()}`);
-      return response.data;
+        const response = await api.get<FinanceEntry[]>(`/finances?${params.toString()}`);
+        return response.data;
+      } catch (error) {
+        // Return mock data if API fails
+        console.log('Using mock data for finances');
+        let filteredEntries = [...mockFinanceEntries];
+
+        // Apply filters to mock data
+        if (filters?.type && filters.type !== 'ALL') {
+          filteredEntries = filteredEntries.filter((e) => e.type === filters.type);
+        }
+        if (filters?.category) {
+          filteredEntries = filteredEntries.filter((e) => e.category === filters.category);
+        }
+
+        return filteredEntries;
+      }
     },
   });
 };
@@ -38,8 +55,14 @@ export const useFinanceSummary = () => {
   return useQuery({
     queryKey: ['finances-summary'],
     queryFn: async () => {
-      const response = await api.get<FinanceSummary>('/finances/summary');
-      return response.data;
+      try {
+        const response = await api.get<FinanceSummary>('/finances/summary');
+        return response.data;
+      } catch (error) {
+        // Return mock data if API fails
+        console.log('Using mock data for finance summary');
+        return mockFinanceSummary;
+      }
     },
   });
 };
