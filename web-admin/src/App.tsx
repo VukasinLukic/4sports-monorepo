@@ -6,6 +6,7 @@ import { AuthProvider } from './features/auth/AuthContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { MemberListPage } from './features/members/MemberListPage';
 import { NotFoundPage } from './features/dashboard/NotFoundPage';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
@@ -26,6 +27,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <DashboardPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/members"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <MemberListPage />
                   </Layout>
                 </ProtectedRoute>
               }
