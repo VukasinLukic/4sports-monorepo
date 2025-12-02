@@ -1,0 +1,37 @@
+# Environment Variables - NIKAD NE COMMIT-UJ!
+.env
+.env.local
+.env.production
+
+# Firebase Admin Key - NIKAD NE COMMIT-UJ!
+firebase-admin-key.json
+
+# Dependencies
+node_modules/
+
+# Build Output
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary Files
+*.tmp
+*.temp
