@@ -39,10 +39,16 @@ export const BalanceChart = ({ data }: BalanceChartProps) => {
             </Pie>
             <Tooltip
               contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
+                backgroundColor: 'hsl(var(--popover))',
                 border: '1px solid hsl(var(--border))',
                 borderRadius: '8px',
-                color: 'hsl(var(--foreground))',
+                color: 'hsl(var(--popover-foreground))',
+              }}
+              itemStyle={{
+                color: 'hsl(var(--popover-foreground))',
+              }}
+              labelStyle={{
+                color: 'hsl(var(--popover-foreground))',
               }}
               formatter={(value: number) => `$${value.toLocaleString()}`}
             />

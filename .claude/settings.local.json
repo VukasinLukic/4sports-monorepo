@@ -21,7 +21,8 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nweb: setup react vite project with tailwind and shadcn\n\n- Initialize Vite + React + TypeScript project\n- Install core dependencies (React Router, TanStack Query, Axios, Firebase)\n- Setup TailwindCSS with custom 4Sports brand colors\n- Setup shadcn/ui with basic components\n- Install Recharts and Lucide icons\n- Create folder structure for features, components, services\n- Add .env.example template\n\nPhase 1 completed.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit:*)",
       "Bash(npx shadcn@latest add alert-dialog:*)",
-      "Bash(npx shadcn@latest add:*)"
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

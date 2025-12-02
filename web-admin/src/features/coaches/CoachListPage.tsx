@@ -25,7 +25,7 @@ import { GenerateInviteDialog } from './GenerateInviteDialog';
 import { useCoaches, useDeleteCoach } from './useCoaches';
 import { Coach } from '@/types';
 import { Trash2, UserPlus, AlertTriangle, Search } from 'lucide-react';
-import { SkeletonCard } from '@/components/shared/SkeletonCard';
+import { SkeletonTable } from '@/components/shared/SkeletonTable';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
 
 export function CoachListPage() {
@@ -101,10 +101,15 @@ export function CoachListPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <div className="h-9 w-48 bg-muted animate-pulse rounded" />
+            <div className="h-5 w-64 bg-muted animate-pulse rounded" />
+          </div>
+          <div className="h-10 w-32 bg-muted animate-pulse rounded" />
+        </div>
+        <SkeletonTable rows={6} columns={5} />
       </div>
     );
   }

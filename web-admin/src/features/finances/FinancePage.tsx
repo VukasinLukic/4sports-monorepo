@@ -31,10 +31,11 @@ import {
   Trash2,
   Filter,
 } from 'lucide-react';
-import { SkeletonCard } from '@/components/shared/SkeletonCard';
+import { SkeletonTable } from '@/components/shared/SkeletonTable';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
 import { BalanceChart } from '@/components/charts/BalanceChart';
 import { MonthlyFinanceChart } from '@/components/charts/MonthlyFinanceChart';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function FinancePage() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -81,10 +82,24 @@ export function FinancePage() {
 
   if (summaryLoading || entriesLoading) {
     return (
-      <div className="space-y-4">
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <div className="h-9 w-48 bg-muted animate-pulse rounded" />
+            <div className="h-5 w-64 bg-muted animate-pulse rounded" />
+          </div>
+          <div className="h-10 w-32 bg-muted animate-pulse rounded" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
+        </div>
+        <SkeletonTable rows={6} columns={5} />
       </div>
     );
   }

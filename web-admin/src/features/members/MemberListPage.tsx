@@ -25,7 +25,7 @@ import { EditMemberDialog } from './EditMemberDialog';
 import { useMembers, useDeleteMember } from './useMembers';
 import { Member } from '@/types';
 import { Plus, Pencil, Trash2, Search, User } from 'lucide-react';
-import { SkeletonCard } from '@/components/shared/SkeletonCard';
+import { SkeletonTable } from '@/components/shared/SkeletonTable';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
 import { Label } from '@/components/ui/label';
 
@@ -85,10 +85,15 @@ export function MemberListPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <div className="h-9 w-48 bg-muted animate-pulse rounded" />
+            <div className="h-5 w-64 bg-muted animate-pulse rounded" />
+          </div>
+          <div className="h-10 w-32 bg-muted animate-pulse rounded" />
+        </div>
+        <SkeletonTable rows={8} columns={6} />
       </div>
     );
   }

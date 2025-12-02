@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils';
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  mobileOpen: boolean;
+  onClose: () => void;
 }
 
 interface NavItem {
@@ -32,7 +34,7 @@ const navItems: NavItem[] = [
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
-export const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
+export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarProps) => {
   const location = useLocation();
   const { logout, user } = useAuth();
 
@@ -44,12 +46,18 @@ export const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     }
   };
 
+  const handleNavClick = () => {
+    onClose();
+  };
+
   return (
     <>
       <aside
         className={cn(
           'fixed left-0 top-0 z-40 h-screen bg-card border-r border-border transition-all duration-300',
-          collapsed ? 'w-16' : 'w-64'
+          'md:translate-x-0',
+          collapsed ? 'w-16' : 'w-64',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         )}
       >
         <div className="flex h-full flex-col">
@@ -74,6 +82,7 @@ export const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={handleNavClick}
                   className={cn(
                     'flex items-center gap-3 px-3 py-3 rounded-lg transition-colors',
                     isActive
@@ -97,7 +106,10 @@ export const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
               </div>
             )}
             <Button
-              onClick={handleLogout}
+              onClick={() => {
+                handleLogout();
+                handleNavClick();
+              }}
               variant="ghost"
               className={cn(
                 'w-full justify-start',
@@ -112,10 +124,10 @@ export const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         </div>
       </aside>
 
-      {!collapsed && (
+      {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={onToggle}
+          onClick={onClose}
         />
       )}
     </>
