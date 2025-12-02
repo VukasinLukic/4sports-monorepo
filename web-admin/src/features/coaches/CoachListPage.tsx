@@ -33,7 +33,12 @@ export function CoachListPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
   const [search, setSearch] = useState('');
-  const [contractStatusFilter, setContractStatusFilter] = useState<'ALL' | 'EXPIRING' | 'EXPIRED' | 'VALID'>('ALL');
+
+  // Applied filter (actually used for filtering)
+  const [appliedContractStatus, setAppliedContractStatus] = useState<'ALL' | 'EXPIRING' | 'EXPIRED' | 'VALID'>('ALL');
+
+  // Temporary filter (in the filter panel, not yet applied)
+  const [tempContractStatus, setTempContractStatus] = useState<'ALL' | 'EXPIRING' | 'EXPIRED' | 'VALID'>('ALL');
 
   const { data: coaches, isLoading, isError, refetch } = useCoaches();
   const deleteCoachMutation = useDeleteCoach();
@@ -74,26 +79,31 @@ export function CoachListPage() {
     });
   };
 
+  const handleApplyFilters = () => {
+    setAppliedContractStatus(tempContractStatus);
+  };
+
   const handleClearFilters = () => {
     setSearch('');
-    setContractStatusFilter('ALL');
+    setTempContractStatus('ALL');
+    setAppliedContractStatus('ALL');
   };
 
   // Client-side filtering
   const filteredCoaches = coaches?.filter((coach) => {
-    // Search filter
+    // Search filter - real-time
     if (search && !coach.fullName.toLowerCase().includes(search.toLowerCase())) {
       return false;
     }
 
-    // Contract status filter
-    if (contractStatusFilter !== 'ALL') {
+    // Contract status filter - only applied when user clicks Apply Filters
+    if (appliedContractStatus !== 'ALL') {
       const isExpired = isContractExpired(coach.contractExpiryDate);
       const isExpiring = isContractExpiringSoon(coach.contractExpiryDate);
 
-      if (contractStatusFilter === 'EXPIRED' && !isExpired) return false;
-      if (contractStatusFilter === 'EXPIRING' && !isExpiring) return false;
-      if (contractStatusFilter === 'VALID' && (isExpired || isExpiring)) return false;
+      if (appliedContractStatus === 'EXPIRED' && !isExpired) return false;
+      if (appliedContractStatus === 'EXPIRING' && !isExpiring) return false;
+      if (appliedContractStatus === 'VALID' && (isExpired || isExpiring)) return false;
     }
 
     return true;
@@ -157,8 +167,8 @@ export function CoachListPage() {
           <div className="space-y-2">
             <Label htmlFor="contract-status">Contract Status</Label>
             <Select
-              value={contractStatusFilter}
-              onValueChange={(value) => setContractStatusFilter(value as any)}
+              value={tempContractStatus}
+              onValueChange={(value) => setTempContractStatus(value as any)}
             >
               <SelectTrigger id="contract-status">
                 <SelectValue />
@@ -171,6 +181,17 @@ export function CoachListPage() {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        {/* Apply Filters Button */}
+        <div className="flex justify-end gap-2 pt-4 border-t border-border mt-4">
+          <Button
+            onClick={handleApplyFilters}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Search className="mr-2 h-4 w-4" />
+            Apply Filters
+          </Button>
         </div>
       </FilterPanel>
 

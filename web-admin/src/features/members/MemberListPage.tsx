@@ -31,11 +31,21 @@ import { Label } from '@/components/ui/label';
 
 export function MemberListPage() {
   const [search, setSearch] = useState('');
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL');
-  const [medicalStatusFilter, setMedicalStatusFilter] = useState<'ALL' | 'VALID' | 'EXPIRED'>('ALL');
-  const [genderFilter, setGenderFilter] = useState<'ALL' | 'MALE' | 'FEMALE'>('ALL');
-  const [minAge, setMinAge] = useState('');
-  const [maxAge, setMaxAge] = useState('');
+
+  // Applied filters (actually used for filtering)
+  const [appliedPaymentStatus, setAppliedPaymentStatus] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL');
+  const [appliedMedicalStatus, setAppliedMedicalStatus] = useState<'ALL' | 'VALID' | 'EXPIRED'>('ALL');
+  const [appliedGender, setAppliedGender] = useState<'ALL' | 'MALE' | 'FEMALE'>('ALL');
+  const [appliedMinAge, setAppliedMinAge] = useState('');
+  const [appliedMaxAge, setAppliedMaxAge] = useState('');
+
+  // Temporary filters (in the filter panel, not yet applied)
+  const [tempPaymentStatus, setTempPaymentStatus] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL');
+  const [tempMedicalStatus, setTempMedicalStatus] = useState<'ALL' | 'VALID' | 'EXPIRED'>('ALL');
+  const [tempGender, setTempGender] = useState<'ALL' | 'MALE' | 'FEMALE'>('ALL');
+  const [tempMinAge, setTempMinAge] = useState('');
+  const [tempMaxAge, setTempMaxAge] = useState('');
+
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -43,8 +53,8 @@ export function MemberListPage() {
 
   const { data: members, isLoading, isError, refetch } = useMembers({
     search,
-    paymentStatus: paymentStatusFilter,
-    medicalStatus: medicalStatusFilter,
+    paymentStatus: appliedPaymentStatus,
+    medicalStatus: appliedMedicalStatus,
   });
 
   const deleteMemberMutation = useDeleteMember();
@@ -66,20 +76,33 @@ export function MemberListPage() {
     }
   };
 
+  const handleApplyFilters = () => {
+    setAppliedPaymentStatus(tempPaymentStatus);
+    setAppliedMedicalStatus(tempMedicalStatus);
+    setAppliedGender(tempGender);
+    setAppliedMinAge(tempMinAge);
+    setAppliedMaxAge(tempMaxAge);
+  };
+
   const handleClearFilters = () => {
     setSearch('');
-    setPaymentStatusFilter('ALL');
-    setMedicalStatusFilter('ALL');
-    setGenderFilter('ALL');
-    setMinAge('');
-    setMaxAge('');
+    setTempPaymentStatus('ALL');
+    setTempMedicalStatus('ALL');
+    setTempGender('ALL');
+    setTempMinAge('');
+    setTempMaxAge('');
+    setAppliedPaymentStatus('ALL');
+    setAppliedMedicalStatus('ALL');
+    setAppliedGender('ALL');
+    setAppliedMinAge('');
+    setAppliedMaxAge('');
   };
 
   // Client-side filtering for gender and age
   const filteredMembers = members?.filter((member) => {
-    if (genderFilter !== 'ALL' && member.gender !== genderFilter) return false;
-    if (minAge && member.age < parseInt(minAge)) return false;
-    if (maxAge && member.age > parseInt(maxAge)) return false;
+    if (appliedGender !== 'ALL' && member.gender !== appliedGender) return false;
+    if (appliedMinAge && member.age < parseInt(appliedMinAge)) return false;
+    if (appliedMaxAge && member.age > parseInt(appliedMaxAge)) return false;
     return true;
   });
 
@@ -141,8 +164,8 @@ export function MemberListPage() {
           <div className="space-y-2">
             <Label htmlFor="payment-status">Payment Status</Label>
             <Select
-              value={paymentStatusFilter}
-              onValueChange={(value) => setPaymentStatusFilter(value as any)}
+              value={tempPaymentStatus}
+              onValueChange={(value) => setTempPaymentStatus(value as any)}
             >
               <SelectTrigger id="payment-status">
                 <SelectValue />
@@ -159,8 +182,8 @@ export function MemberListPage() {
           <div className="space-y-2">
             <Label htmlFor="medical-status">Medical Status</Label>
             <Select
-              value={medicalStatusFilter}
-              onValueChange={(value) => setMedicalStatusFilter(value as any)}
+              value={tempMedicalStatus}
+              onValueChange={(value) => setTempMedicalStatus(value as any)}
             >
               <SelectTrigger id="medical-status">
                 <SelectValue />
@@ -177,8 +200,8 @@ export function MemberListPage() {
           <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>
             <Select
-              value={genderFilter}
-              onValueChange={(value) => setGenderFilter(value as any)}
+              value={tempGender}
+              onValueChange={(value) => setTempGender(value as any)}
             >
               <SelectTrigger id="gender">
                 <SelectValue />
@@ -198,8 +221,8 @@ export function MemberListPage() {
               id="min-age"
               type="number"
               placeholder="Min age"
-              value={minAge}
-              onChange={(e) => setMinAge(e.target.value)}
+              value={tempMinAge}
+              onChange={(e) => setTempMinAge(e.target.value)}
               min="0"
               max="100"
             />
@@ -212,12 +235,23 @@ export function MemberListPage() {
               id="max-age"
               type="number"
               placeholder="Max age"
-              value={maxAge}
-              onChange={(e) => setMaxAge(e.target.value)}
+              value={tempMaxAge}
+              onChange={(e) => setTempMaxAge(e.target.value)}
               min="0"
               max="100"
             />
           </div>
+        </div>
+
+        {/* Apply Filters Button */}
+        <div className="flex justify-end gap-2 pt-4 border-t border-border mt-4">
+          <Button
+            onClick={handleApplyFilters}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Search className="mr-2 h-4 w-4" />
+            Apply Filters
+          </Button>
         </div>
       </FilterPanel>
 

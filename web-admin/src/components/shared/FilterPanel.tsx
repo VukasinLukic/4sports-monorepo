@@ -10,7 +10,7 @@ interface FilterPanelProps {
 }
 
 export function FilterPanel({ children, onClear, title = 'Filters' }: FilterPanelProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   return (
     <div className="border border-border rounded-lg bg-card">
