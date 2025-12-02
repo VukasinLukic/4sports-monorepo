@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,13 +32,23 @@ export function CoachListPage() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Applied filter (actually used for filtering)
   const [appliedContractStatus, setAppliedContractStatus] = useState<'ALL' | 'EXPIRING' | 'EXPIRED' | 'VALID'>('ALL');
 
   // Temporary filter (in the filter panel, not yet applied)
   const [tempContractStatus, setTempContractStatus] = useState<'ALL' | 'EXPIRING' | 'EXPIRED' | 'VALID'>('ALL');
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const { data: coaches, isLoading, isError, refetch } = useCoaches();
   const deleteCoachMutation = useDeleteCoach();
@@ -84,15 +94,16 @@ export function CoachListPage() {
   };
 
   const handleClearFilters = () => {
-    setSearch('');
+    setSearchInput('');
+    setDebouncedSearch('');
     setTempContractStatus('ALL');
     setAppliedContractStatus('ALL');
   };
 
   // Client-side filtering
   const filteredCoaches = coaches?.filter((coach) => {
-    // Search filter - real-time
-    if (search && !coach.fullName.toLowerCase().includes(search.toLowerCase())) {
+    // Search filter - debounced
+    if (debouncedSearch && !coach.fullName.toLowerCase().includes(debouncedSearch.toLowerCase())) {
       return false;
     }
 
@@ -156,8 +167,8 @@ export function CoachListPage() {
               <Input
                 id="search"
                 placeholder="Search by name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-8"
               />
             </div>

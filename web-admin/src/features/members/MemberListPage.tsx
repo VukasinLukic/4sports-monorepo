@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -30,7 +30,8 @@ import { ErrorMessage } from '@/components/shared/ErrorMessage';
 import { Label } from '@/components/ui/label';
 
 export function MemberListPage() {
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Applied filters (actually used for filtering)
   const [appliedPaymentStatus, setAppliedPaymentStatus] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL');
@@ -51,8 +52,17 @@ export function MemberListPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const { data: members, isLoading, isError, refetch } = useMembers({
-    search,
+    search: debouncedSearch,
     paymentStatus: appliedPaymentStatus,
     medicalStatus: appliedMedicalStatus,
   });
@@ -85,7 +95,8 @@ export function MemberListPage() {
   };
 
   const handleClearFilters = () => {
-    setSearch('');
+    setSearchInput('');
+    setDebouncedSearch('');
     setTempPaymentStatus('ALL');
     setTempMedicalStatus('ALL');
     setTempGender('ALL');
@@ -153,8 +164,8 @@ export function MemberListPage() {
               <Input
                 id="search"
                 placeholder="Search by name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-8"
               />
             </div>
