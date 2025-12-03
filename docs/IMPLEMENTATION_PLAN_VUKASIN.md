@@ -869,13 +869,14 @@ cd 4sports-monorepo
 - [ ] Test na tablet
 - [ ] **Commit:** `web: optimize responsive design for mobile`
 
+
 ---
 
 ### PHASE 12: Loading States & UX Polish (6-8 sati)
 
 **Cilj:** Poboljšaj user experience.
 
-#### 12.1 Loading States
+#### 12.1 Loading StatesS
 - [ ] Skeleton loaders za sve list pages
 - [ ] Spinner za button actions
 - [ ] Progress bar za file uploads
