@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "4Sports",
+    "slug": "foursports-mobile",
+    "version": "1.0.0",
+    "scheme": "foursports",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1a1a"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.foursports.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow 4Sports to access your camera for QR code scanning.",
+        "NSPhotoLibraryUsageDescription": "Allow 4Sports to access your photo library to upload profile pictures and media."
+      }
+    },
+    "android": {
+      "package": "com.foursports.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a1a"
+      },
+      "permissions": [
+        "CAMERA",
+        "NOTIFICATIONS",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow 4Sports to access your camera for QR code scanning."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#4caf50"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow 4Sports to access your photo library to upload profile pictures and media."
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    }
+  }
+}
