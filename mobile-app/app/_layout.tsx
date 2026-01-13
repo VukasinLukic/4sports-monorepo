@@ -4,6 +4,7 @@ import { PaperProvider, MD3DarkTheme } from 'react-native-paper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppColors } from '@/constants/Colors';
+import { AuthProvider } from '@/services/AuthContext';
 
 // Create a query client instance
 const queryClient = new QueryClient({
@@ -37,25 +38,28 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <PaperProvider theme={theme}>
-          <StatusBar style="light" backgroundColor={AppColors.background} />
-          <Stack
-            screenOptions={{
-              headerStyle: {
-                backgroundColor: AppColors.background,
-              },
-              headerTintColor: AppColors.text,
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-              contentStyle: {
-                backgroundColor: AppColors.background,
-              },
-            }}
-          >
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-          </Stack>
-        </PaperProvider>
+        <AuthProvider>
+          <PaperProvider theme={theme}>
+            <StatusBar style="light" backgroundColor={AppColors.background} />
+            <Stack
+              screenOptions={{
+                headerStyle: {
+                  backgroundColor: AppColors.background,
+                },
+                headerTintColor: AppColors.text,
+                headerTitleStyle: {
+                  fontWeight: 'bold',
+                },
+                contentStyle: {
+                  backgroundColor: AppColors.background,
+                },
+              }}
+            >
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            </Stack>
+          </PaperProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );
