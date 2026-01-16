@@ -9,11 +9,11 @@ const storage = multer.memoryStorage();
 
 /**
  * File filter function
- * @param req - Express request
- * @param file - Uploaded file
+ * @param _req - Express request (unused)
+ * @param _file - Uploaded file (unused)
  * @param cb - Callback function
  */
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (_req: any, _file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   // Accept all files - validation will be done in controller
   cb(null, true);
 };

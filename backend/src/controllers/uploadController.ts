@@ -49,15 +49,15 @@ export const uploadProfilePicture = async (req: Request, res: Response) => {
     }
 
     // Delete old profile picture if exists
-    if (user.profilePicture) {
+    if (user.profileImage) {
       try {
-        await deleteFile(user.profilePicture);
+        await deleteFile(user.profileImage);
       } catch (error) {
         console.warn('Failed to delete old profile picture:', error);
       }
     }
 
-    user.profilePicture = fileUrl;
+    user.profileImage = fileUrl;
     await user.save();
 
     return res.status(200).json({ success: true, data: { url: fileUrl } });

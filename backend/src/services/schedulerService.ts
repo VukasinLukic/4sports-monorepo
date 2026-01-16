@@ -40,13 +40,13 @@ export const eventReminderJob = cron.schedule('0 * * * *', async () => {
       const members = await Member.find({
         'clubs.clubId': event.clubId,
         'clubs.groups': event.groupId,
-      }).select('userId');
+      }).select('parentId');
 
       // Create notification for each member
       for (const member of members) {
         await Notification.createNotification({
           clubId: event.clubId,
-          recipientId: member.userId,
+          recipientId: member.parentId,
           type: 'EVENT_REMINDER',
           title: `Upcoming Event: ${event.title}`,
           message: `Reminder: ${event.title} starts tomorrow at ${event.startTime.toLocaleTimeString()}. Location: ${event.location || 'TBD'}`,
@@ -90,13 +90,13 @@ export const paymentReminderJob = cron.schedule('0 9 * * *', async () => {
     for (const payment of overduePayments) {
       const member = payment.memberId as any;
 
-      if (!member || !member.userId) {
+      if (!member || !member.parentId) {
         continue;
       }
 
       await Notification.createNotification({
         clubId: payment.clubId,
-        recipientId: member.userId,
+        recipientId: member.parentId,
         type: 'PAYMENT_DUE',
         title: 'Payment Overdue',
         message: `Your payment for ${payment.description} is overdue. Amount: ${payment.amount} ${payment.currency}. Due date was ${payment.dueDate.toLocaleDateString()}.`,
@@ -131,28 +131,35 @@ export const medicalCheckExpiryJob = cron.schedule('0 8 * * *', async () => {
 
     // Find medical checks expiring in the next 30 days
     const expiringChecks = await MedicalCheck.find({
-      expiryDate: {
+      validUntil: {
         $gte: now,
         $lte: in30Days,
       },
-      isValid: true,
+      status: 'VALID',
     }).populate('memberId');
 
     for (const check of expiringChecks) {
       const member = check.memberId as any;
 
-      if (!member || !member.userId) {
+      if (!member || !member.parentId) {
         continue;
       }
 
-      const daysUntilExpiry = Math.ceil((check.expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const daysUntilExpiry = Math.ceil((check.validUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Get clubId from member's clubs array (use first club)
+      const clubId = member.clubs && member.clubs.length > 0 ? member.clubs[0].clubId : null;
+
+      if (!clubId) {
+        continue;
+      }
 
       await Notification.createNotification({
-        clubId: check.clubId,
-        recipientId: member.userId,
+        clubId: clubId,
+        recipientId: member.parentId,
         type: 'MEDICAL_EXPIRY',
         title: 'Medical Certificate Expiring Soon',
-        message: `Your medical certificate will expire in ${daysUntilExpiry} days (${check.expiryDate.toLocaleDateString()}). Please renew it before it expires.`,
+        message: `Your medical certificate will expire in ${daysUntilExpiry} days (${check.validUntil.toLocaleDateString()}). Please renew it before it expires.`,
         data: {
           medicalCheckId: check._id,
         },

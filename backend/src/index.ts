@@ -1,5 +1,8 @@
-import express, { Request, Response } from 'express';
+// Load environment variables FIRST (before any imports that use process.env)
 import dotenv from 'dotenv';
+dotenv.config();
+
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -7,9 +10,6 @@ import { connectDB } from './config/db';
 import { initializeFirebase } from './config/firebase';
 import { startScheduler } from './services/schedulerService';
 import routes from './routes';
-
-// Load environment variables
-dotenv.config();
 
 // Initialize Express app
 const app = express();
