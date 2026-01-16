@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -36,8 +36,11 @@ import { ErrorMessage } from '@/components/shared/ErrorMessage';
 import { BalanceChart } from '@/components/charts/BalanceChart';
 import { MonthlyFinanceChart } from '@/components/charts/MonthlyFinanceChart';
 import { Skeleton } from '@/components/ui/skeleton';
+import { HelpButton } from '@/components/shared/HelpButton';
+import { useOnboarding } from '@/context/OnboardingContext';
 
 export function FinancePage() {
+  const { checkAndStartTutorial } = useOnboarding();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<FinanceEntry | null>(null);
@@ -49,6 +52,13 @@ export function FinancePage() {
     type: typeFilter,
   });
   const deleteEntryMutation = useDeleteFinanceEntry();
+
+  // Start tutorial on first visit
+  useEffect(() => {
+    if (!summaryLoading && !entriesLoading) {
+      checkAndStartTutorial('finances');
+    }
+  }, [summaryLoading, entriesLoading, checkAndStartTutorial]);
 
   const handleDeleteClick = (entry: FinanceEntry) => {
     setSelectedEntry(entry);
@@ -118,6 +128,7 @@ export function FinancePage() {
           </p>
         </div>
         <Button
+          data-tour="add-entry"
           onClick={() => setAddDialogOpen(true)}
           className="bg-green-600 hover:bg-green-700"
         >
@@ -127,7 +138,7 @@ export function FinancePage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div data-tour="summary-cards" className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Income</CardTitle>
@@ -173,7 +184,7 @@ export function FinancePage() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div data-tour="finance-chart" className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Income vs Expenses</CardTitle>
@@ -434,6 +445,8 @@ export function FinancePage() {
         cancelText="Cancel"
         variant="destructive"
       />
+
+      <HelpButton pageKey="finances" />
     </div>
   );
 }

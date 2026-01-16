@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { Member, CreateMemberData } from '@/types';
-import { mockMembers } from '@/lib/mockData';
 
 // Fetch members list
 export const useMembers = (filters?: {
@@ -13,48 +12,24 @@ export const useMembers = (filters?: {
   return useQuery({
     queryKey: ['members', filters],
     queryFn: async () => {
-      try {
-        const params = new URLSearchParams();
+      const params = new URLSearchParams();
 
-        if (filters?.search) {
-          params.append('search', filters.search);
-        }
-        if (filters?.paymentStatus && filters.paymentStatus !== 'ALL') {
-          params.append('paymentStatus', filters.paymentStatus);
-        }
-        if (filters?.medicalStatus && filters.medicalStatus !== 'ALL') {
-          params.append('medicalStatus', filters.medicalStatus);
-        }
-        if (filters?.groupId) {
-          params.append('groupId', filters.groupId);
-        }
-
-        const response = await api.get<Member[]>(`/members?${params.toString()}`);
-        return response.data;
-      } catch (error) {
-        // Return mock data if API fails
-        console.log('Using mock data for members');
-        let filteredMembers = [...mockMembers];
-
-        // Apply filters to mock data
-        if (filters?.search) {
-          filteredMembers = filteredMembers.filter((m) =>
-            m.fullName.toLowerCase().includes(filters.search!.toLowerCase())
-          );
-        }
-        if (filters?.paymentStatus && filters.paymentStatus !== 'ALL') {
-          filteredMembers = filteredMembers.filter(
-            (m) => m.paymentStatus === filters.paymentStatus
-          );
-        }
-        if (filters?.medicalStatus && filters.medicalStatus !== 'ALL') {
-          filteredMembers = filteredMembers.filter(
-            (m) => m.medicalStatus === filters.medicalStatus
-          );
-        }
-
-        return filteredMembers;
+      if (filters?.search) {
+        params.append('search', filters.search);
       }
+      if (filters?.paymentStatus && filters.paymentStatus !== 'ALL') {
+        params.append('paymentStatus', filters.paymentStatus);
+      }
+      if (filters?.medicalStatus && filters.medicalStatus !== 'ALL') {
+        params.append('medicalStatus', filters.medicalStatus);
+      }
+      if (filters?.groupId) {
+        params.append('groupId', filters.groupId);
+      }
+
+      const response = await api.get<{ success: boolean; data: Member[] }>(`/members?${params.toString()}`);
+      console.log('✅ Members API response:', response.data);
+      return response.data.data || [];
     },
   });
 };

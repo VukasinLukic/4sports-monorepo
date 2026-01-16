@@ -1,25 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/services/api';
 import { DashboardStats } from '@/types';
-import { FIREBASE_ENABLED } from '@/config/firebase';
-import { mockDashboardStats } from '@/lib/mockData';
+
+// Default empty dashboard stats for new clubs
+const emptyDashboardStats: DashboardStats = {
+  currentRevenue: 0,
+  newMembersPercentage: 0,
+  totalMembers: 0,
+  totalTransactions: 0,
+  memberGrowth: [],
+  balanceData: { income: 0, expense: 0 },
+  quarterlyRevenue: [],
+  monthlyFinance: [],
+};
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
-  if (!FIREBASE_ENABLED) {
-    // Return mock data in development
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockDashboardStats), 1000);
-    });
-  }
+  const response = await api.get<{ success: boolean; data: DashboardStats }>('/dashboard');
+  console.log('✅ Dashboard API response:', response.data);
 
-  try {
-    const response = await api.get<DashboardStats>('/dashboard');
-    return response.data;
-  } catch (error) {
-    // Return mock data if API fails
-    console.log('Using mock data for dashboard');
-    return mockDashboardStats;
-  }
+  // Return data or empty stats for new clubs
+  return response.data.data || emptyDashboardStats;
 };
 
 export const useDashboard = () => {

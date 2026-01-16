@@ -53,6 +53,22 @@ export const getParentMembers = async (req: Request, res: Response) => {
   }
 };
 
+export const getAllMembers = async (_req: Request, res: Response) => {
+  try {
+    console.log('👥 All members list requested');
+    const members = await Member.find()
+      .populate('parentId', 'firstName lastName email')
+      .populate('clubs.groupId', 'name ageGroup')
+      .sort({ createdAt: -1 });
+
+    console.log(`✅ Found ${members.length} members`);
+    return res.status(200).json({ status: 'success', results: members.length, data: members });
+  } catch (error: any) {
+    console.error('❌ Get Members Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch members' });
+  }
+};
+
 export const getClubMembers = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });

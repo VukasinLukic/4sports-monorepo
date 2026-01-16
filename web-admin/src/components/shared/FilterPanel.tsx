@@ -14,33 +14,30 @@ export function FilterPanel({ children, onClear, title = 'Filters' }: FilterPane
 
   return (
     <div className="border border-border rounded-lg bg-card">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-accent/50 transition-colors rounded-t-lg"
-      >
-        <span className="font-medium">{title}</span>
-        <div className="flex items-center gap-2">
-          {isExpanded && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClear();
-              }}
-              className="h-8 text-xs"
-            >
-              <X className="h-3 w-3 mr-1" />
-              Clear All
-            </Button>
-          )}
+      <div className="w-full px-4 py-3 flex items-center justify-between rounded-t-lg">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 hover:text-primary transition-colors"
+        >
+          <span className="font-medium">{title}</span>
           {isExpanded ? (
             <ChevronUp className="h-5 w-5" />
           ) : (
             <ChevronDown className="h-5 w-5" />
           )}
-        </div>
-      </button>
+        </button>
+        {isExpanded && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClear}
+            className="h-8 text-xs"
+          >
+            <X className="h-3 w-3 mr-1" />
+            Clear All
+          </Button>
+        )}
+      </div>
 
       <div
         className={cn(

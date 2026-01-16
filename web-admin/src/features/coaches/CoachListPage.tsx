@@ -27,8 +27,11 @@ import { Coach } from '@/types';
 import { Trash2, UserPlus, AlertTriangle, Search } from 'lucide-react';
 import { SkeletonTable } from '@/components/shared/SkeletonTable';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
+import { HelpButton } from '@/components/shared/HelpButton';
+import { useOnboarding } from '@/context/OnboardingContext';
 
 export function CoachListPage() {
+  const { checkAndStartTutorial } = useOnboarding();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
@@ -49,6 +52,11 @@ export function CoachListPage() {
 
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  // Start tutorial on first visit
+  useEffect(() => {
+    checkAndStartTutorial('coaches');
+  }, [checkAndStartTutorial]);
 
   const { data: coaches, isLoading, isError, refetch } = useCoaches();
   const deleteCoachMutation = useDeleteCoach();
@@ -149,6 +157,7 @@ export function CoachListPage() {
           </p>
         </div>
         <Button
+          data-tour="invite-coach"
           onClick={() => setInviteDialogOpen(true)}
           className="bg-green-600 hover:bg-green-700"
         >
@@ -158,7 +167,7 @@ export function CoachListPage() {
       </div>
 
       <FilterPanel onClear={handleClearFilters} title="Advanced Filters">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div data-tour="filters" className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div className="space-y-2">
             <Label htmlFor="search">Search by Name</Label>
@@ -206,7 +215,7 @@ export function CoachListPage() {
         </div>
       </FilterPanel>
 
-      <Card>
+      <Card data-tour="coaches-table">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -309,6 +318,8 @@ export function CoachListPage() {
         cancelText="Cancel"
         variant="destructive"
       />
+
+      <HelpButton pageKey="coaches" />
     </div>
   );
 }

@@ -10,13 +10,34 @@ import {
   getActiveBudget,
   updateBudgetActuals,
   updateBudgetStatus,
+  updateTransaction,
+  deleteTransaction,
 } from '../controllers/financeController';
 
 const router = express.Router();
 
+console.log('💰 Finance routes loading...');
+
 // ============================================
 // TRANSACTION ROUTES
 // ============================================
+
+/**
+ * @route   GET /api/finances
+ * @desc    Get all transactions for the club (alias for /transactions)
+ * @access  Protected (OWNER, COACH)
+ */
+router.get('/', (_req, _res, next) => {
+  console.log('💰 GET /finances called');
+  next();
+}, protect, getClubTransactions);
+
+/**
+ * @route   POST /api/finances
+ * @desc    Create a new transaction (alias for /transactions)
+ * @access  Protected (OWNER, COACH)
+ */
+router.post('/', protect, createTransaction);
 
 /**
  * @route   POST /api/finances/transactions
@@ -33,12 +54,29 @@ router.post('/transactions', protect, createTransaction);
 router.get('/transactions', protect, getClubTransactions);
 
 /**
- * @route   GET /api/finances/summary
- * @desc    Get financial summary for a date range
+ * @route   PUT /api/finances/:id
+ * @desc    Update a transaction
  * @access  Protected (OWNER, COACH)
- * @query   startDate, endDate
  */
-router.get('/summary', protect, getFinancialSummary);
+router.put('/:id', protect, updateTransaction);
+
+/**
+ * @route   DELETE /api/finances/:id
+ * @desc    Delete a transaction (only manual entries)
+ * @access  Protected (OWNER, COACH)
+ */
+router.delete('/:id', protect, deleteTransaction);
+
+/**
+ * @route   GET /api/finances/summary
+ * @desc    Get financial summary for current month (or date range if provided)
+ * @access  Protected (OWNER, COACH)
+ * @query   startDate, endDate (optional)
+ */
+router.get('/summary', (_req, _res, next) => {
+  console.log('💰 GET /finances/summary called');
+  next();
+}, protect, getFinancialSummary);
 
 /**
  * @route   GET /api/finances/monthly

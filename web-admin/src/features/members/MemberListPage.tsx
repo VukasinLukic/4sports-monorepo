@@ -28,8 +28,11 @@ import { Plus, Pencil, Trash2, Search, User } from 'lucide-react';
 import { SkeletonTable } from '@/components/shared/SkeletonTable';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
 import { Label } from '@/components/ui/label';
+import { HelpButton } from '@/components/shared/HelpButton';
+import { useOnboarding } from '@/context/OnboardingContext';
 
 export function MemberListPage() {
+  const { checkAndStartTutorial } = useOnboarding();
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -60,6 +63,11 @@ export function MemberListPage() {
 
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  // Start tutorial on first visit
+  useEffect(() => {
+    checkAndStartTutorial('members');
+  }, [checkAndStartTutorial]);
 
   const { data: members, isLoading, isError, refetch } = useMembers({
     search: debouncedSearch,
@@ -146,6 +154,7 @@ export function MemberListPage() {
           </p>
         </div>
         <Button
+          data-tour="add-member"
           onClick={() => setAddDialogOpen(true)}
           className="bg-green-600 hover:bg-green-700"
         >
@@ -155,6 +164,7 @@ export function MemberListPage() {
       </div>
 
       <FilterPanel onClear={handleClearFilters} title="Advanced Filters">
+        <div data-tour="filters">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Search */}
           <div className="space-y-2">
@@ -253,6 +263,7 @@ export function MemberListPage() {
             />
           </div>
         </div>
+        </div>
 
         {/* Apply Filters Button */}
         <div className="flex justify-end gap-2 pt-4 border-t border-border mt-4">
@@ -266,7 +277,7 @@ export function MemberListPage() {
         </div>
       </FilterPanel>
 
-      <Card>
+      <Card data-tour="members-table">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -379,6 +390,8 @@ export function MemberListPage() {
         cancelText="Cancel"
         variant="destructive"
       />
+
+      <HelpButton pageKey="members" />
     </div>
   );
 }

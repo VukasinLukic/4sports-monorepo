@@ -22,7 +22,17 @@
       "Bash(git commit:*)",
       "Bash(npx shadcn@latest add alert-dialog:*)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(timeout 3 tail:*)",
+      "Bash(exit 0)",
+      "Bash(timeout 5 tail:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl:*)",
+      "Bash(npx ts-node:*)"
     ],
     "deny": [],
     "ask": []

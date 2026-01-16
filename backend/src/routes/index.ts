@@ -11,6 +11,9 @@ import financeRoutes from './financeRoutes';
 import postRoutes from './postRoutes';
 import notificationRoutes from './notificationRoutes';
 import uploadRoutes from './uploadRoutes';
+import dashboardRoutes from './dashboardRoutes';
+import coachRoutes from './coachRoutes';
+import settingsRoutes from './settingsRoutes';
 
 /**
  * Main Router
@@ -26,10 +29,15 @@ router.use('/events', eventRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/medical-checks', medicalCheckRoutes);
+console.log('📦 Registering /finances routes...');
 router.use('/finances', financeRoutes);
+console.log('✅ /finances routes registered');
 router.use('/posts', postRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/upload', uploadRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/coaches', coachRoutes);
+router.use('/settings', settingsRoutes);
 
 /**
  * Future Routes (Phase 3+)

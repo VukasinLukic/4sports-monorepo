@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { DollarSign, Users, TrendingUp, Receipt } from 'lucide-react';
 import { useDashboard } from './useDashboard';
 import { KPICard } from './KPICard';
@@ -7,9 +8,18 @@ import { MemberGrowthChart } from '@/components/charts/MemberGrowthChart';
 import { BalanceChart } from '@/components/charts/BalanceChart';
 import { RevenueByQuarterChart } from '@/components/charts/RevenueByQuarterChart';
 import { MonthlyFinanceChart } from '@/components/charts/MonthlyFinanceChart';
+import { HelpButton } from '@/components/shared/HelpButton';
+import { useOnboarding } from '@/context/OnboardingContext';
 
 export const DashboardPage = () => {
   const { data, isLoading, error, refetch } = useDashboard();
+  const { checkAndStartTutorial } = useOnboarding();
+
+  useEffect(() => {
+    if (!isLoading && data) {
+      checkAndStartTutorial('dashboard');
+    }
+  }, [isLoading, data, checkAndStartTutorial]);
 
   if (error) {
     return (
@@ -30,7 +40,7 @@ export const DashboardPage = () => {
         <p className="text-muted-foreground">Welcome back! Here's your club overview.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div data-tour="stats-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {isLoading ? (
           <>
             <SkeletonCard />
@@ -41,26 +51,26 @@ export const DashboardPage = () => {
         ) : data ? (
           <>
             <KPICard
-              title="Current Revenue"
-              value={`$${data.currentRevenue.toLocaleString()}`}
+              title="Trenutni prihod"
+              value={`${data.currentRevenue.toLocaleString()} RSD`}
               icon={DollarSign}
               trend={8.2}
             />
             <KPICard
-              title="New Members"
+              title="Novi članovi"
               value={data.newMembersPercentage}
               icon={TrendingUp}
               trend={data.newMembersPercentage}
               suffix="%"
             />
             <KPICard
-              title="Total Members"
+              title="Ukupno članova"
               value={data.totalMembers}
               icon={Users}
               trend={5.1}
             />
             <KPICard
-              title="Total Transactions"
+              title="Ukupno transakcija"
               value={data.totalTransactions}
               icon={Receipt}
               trend={12.3}
@@ -70,13 +80,15 @@ export const DashboardPage = () => {
       </div>
 
       {!isLoading && data && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div data-tour="charts" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <MemberGrowthChart data={data.memberGrowth} />
           <BalanceChart data={data.balanceData} />
           <RevenueByQuarterChart data={data.quarterlyRevenue} />
           <MonthlyFinanceChart data={data.monthlyFinance} />
         </div>
       )}
+
+      <HelpButton pageKey="dashboard" />
     </div>
   );
 };

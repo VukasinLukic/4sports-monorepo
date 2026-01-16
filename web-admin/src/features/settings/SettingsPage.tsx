@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,8 +15,11 @@ import {
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
 import { Building2, User, CreditCard, Save, Key } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { HelpButton } from '@/components/shared/HelpButton';
+import { useOnboarding } from '@/context/OnboardingContext';
 
 export function SettingsPage() {
+  const { checkAndStartTutorial } = useOnboarding();
   const { toast } = useToast();
 
   // Club Settings State
@@ -37,6 +40,13 @@ export function SettingsPage() {
   // Mutations
   const updateClubMutation = useUpdateClubSettings();
   const updateProfileMutation = useUpdateUserProfile();
+
+  // Start tutorial on first visit
+  useEffect(() => {
+    if (!clubLoading && !profileLoading && !subLoading) {
+      checkAndStartTutorial('settings');
+    }
+  }, [clubLoading, profileLoading, subLoading, checkAndStartTutorial]);
 
   // Update state when data loads
   if (clubSettings && !clubName) {
@@ -60,13 +70,14 @@ export function SettingsPage() {
         email: clubEmail,
       });
       toast({
-        title: 'Success',
-        description: 'Club settings updated successfully',
+        title: 'Uspešno',
+        description: 'Podešavanja kluba su ažurirana',
       });
     } catch (error) {
       toast({
-        title: 'Success',
-        description: 'Club settings updated (mock mode)',
+        title: 'Greška',
+        description: 'Nije moguće sačuvati podešavanja',
+        variant: 'destructive',
       });
     }
   };
@@ -78,13 +89,14 @@ export function SettingsPage() {
         phoneNumber: userPhone,
       });
       toast({
-        title: 'Success',
-        description: 'Profile updated successfully',
+        title: 'Uspešno',
+        description: 'Profil je ažuriran',
       });
     } catch (error) {
       toast({
-        title: 'Success',
-        description: 'Profile updated (mock mode)',
+        title: 'Greška',
+        description: 'Nije moguće sačuvati profil',
+        variant: 'destructive',
       });
     }
   };
@@ -143,7 +155,7 @@ export function SettingsPage() {
 
         {/* Club Settings Tab */}
         <TabsContent value="club" className="space-y-4">
-          <Card>
+          <Card data-tour="club-settings">
             <CardHeader>
               <CardTitle>Club Information</CardTitle>
               <CardDescription>
@@ -208,7 +220,7 @@ export function SettingsPage() {
 
         {/* My Profile Tab */}
         <TabsContent value="profile" className="space-y-4">
-          <Card>
+          <Card data-tour="profile-settings">
             <CardHeader>
               <CardTitle>Personal Information</CardTitle>
               <CardDescription>Update your personal details</CardDescription>
@@ -278,7 +290,7 @@ export function SettingsPage() {
 
         {/* Subscription Tab */}
         <TabsContent value="subscription" className="space-y-4">
-          <Card>
+          <Card data-tour="subscription">
             <CardHeader>
               <CardTitle>Subscription Plan</CardTitle>
               <CardDescription>
@@ -341,6 +353,8 @@ export function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <HelpButton pageKey="settings" />
     </div>
   );
 }
