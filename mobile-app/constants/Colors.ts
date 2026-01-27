@@ -1,7 +1,8 @@
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#4caf50';
 
-export const Colors = {
+// Theme-based colors (for potential light/dark mode support)
+export const ThemeColors = {
   light: {
     text: '#11181C',
     background: '#fff',
@@ -20,7 +21,8 @@ export const Colors = {
   },
 };
 
-export const AppColors = {
+// Main app colors (dark theme)
+export const Colors = {
   // Primary Colors (Sports Green Theme)
   primary: '#4caf50',
   primaryDark: '#388e3c',
@@ -63,9 +65,9 @@ export const AppColors = {
   expiring: '#ff9800',
 
   // Event Types
-  training: '#4caf50',
-  competition: '#ff9800',
-  meeting: '#2196f3',
+  eventTraining: '#4caf50',
+  eventCompetition: '#ff9800',
+  eventMeeting: '#2196f3',
 
   // UI Elements
   border: '#424242',
@@ -73,3 +75,6 @@ export const AppColors = {
   shadow: 'rgba(0, 0, 0, 0.3)',
   overlay: 'rgba(0, 0, 0, 0.5)',
 };
+
+// Legacy alias for backward compatibility
+export const AppColors = Colors;

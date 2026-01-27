@@ -4,10 +4,11 @@ import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import { Link, router } from 'expo-router';
 import { useAuth } from '@/services/AuthContext';
 import { getAuthErrorMessage } from '@/services/auth';
+import { UserRole } from '@/types';
 import { AppColors, Spacing, FontSize, BorderRadius } from '@/constants';
 
 export default function LoginScreen() {
-  const { login, loading } = useAuth();
+  const { login, loading, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -37,12 +38,22 @@ export default function LoginScreen() {
     }
 
     try {
-      await login(email, password);
-      // Navigation will be handled by app/index.tsx based on auth state
-      router.replace('/');
+      const loggedInUser = await login(email, password);
+      // Navigate directly based on role to avoid race conditions
+      const userRole = loggedInUser.role?.toUpperCase();
+      console.log('Login successful, navigating based on role:', userRole);
+
+      if (userRole === 'COACH' || userRole === 'OWNER') {
+        router.replace('/(coach)');
+      } else if (userRole === 'PARENT') {
+        router.replace('/(parent)');
+      } else {
+        // Fallback to home which will figure it out
+        router.replace('/');
+      }
     } catch (error: any) {
       console.error('Login error:', error);
-      const errorMessage = getAuthErrorMessage(error.code || 'unknown');
+      const errorMessage = error.message || getAuthErrorMessage(error.code || 'unknown');
       setError(errorMessage);
     }
   };

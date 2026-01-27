@@ -72,8 +72,13 @@ export default function RegisterScreen() {
 
     try {
       await register(email, password, fullName, phoneNumber, role, inviteCode);
-      // Navigation will be handled by app/index.tsx based on auth state
-      router.replace('/');
+      // Navigate directly based on role to avoid race conditions
+      console.log('Registration successful, navigating based on role:', role);
+      if (role === UserRole.COACH || role === UserRole.OWNER) {
+        router.replace('/(coach)');
+      } else {
+        router.replace('/(parent)');
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
 

@@ -37,31 +37,15 @@
 
 #### Tvoj Branch Naming:
 ```bash
-mobile/feature-name
-mobile/fix-bug-name
+development-nemanja
 ```
 
 **Primeri:**
 imamo sledece grane:
-main, development, i nemanja, mihajlo, vukasin
+main, development, i nemanja, mihajlo, vukasin, development-nemanja
 
 #### Kako Radiš Sa Gitom:
 
-**Početak Rada (Svaki Dan):**
-```bash
-# Idi u mobile-app folder
-cd mobile-app
-
-# Proveri da li si na main branch-u
-git branch
-
-# Povuci najnovije izmene
-git pull origin main
-# idi na dev
-git checkout -b development
-# Napravi svoj branch iz dev
-git checkout -b mihajlo
-```
 
 
 **Tokom Rada:**
@@ -73,7 +57,7 @@ git add .
 git commit -m "mobile: add QR code scanner for attendance"
 
 # Pushuj na GitHub
-git push origin mihajlo
+git push origin development-nemanja
 ```
 
 **Kada Završiš Feature:**

@@ -8,6 +8,8 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "owner": "4sports",
+    "description": "Sports club management app for coaches and parents. Manage attendance, payments, medical checks, events and more.",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

@@ -23,10 +23,29 @@ app.use(helmet());
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    process.env.WEB_ADMIN_URL || 'http://localhost:5173',
-    process.env.MOBILE_APP_URL || 'exp://localhost:19000',
-  ],
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Allow requests with no origin (mobile apps, curl, postman)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const allowedOrigins = [
+      process.env.WEB_ADMIN_URL || 'http://localhost:5173',
+      process.env.MOBILE_APP_URL || 'exp://localhost:19000',
+    ];
+
+    // In development, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    // In production, check against allowed origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 };
 app.use(cors(corsOptions));
@@ -85,12 +104,13 @@ const startServer = async () => {
     // Start scheduled jobs
     startScheduler();
 
-    // Start Express server
-    app.listen(PORT, () => {
+    // Start Express server - bind to 0.0.0.0 to allow external connections
+    app.listen(Number(PORT), '0.0.0.0', () => {
       console.log('');
       console.log('🚀 ========================================');
       console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode`);
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🚀 Listening on all interfaces (0.0.0.0)`);
       console.log(`🚀 Health check: http://localhost:${PORT}/health`);
       console.log('🚀 ========================================');
       console.log('');
