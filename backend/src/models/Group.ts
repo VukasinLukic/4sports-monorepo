@@ -11,6 +11,7 @@ export interface IGroup extends Document {
   ageGroup?: string;
   sport?: string;
   description?: string;
+  color?: string;
   coaches: mongoose.Types.ObjectId[];
   isActive: boolean;
   createdAt: Date;
@@ -62,6 +63,12 @@ const groupSchema = new Schema<IGroup, IGroupModel>(
       type: String,
       trim: true,
       maxlength: [500, 'Description cannot exceed 500 characters'],
+    },
+
+    color: {
+      type: String,
+      trim: true,
+      match: [/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Color must be a valid hex color (e.g., #FF5733)'],
     },
 
     coaches: {

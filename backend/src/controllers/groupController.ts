@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Group from '../models/Group';
 import User from '../models/User';
+import Member from '../models/Member';
 
 /**
  * Create Group
@@ -16,7 +17,7 @@ export const createGroup = async (req: Request, res: Response) => {
       });
     }
 
-    const { name, ageGroup, sport, description, coaches } = req.body;
+    const { name, ageGroup, sport, description, coaches, color } = req.body;
     const clubId = req.user.clubId;
 
     if (!clubId) {
@@ -68,6 +69,7 @@ export const createGroup = async (req: Request, res: Response) => {
       ageGroup,
       sport,
       description,
+      color,
       coaches: coachIds,
     });
 
@@ -184,7 +186,7 @@ export const updateGroup = async (req: Request, res: Response) => {
     }
 
     const { id } = req.params;
-    const { name, ageGroup, sport, description } = req.body;
+    const { name, ageGroup, sport, description, color } = req.body;
 
     const group = await Group.findById(id);
 
@@ -208,6 +210,7 @@ export const updateGroup = async (req: Request, res: Response) => {
     if (ageGroup !== undefined) group.ageGroup = ageGroup;
     if (sport !== undefined) group.sport = sport;
     if (description !== undefined) group.description = description;
+    if (color !== undefined) group.color = color;
 
     await group.save();
 
@@ -268,6 +271,194 @@ export const deleteGroup = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to delete group' },
+    });
+  }
+};
+
+/**
+ * Get Group Members
+ * @route GET /api/v1/groups/:id/members
+ * @access Private (OWNER, COACH, PARENT)
+ */
+export const getGroupMembers = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+      });
+    }
+
+    const { id } = req.params;
+    const group = await Group.findById(id);
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Group not found' },
+      });
+    }
+
+    // Verify access (must be in same club)
+    if (group.clubId.toString() !== req.user.clubId?.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Access denied' },
+      });
+    }
+
+    const members = await Member.findByGroup(group._id);
+
+    return res.status(200).json({
+      success: true,
+      data: members,
+    });
+  } catch (error: any) {
+    console.error('❌ Get Group Members Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch group members' },
+    });
+  }
+};
+
+/**
+ * Add Member to Group
+ * @route POST /api/v1/groups/:id/members
+ * @access Private (OWNER, COACH)
+ */
+export const addMemberToGroup = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+      });
+    }
+
+    const { id } = req.params;
+    const { memberId } = req.body;
+
+    if (!memberId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Member ID is required' },
+      });
+    }
+
+    const group = await Group.findById(id);
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Group not found' },
+      });
+    }
+
+    // Verify access (must be in same club)
+    if (group.clubId.toString() !== req.user.clubId?.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Access denied' },
+      });
+    }
+
+    const member = await Member.findById(memberId);
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Member not found' },
+      });
+    }
+
+    // Check if member is already in this group
+    if (member.isInGroup(group._id)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'ALREADY_IN_GROUP', message: 'Member is already in this group' },
+      });
+    }
+
+    // Add member to the group
+    await member.addToClub(group.clubId, group._id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Member added to group successfully',
+      data: member,
+    });
+  } catch (error: any) {
+    console.error('❌ Add Member to Group Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to add member to group' },
+    });
+  }
+};
+
+/**
+ * Remove Member from Group
+ * @route DELETE /api/v1/groups/:id/members/:memberId
+ * @access Private (OWNER, COACH)
+ */
+export const removeMemberFromGroup = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+      });
+    }
+
+    const { id, memberId } = req.params;
+
+    const group = await Group.findById(id);
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Group not found' },
+      });
+    }
+
+    // Verify access (must be in same club)
+    if (group.clubId.toString() !== req.user.clubId?.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Access denied' },
+      });
+    }
+
+    const member = await Member.findById(memberId);
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Member not found' },
+      });
+    }
+
+    // Check if member is in this group
+    if (!member.isInGroup(group._id)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'NOT_IN_GROUP', message: 'Member is not in this group' },
+      });
+    }
+
+    // Remove member from the club (sets status to INACTIVE)
+    await member.removeFromClub(group.clubId);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Member removed from group successfully',
+    });
+  } catch (error: any) {
+    console.error('❌ Remove Member from Group Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to remove member from group' },
     });
   }
 };
