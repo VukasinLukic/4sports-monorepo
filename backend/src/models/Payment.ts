@@ -1,5 +1,10 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+export interface IPaymentPeriod {
+  month: number; // 1-12
+  year: number;
+}
+
 export interface IPayment extends Document {
   _id: mongoose.Types.ObjectId;
   clubId: mongoose.Types.ObjectId;
@@ -14,6 +19,7 @@ export interface IPayment extends Document {
   paymentMethod?: 'CASH' | 'CARD' | 'BANK_TRANSFER' | 'OTHER';
   receiptNumber?: string;
   notes?: string;
+  period?: IPaymentPeriod; // For monthly membership
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -39,6 +45,10 @@ const paymentSchema = new Schema<IPayment, IPaymentModel>(
     paymentMethod: { type: String, enum: ['CASH', 'CARD', 'BANK_TRANSFER', 'OTHER'] },
     receiptNumber: { type: String, trim: true },
     notes: { type: String, trim: true, maxlength: 500 },
+    period: {
+      month: { type: Number, min: 1, max: 12 },
+      year: { type: Number, min: 2020 },
+    },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }

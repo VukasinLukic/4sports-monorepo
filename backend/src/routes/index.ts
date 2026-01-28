@@ -14,6 +14,7 @@ import uploadRoutes from './uploadRoutes';
 import dashboardRoutes from './dashboardRoutes';
 import coachRoutes from './coachRoutes';
 import settingsRoutes from './settingsRoutes';
+import evidenceRoutes from './evidenceRoutes';
 
 /**
  * Main Router
@@ -38,6 +39,7 @@ router.use('/upload', uploadRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/coaches', coachRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/evidence', evidenceRoutes);
 
 /**
  * Future Routes (Phase 3+)

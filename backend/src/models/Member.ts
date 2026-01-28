@@ -28,6 +28,8 @@ export interface IMember extends Document {
     allergies?: string;
     medications?: string;
     conditions?: string;
+    lastCheckDate?: Date;
+    expiryDate?: Date;
   };
   emergencyContact?: {
     name: string;
@@ -143,6 +145,8 @@ const memberSchema = new Schema<IMember, IMemberModel>(
       allergies: String,
       medications: String,
       conditions: String,
+      lastCheckDate: Date,
+      expiryDate: Date,
     },
 
     emergencyContact: {
