@@ -5,6 +5,13 @@ export interface IAttendance extends Document {
   eventId: mongoose.Types.ObjectId;
   memberId: mongoose.Types.ObjectId;
   status: 'PRESENT' | 'ABSENT' | 'EXCUSED' | 'LATE';
+  // RSVP - pre-event confirmation
+  rsvpStatus: 'CONFIRMED' | 'DECLINED' | 'PENDING';
+  rsvpAt?: Date;
+  // Check-in
+  checkinTime?: Date;
+  checkinMethod?: 'QR' | 'MANUAL';
+  // Manual marking
   markedBy?: mongoose.Types.ObjectId;
   markedAt?: Date;
   notes?: string;
@@ -23,6 +30,13 @@ const attendanceSchema = new Schema<IAttendance, IAttendanceModel>(
     eventId: { type: Schema.Types.ObjectId, ref: 'Event', required: true },
     memberId: { type: Schema.Types.ObjectId, ref: 'Member', required: true },
     status: { type: String, enum: ['PRESENT', 'ABSENT', 'EXCUSED', 'LATE'], default: 'ABSENT' },
+    // RSVP - pre-event confirmation
+    rsvpStatus: { type: String, enum: ['CONFIRMED', 'DECLINED', 'PENDING'], default: 'PENDING' },
+    rsvpAt: { type: Date },
+    // Check-in
+    checkinTime: { type: Date },
+    checkinMethod: { type: String, enum: ['QR', 'MANUAL'] },
+    // Manual marking
     markedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     markedAt: { type: Date },
     notes: { type: String, trim: true, maxlength: 500 },
