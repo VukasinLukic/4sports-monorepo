@@ -216,14 +216,19 @@ memberSchema.virtual('age').get(function () {
 /**
  * Check if member is in a specific club
  * @description Checks if member has an ACTIVE membership in the club
+ * @note Handles both populated and non-populated clubId
  */
 memberSchema.methods.isInClub = function (
   clubId: mongoose.Types.ObjectId
 ): boolean {
-  return this.clubs.some(
-    (club: IClubMembership) =>
-      club.clubId.toString() === clubId.toString() && club.status === 'ACTIVE'
-  );
+  return this.clubs.some((club: IClubMembership) => {
+    // Handle populated clubId (object with _id) or raw ObjectId
+    const clubIdValue = club.clubId as any;
+    const memberClubId = clubIdValue && typeof clubIdValue === 'object' && '_id' in clubIdValue
+      ? clubIdValue._id.toString()
+      : clubIdValue?.toString();
+    return memberClubId === clubId.toString() && club.status === 'ACTIVE';
+  });
 };
 
 /**

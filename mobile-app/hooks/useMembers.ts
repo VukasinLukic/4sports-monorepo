@@ -55,7 +55,8 @@ export function useMemberAttendance(memberId: string | undefined) {
     queryKey: ['member-attendance', memberId],
     queryFn: async () => {
       const response = await api.get(`/attendance/member/${memberId}`);
-      return response.data.data || [];
+      // API returns { attendance: [...], attendanceRate: number }
+      return response.data.data?.attendance || [];
     },
     enabled: !!memberId,
   });

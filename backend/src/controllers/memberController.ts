@@ -166,20 +166,105 @@ export const getMember = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
 
     const { id } = req.params;
-    const member = await Member.findById(id).populate('parentId', 'fullName email phoneNumber').populate('clubs.clubId', 'name').populate('clubs.groupId', 'name ageGroup');
+    const member = await Member.findById(id).populate('parentId', 'fullName email phoneNumber').populate('clubs.clubId', 'name').populate('clubs.groupId', 'name ageGroup color');
 
     if (!member) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found' } });
 
     // Access control: PARENT can only see their own children, OWNER/COACH can see club members
-    if (req.user.role === 'PARENT' && member.parentId._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
+    if (req.user.role === 'PARENT') {
+      const parentIdRaw = member.parentId as any;
+      const parentId = parentIdRaw && typeof parentIdRaw === 'object' && '_id' in parentIdRaw
+        ? parentIdRaw._id.toString()
+        : parentIdRaw?.toString();
+      if (parentId !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
+      }
+    } else {
+      // OWNER or COACH - check if member belongs to their club
+      const clubId = req.user.clubId;
+      if (!clubId) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
+      }
+      if (!member.isInClub(clubId)) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Member not in your club' } });
+      }
     }
 
-    if (req.user.role !== 'PARENT' && !member.isInClub(req.user.clubId!)) {
-      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
+    // Compute enriched data for the response
+    const memberObj = member.toObject();
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    // Calculate age
+    const birthDate = new Date(member.dateOfBirth);
+    let age = now.getFullYear() - birthDate.getFullYear();
+    const monthDiff = now.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+      age--;
     }
 
-    return res.status(200).json({ success: true, data: member });
+    // Get current month payment status
+    const clubId = req.user.clubId;
+    let paymentStatus = 'UNPAID';
+    let lastPaymentDate = null;
+
+    if (clubId) {
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1;
+      const currentYear = currentDate.getFullYear();
+
+      const currentPayment = await Payment.findOne({
+        clubId,
+        memberId: member._id,
+        type: 'MEMBERSHIP',
+        'period.month': currentMonth,
+        'period.year': currentYear,
+      });
+
+      if (currentPayment) {
+        paymentStatus = currentPayment.status === 'PAID' ? 'PAID' : currentPayment.status === 'OVERDUE' ? 'UNPAID' : 'PARTIAL';
+      }
+
+      // Get last payment date
+      const lastPayment = await Payment.findOne({
+        clubId,
+        memberId: member._id,
+        status: 'PAID',
+      }).sort({ paidDate: -1 });
+
+      if (lastPayment) {
+        lastPaymentDate = lastPayment.paidDate;
+      }
+    }
+
+    // Medical status
+    let medicalCheckStatus = 'EXPIRED';
+    let medicalCheckExpiryDate = null;
+    const expiryDate = member.medicalInfo?.expiryDate;
+    if (expiryDate) {
+      medicalCheckExpiryDate = expiryDate;
+      const expiry = new Date(expiryDate);
+      if (expiry > thirtyDaysFromNow) {
+        medicalCheckStatus = 'VALID';
+      } else if (expiry > now) {
+        medicalCheckStatus = 'EXPIRING_SOON';
+      }
+    }
+
+    // Get group info for this club
+    const activeClub = member.clubs.find(c => c.clubId?.toString() === clubId?.toString() && c.status === 'ACTIVE');
+
+    const enrichedMember = {
+      ...memberObj,
+      age,
+      paymentStatus,
+      lastPaymentDate,
+      medicalCheckStatus,
+      medicalCheckExpiryDate,
+      groupId: activeClub?.groupId,
+    };
+
+    return res.status(200).json({ success: true, data: enrichedMember });
   } catch (error: any) {
     console.error('❌ Get Member Error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch member' } });
