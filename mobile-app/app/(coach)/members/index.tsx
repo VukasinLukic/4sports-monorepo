@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   filterScroll: {
-    maxHeight: 50,
+    maxHeight: 56,
   },
   filterContainer: {
     paddingHorizontal: Spacing.md,
@@ -240,9 +240,12 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     backgroundColor: Colors.surface,
+    height: 36,
+    justifyContent: 'center',
   },
   filterChipText: {
     fontSize: FontSize.sm,
+    lineHeight: FontSize.sm + 4,
   },
   statsContainer: {
     paddingHorizontal: Spacing.md,

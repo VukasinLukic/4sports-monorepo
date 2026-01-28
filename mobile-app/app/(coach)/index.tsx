@@ -57,13 +57,13 @@ export default function CoachDashboard() {
       <View style={styles.actionsGrid}>
         <Button
           mode="contained"
-          icon="qrcode"
+          icon="clipboard-check"
           style={styles.actionButton}
           contentStyle={styles.actionButtonContent}
           labelStyle={styles.actionButtonLabel}
-          onPress={() => router.push('/(coach)/calendar')}
+          onPress={() => router.push('/(coach)/evidence')}
         >
-          Attendance
+          Evidence
         </Button>
 
         <Button

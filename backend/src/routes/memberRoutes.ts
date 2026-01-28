@@ -4,13 +4,13 @@ import { protect, restrictTo } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Public routes (no auth required)
-router.get('/', getAllMembers);
-router.get('/club-members', getClubMembers);
-router.get('/:id', getMember);
-
 // Protected routes (require authentication)
 router.use(protect);
+
+// Get all members for the coach's club (with computed statuses)
+router.get('/', restrictTo(['OWNER', 'COACH']), getAllMembers);
+router.get('/club-members', restrictTo(['OWNER', 'COACH']), getClubMembers);
+router.get('/:id', getMember);
 
 router.post('/', restrictTo(['PARENT']), createMember);
 router.get('/my-children', restrictTo(['PARENT']), getParentMembers);

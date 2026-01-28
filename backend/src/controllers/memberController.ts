@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Member from '../models/Member';
 import Group from '../models/Group';
 import Club from '../models/Club';
+import Payment from '../models/Payment';
 
 export const createMember = async (req: Request, res: Response) => {
   try {
@@ -53,19 +54,94 @@ export const getParentMembers = async (req: Request, res: Response) => {
   }
 };
 
-export const getAllMembers = async (_req: Request, res: Response) => {
+export const getAllMembers = async (req: Request, res: Response) => {
   try {
-    console.log('👥 All members list requested');
-    const members = await Member.find()
-      .populate('parentId', 'firstName lastName email')
-      .populate('clubs.groupId', 'name ageGroup')
-      .sort({ createdAt: -1 });
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+    }
 
-    console.log(`✅ Found ${members.length} members`);
-    return res.status(200).json({ status: 'success', results: members.length, data: members });
+    const clubId = req.user.clubId;
+    if (!clubId) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
+    }
+
+    console.log('👥 Club members list requested for club:', clubId);
+
+    // Get members for this club
+    const members = await Member.find({
+      'clubs.clubId': clubId,
+      'clubs.status': 'ACTIVE',
+    })
+      .populate('parentId', 'fullName email phoneNumber')
+      .populate('clubs.groupId', 'name ageGroup color')
+      .sort({ fullName: 1 });
+
+    // Get current month payments
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+
+    const payments = await Payment.find({
+      clubId,
+      memberId: { $in: members.map(m => m._id) },
+      type: 'MEMBERSHIP',
+      'period.month': currentMonth,
+      'period.year': currentYear,
+    });
+
+    const paymentMap = new Map(payments.map(p => [p.memberId.toString(), p]));
+
+    // Compute statuses for each member
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const enrichedMembers = members.map(member => {
+      const memberObj = member.toObject();
+
+      // Calculate age
+      const birthDate = new Date(member.dateOfBirth);
+      let age = now.getFullYear() - birthDate.getFullYear();
+      const monthDiff = now.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+        age--;
+      }
+
+      // Payment status
+      const payment = paymentMap.get(member._id.toString());
+      let paymentStatus = 'UNPAID';
+      if (payment) {
+        paymentStatus = payment.status === 'PAID' ? 'PAID' : payment.status === 'OVERDUE' ? 'UNPAID' : 'PARTIAL';
+      }
+
+      // Medical status
+      let medicalCheckStatus = 'EXPIRED';
+      const expiryDate = member.medicalInfo?.expiryDate;
+      if (expiryDate) {
+        const expiry = new Date(expiryDate);
+        if (expiry > thirtyDaysFromNow) {
+          medicalCheckStatus = 'VALID';
+        } else if (expiry > now) {
+          medicalCheckStatus = 'EXPIRING_SOON';
+        }
+      }
+
+      // Get group info
+      const activeClub = member.clubs.find(c => c.clubId.toString() === clubId.toString() && c.status === 'ACTIVE');
+
+      return {
+        ...memberObj,
+        age,
+        paymentStatus,
+        medicalCheckStatus,
+        groupId: activeClub?.groupId,
+      };
+    });
+
+    console.log(`✅ Found ${enrichedMembers.length} members`);
+    return res.status(200).json({ success: true, data: enrichedMembers });
   } catch (error: any) {
     console.error('❌ Get Members Error:', error);
-    return res.status(500).json({ status: 'error', message: 'Failed to fetch members' });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch members' } });
   }
 };
 
