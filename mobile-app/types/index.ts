@@ -193,11 +193,22 @@ export interface InviteCode {
   _id: string;
   code: string;
   clubId: string;
-  groupId?: string;
-  role: UserRole;
+  groupId?: string | {
+    _id: string;
+    name: string;
+    ageGroup?: string;
+  };
+  type: 'COACH' | 'MEMBER'; // COACH → COACH role, MEMBER → PARENT role
+  maxUses: number;
+  usedCount: number;
   isActive: boolean;
-  expiresAt?: string;
-  createdBy: string;
+  isValid?: boolean;
+  expiresAt: string;
+  createdBy: string | {
+    _id: string;
+    fullName: string;
+    email: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

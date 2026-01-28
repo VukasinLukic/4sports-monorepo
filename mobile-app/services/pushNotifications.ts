@@ -49,18 +49,26 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   try {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
-    if (!projectId) {
-      console.log('Project ID not found for push notifications');
-      // For development, try to get token without project ID
-      const tokenResponse = await Notifications.getExpoPushTokenAsync();
-      token = tokenResponse.data;
-    } else {
-      const tokenResponse = await Notifications.getExpoPushTokenAsync({
-        projectId,
-      });
-      token = tokenResponse.data;
+    // Check if projectId is valid (not placeholder)
+    const isValidProjectId = projectId && projectId !== 'your-project-id' && projectId.length > 10;
+
+    if (!isValidProjectId) {
+      // In development/Expo Go without valid project ID, push notifications won't work
+      console.log('Push notifications not available: No valid EAS project ID configured');
+      console.log('This is expected in Expo Go. Push notifications work in development builds.');
+      return null;
     }
-  } catch (error) {
+
+    const tokenResponse = await Notifications.getExpoPushTokenAsync({
+      projectId,
+    });
+    token = tokenResponse.data;
+  } catch (error: any) {
+    // Handle specific Expo Go / development errors gracefully
+    if (error?.message?.includes('projectId') || error?.message?.includes('uuid')) {
+      console.log('Push notifications not available in Expo Go without valid project ID');
+      return null;
+    }
     console.error('Error getting push token:', error);
     return null;
   }

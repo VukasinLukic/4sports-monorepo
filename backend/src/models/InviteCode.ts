@@ -8,6 +8,7 @@ export interface IInviteCode extends Document {
   _id: mongoose.Types.ObjectId;
   code: string;
   clubId: mongoose.Types.ObjectId;
+  groupId?: mongoose.Types.ObjectId; // For MEMBER type - auto-adds to group
   createdBy: mongoose.Types.ObjectId;
   type: 'COACH' | 'MEMBER';
   expiresAt: Date;
@@ -32,7 +33,8 @@ export interface IInviteCodeModel extends Model<IInviteCode> {
     createdBy: mongoose.Types.ObjectId,
     type: 'COACH' | 'MEMBER',
     maxUses?: number,
-    expiresInDays?: number
+    expiresInDays?: number,
+    groupId?: mongoose.Types.ObjectId
   ): Promise<IInviteCode>;
 }
 
@@ -56,6 +58,12 @@ const inviteCodeSchema = new Schema<IInviteCode, IInviteCodeModel>(
       type: Schema.Types.ObjectId,
       ref: 'Club',
       required: [true, 'Club ID is required'],
+    },
+
+    groupId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Group',
+      // Required for MEMBER type invites - auto-adds new member to this group
     },
 
     createdBy: {
@@ -114,6 +122,7 @@ const inviteCodeSchema = new Schema<IInviteCode, IInviteCodeModel>(
 inviteCodeSchema.index({ clubId: 1, isActive: 1 });
 inviteCodeSchema.index({ code: 1, isActive: 1 });
 inviteCodeSchema.index({ expiresAt: 1 });
+inviteCodeSchema.index({ groupId: 1, isActive: 1 });
 
 // ========================================
 // INSTANCE METHODS
@@ -159,8 +168,9 @@ inviteCodeSchema.statics.generateCode = async function (
   clubId: mongoose.Types.ObjectId,
   createdBy: mongoose.Types.ObjectId,
   type: 'COACH' | 'MEMBER',
-  maxUses: number = 1,
-  expiresInDays: number = 7
+  maxUses: number = 30,
+  expiresInDays: number = 7,
+  groupId?: mongoose.Types.ObjectId
 ): Promise<IInviteCode> {
   // Generate unique code (8 characters, alphanumeric)
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -173,15 +183,24 @@ inviteCodeSchema.statics.generateCode = async function (
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
-  // Create invite code
-  const inviteCode = await this.create({
+  // Build invite code data
+  const inviteData: any = {
     code,
     clubId,
     createdBy,
     type,
     maxUses,
     expiresAt,
-  });
+  };
+
+  // Add groupId for MEMBER type invites
+  if (type === 'MEMBER' && groupId) {
+    inviteData.groupId = groupId;
+  }
+
+  // Create invite code using new document + save pattern
+  const inviteCode = new this(inviteData);
+  await inviteCode.save();
 
   return inviteCode;
 };

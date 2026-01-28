@@ -99,7 +99,11 @@ export function usePushNotifications(): UsePushNotificationsResult {
           setError('Failed to register with server');
         }
       } else {
-        setError('Could not get push token');
+        // Token is null - push notifications not available (Expo Go or missing projectId)
+        // This is expected in development, not an error
+        console.log('Push notifications not available in this environment');
+        setIsRegistered(false);
+        // Don't set error - this is expected behavior in Expo Go
       }
     } catch (err) {
       console.error('Error registering for notifications:', err);
@@ -140,10 +144,10 @@ export function usePushNotifications(): UsePushNotificationsResult {
     // Cleanup listeners
     return () => {
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        notificationListener.current.remove();
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        responseListener.current.remove();
       }
     };
   }, [registerForNotifications, handleNotificationNavigation]);

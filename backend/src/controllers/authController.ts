@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { getAuth } from '../config/firebase';
 import User from '../models/User';
 import Club from '../models/Club';
+import InviteCode from '../models/InviteCode';
 import { validateInviteCode } from './inviteController';
 
 /**
@@ -10,10 +11,11 @@ import { validateInviteCode } from './inviteController';
  * @access Public
  *
  * @description
- * - OWNER: Creates new user AND new club automatically
- * - COACH/PARENT: Requires valid invite code
+ * - OWNER: Creates new user AND new club automatically (role required in body)
+ * - COACH/PARENT: Requires valid invite code, role is derived from invite type
  * - Verifies Firebase token before registration
  * - Checks club member limit for PARENT role
+ * - Returns groupId for PARENT to know which group to add children to
  */
 export const register = async (
   req: Request,
@@ -25,19 +27,19 @@ export const register = async (
       email,
       fullName,
       phoneNumber,
-      role,
+      role: bodyRole, // Role from body (required for OWNER, optional for others)
       inviteCode,
     } = req.body;
 
     // ========================================
     // 1. VALIDATE REQUEST BODY
     // ========================================
-    if (!firebaseToken || !email || !fullName || !role) {
+    if (!firebaseToken || !email || !fullName) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'Missing required fields: firebaseToken, email, fullName, role',
+          message: 'Missing required fields: firebaseToken, email, fullName',
         },
       });
     }
@@ -79,35 +81,15 @@ export const register = async (
     }
 
     // ========================================
-    // 4. HANDLE ROLE-SPECIFIC LOGIC
+    // 4. DETERMINE ROLE AND CLUB
     // ========================================
+    let role: string;
     let clubId: any;
+    let groupId: any = null;
+    let clubName: string | null = null;
 
-    if (role === 'OWNER') {
-      // ========================================
-      // OWNER: Auto-create new club
-      // ========================================
-      const newClub = await Club.create({
-        name: `${fullName}'s Club`,
-        subscriptionPlan: 'FREE',
-        // ownerId will be set after user creation
-      });
-
-      clubId = newClub._id;
-    } else {
-      // ========================================
-      // COACH/PARENT: Validate invite code
-      // ========================================
-      if (!inviteCode) {
-        return res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invite code is required for COACH and PARENT roles',
-          },
-        });
-      }
-
+    // If inviteCode is provided, derive role from it
+    if (inviteCode) {
       // Validate invite code
       const validation = await validateInviteCode(inviteCode);
 
@@ -123,40 +105,27 @@ export const register = async (
 
       const invite = validation.inviteCode;
 
-      // Validate invite type matches role
-      if (role === 'COACH' && invite.type !== 'COACH') {
-        return res.status(400).json({
+      // Derive role from invite type
+      // COACH invite type → COACH role
+      // MEMBER invite type → PARENT role
+      role = invite.type === 'COACH' ? 'COACH' : 'PARENT';
+
+      // Get club info
+      const club = await Club.findById(invite.clubId);
+      if (!club) {
+        return res.status(404).json({
           success: false,
           error: {
-            code: 'INVALID_CODE_TYPE',
-            message: 'This invite code is not valid for COACH role',
+            code: 'CLUB_NOT_FOUND',
+            message: 'Club associated with invite code not found',
           },
         });
       }
 
-      if (role === 'PARENT' && invite.type !== 'MEMBER') {
-        return res.status(400).json({
-          success: false,
-          error: {
-            code: 'INVALID_CODE_TYPE',
-            message: 'This invite code is not valid for PARENT role',
-          },
-        });
-      }
+      clubName = club.name;
 
       // Check if club has space for new members (PARENT only)
       if (role === 'PARENT') {
-        const club = await Club.findById(invite.clubId);
-        if (!club) {
-          return res.status(404).json({
-            success: false,
-            error: {
-              code: 'CLUB_NOT_FOUND',
-              message: 'Club associated with invite code not found',
-            },
-          });
-        }
-
         if (!club.canAddMembers(1)) {
           return res.status(400).json({
             success: false,
@@ -170,8 +139,34 @@ export const register = async (
 
       clubId = invite.clubId;
 
-      // Store invite for later usage increment
-      // Will be incremented after successful user creation
+      // Get groupId from invite (for PARENT to know which group to add children)
+      // Fetch fresh from DB to get groupId (validation doesn't always populate it)
+      const freshInvite = await InviteCode.findById(invite._id);
+      if (freshInvite && freshInvite.groupId) {
+        groupId = freshInvite.groupId;
+      }
+    } else if (bodyRole === 'OWNER') {
+      // OWNER registration - no invite code needed
+      role = 'OWNER';
+
+      // Auto-create new club
+      const newClub = await Club.create({
+        name: `${fullName}'s Club`,
+        subscriptionPlan: 'FREE',
+        // ownerId will be set after user creation
+      });
+
+      clubId = newClub._id;
+      clubName = newClub.name;
+    } else {
+      // No invite code and not OWNER - error
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invite code is required for COACH and PARENT registration',
+        },
+      });
     }
 
     // ========================================
@@ -219,6 +214,8 @@ export const register = async (
           clubId: newUser.clubId,
           createdAt: newUser.createdAt,
         },
+        clubName, // Club name for display
+        groupId, // Group ID for PARENT to add children to
         token: firebaseToken, // Return same Firebase token
       },
       message: 'User registered successfully',

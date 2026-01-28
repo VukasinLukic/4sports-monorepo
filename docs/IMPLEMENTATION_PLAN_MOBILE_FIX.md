@@ -4,7 +4,7 @@
 **Poslednje ažuriranje:** 28. Januar 2026.
 **Verzija:** 1.1
 **Autor:** Claude Code Assistant
-**Status:** Faza 0 kompletirana, spreman za Fazu 1
+**Status:** Faza 1 kompletirana, spreman za Fazu 2
 
 ---
 
@@ -68,11 +68,12 @@ Ovaj dokument sadrži detaljan plan za ispravku svih identifikovanih problema u 
 
 ---
 
-### FAZA 1: Backend - Ažuriranje Modela i InviteCode Logike
+### FAZA 1: Backend - Ažuriranje Modela i InviteCode Logike ✅ KOMPLETIRANA
 **Zavisnosti:** Faza 0
+**Status:** ZAVRŠENO
 **Cilj:** Ažurirati backend modele i invite sistem za podršku grupa
 
-#### 1.1 Ažuriranje InviteCode modela
+#### 1.1 Ažuriranje InviteCode modela ✅
 **Fajl:** `backend/src/models/InviteCode.ts`
 
 Dodati atribute:
@@ -83,39 +84,39 @@ clubLogo: String (virtual/populated) // Za prikaz pri registraciji
 ```
 
 **Izmene:**
-- [ ] Dodati `groupId` polje u InviteCode model
-- [ ] Ažurirati `generateCode` metodu da prima `groupId`
-- [ ] Ažurirati validaciju da proveri da li grupa pripada klubu
+- [x] Dodati `groupId` polje u InviteCode model
+- [x] Ažurirati `generateCode` metodu da prima `groupId`
+- [x] Ažurirati validaciju da proveri da li grupa pripada klubu
 
-#### 1.2 Ažuriranje InviteController
+#### 1.2 Ažuriranje InviteController ✅
 **Fajl:** `backend/src/controllers/inviteController.ts`
 
 **Izmene:**
-- [ ] Dodati `groupId` u `generateInviteCode` request
-- [ ] Kreirati novu rutu `GET /api/v1/invites/validate/:code` - vraća info o klubu/grupi za prikaz pri registraciji
-- [ ] Ažurirati response da uključi club name, logo, role, group name
+- [x] Dodati `groupId` u `generateInviteCode` request
+- [x] Kreirati novu rutu `GET /api/v1/invites/validate/:code` - vraća info o klubu/grupi za prikaz pri registraciji
+- [x] Ažurirati response da uključi club name, logo, role, group name
 
-#### 1.3 Ažuriranje AuthController - Register
+#### 1.3 Ažuriranje AuthController - Register ✅
 **Fajl:** `backend/src/controllers/authController.ts`
 
 **Izmene:**
-- [ ] Pri registraciji PARENT-a, automatski kreirati Member i dodati u grupu iz invite koda
-- [ ] Vratiti groupId i clubName u response
+- [x] Role se izvlači iz invite code tipa (COACH type → COACH role, MEMBER type → PARENT role)
+- [x] Vratiti groupId i clubName u response
 
-#### 1.4 Ažuriranje User modela
+#### 1.4 Ažuriranje User modela ✅
 **Fajl:** `backend/src/models/User.ts`
 
-Proveriti da sadrži:
+Provereno da sadrži:
 ```typescript
-fullName: String (required)
-phoneNumber: String (required za coach/parent)
-profileImage: String (optional)
+fullName: String (required) ✅
+phoneNumber: String (optional) ✅
+profileImage: String (optional) ✅
 ```
 
 **Testiranje Faze 1:**
 - [ ] Test: Generisanje invite koda sa groupId
 - [ ] Test: Validacija invite koda vraća club/group info
-- [ ] Test: Registracija automatski dodaje u grupu
+- [ ] Test: Registracija koristi role iz invite koda
 
 ---
 
@@ -818,11 +819,18 @@ Lokalizaciju (Faza 17) preporučujem ostaviti za kraj jer:
 ~~1. Pregledaj ovaj plan i daj feedback~~ ✅
 ~~2. Potvrditi prioritete~~ ✅
 ~~3. Početi sa Fazom 0 (dokumentacija)~~ ✅ ZAVRŠENO
+~~4. **Faza 1:** Backend - Ažuriranje InviteCode modela i Auth kontrolera~~ ✅ ZAVRŠENO
+   - ✅ Dodato `groupId` u InviteCode model
+   - ✅ Kreiran `/validate/:code` public endpoint
+   - ✅ Ažurirana registracija - role se izvlači iz invite code tipa
+   - ✅ groupId je required za MEMBER invite type
+   - ✅ Default maxUses promenjen na 30
 
 **SLEDEĆE:**
-4. **Faza 1:** Backend - Ažuriranje InviteCode modela i Auth kontrolera
-   - Dodati `groupId` u InviteCode
-   - Kreirati `/validate/:code` endpoint
-   - Ažurirati registraciju
+5. **Faza 2:** Backend - Groups API Kompletiranje
+   - Dodati `GET /api/v1/groups/:id/members` endpoint
+   - Dodati `POST /api/v1/groups/:id/members` za dodavanje člana
+   - Dodati `DELETE /api/v1/groups/:id/members/:memberId` za uklanjanje člana
+   - Dodati `color` atribut u Group model
 
-Da li želiš da počnemo sa Fazom 1?
+Da li želiš da nastavimo sa Fazom 2?
