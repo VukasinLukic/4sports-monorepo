@@ -8,8 +8,8 @@ export enum UserRole {
 // Event Types
 export enum EventType {
   TRAINING = 'TRAINING',
-  COMPETITION = 'COMPETITION',
-  MEETING = 'MEETING',
+  MATCH = 'MATCH',
+  OTHER = 'OTHER',
 }
 
 // Payment Status
@@ -98,15 +98,56 @@ export interface Event {
   description?: string;
   type: EventType;
   clubId: string;
-  groupId: string;
+  groupId: string | { _id: string; name: string; color?: string };
   date: string;
   startTime: string;
   endTime: string;
   location?: string;
-  createdBy: string;
-  attendanceMarked: boolean;
+  createdBy: string | { _id: string; fullName: string };
+  isMandatory?: boolean;
+  status: 'SCHEDULED' | 'CANCELLED' | 'COMPLETED';
+  // Advanced fields
+  notes?: string;
+  equipment?: string[];
+  maxParticipants?: number;
+  // QR Check-in
+  qrCode: string;
+  // Recurring events
+  isRecurring?: boolean;
+  recurringPattern?: {
+    frequency: 'daily' | 'weekly' | 'monthly';
+    days?: number[];
+    until?: string;
+  };
+  attendanceMarked?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// Event Participant Interface
+export interface EventParticipant {
+  _id: string;
+  eventId: string;
+  memberId: {
+    _id: string;
+    fullName: string;
+    profileImage?: string;
+  };
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
+  rsvpStatus: 'CONFIRMED' | 'DECLINED' | 'PENDING';
+  checkinTime?: string;
+  checkinMethod?: 'QR' | 'MANUAL';
+  markedBy?: { _id: string; fullName: string };
+}
+
+// Event Participants Stats
+export interface EventParticipantsStats {
+  total: number;
+  confirmed: number;
+  declined: number;
+  pending: number;
+  present: number;
+  absent: number;
 }
 
 // Attendance Interface

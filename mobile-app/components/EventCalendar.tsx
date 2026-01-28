@@ -30,9 +30,9 @@ export default function EventCalendar({
     switch (type) {
       case EventType.TRAINING:
         return Colors.eventTraining;
-      case EventType.COMPETITION:
+      case EventType.MATCH:
         return Colors.eventCompetition;
-      case EventType.MEETING:
+      case EventType.OTHER:
         return Colors.eventMeeting;
       default:
         return Colors.primary;
@@ -46,7 +46,10 @@ export default function EventCalendar({
     // Group events by date
     const eventsByDate = new Map<string, Event[]>();
     events.forEach(event => {
-      const dateKey = event.date.split('T')[0]; // Get YYYY-MM-DD
+      // Use startTime if date is not available
+      const dateSource = event.date || event.startTime;
+      if (!dateSource) return;
+      const dateKey = dateSource.split('T')[0]; // Get YYYY-MM-DD
       if (!eventsByDate.has(dateKey)) {
         eventsByDate.set(dateKey, []);
       }

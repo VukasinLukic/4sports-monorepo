@@ -18,6 +18,13 @@ export default function MembersLayout() {
       }}
     >
       <Stack.Screen
+        name="index"
+        options={{
+          title: 'Members',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="[id]"
         options={{
           title: 'Member Details',

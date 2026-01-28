@@ -58,9 +58,9 @@ export default function ParentCalendar() {
     switch (type) {
       case EventType.TRAINING:
         return Colors.eventTraining;
-      case EventType.COMPETITION:
+      case EventType.MATCH:
         return Colors.eventCompetition;
-      case EventType.MEETING:
+      case EventType.OTHER:
         return Colors.eventMeeting;
       default:
         return Colors.primary;

@@ -1,28 +1,45 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { Text, TextInput, Button, SegmentedButtons, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity } from 'react-native';
+import { Text, TextInput, Button, SegmentedButtons, ActivityIndicator, Switch, Chip, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import api from '@/services/api';
 import { EventType, Group } from '@/types';
 
+const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 export default function CreateEventScreen() {
+  const params = useLocalSearchParams<{ date?: string; groupId?: string }>();
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [eventType, setEventType] = useState<EventType>(EventType.TRAINING);
   const [location, setLocation] = useState('');
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(params.date ? new Date(params.date) : new Date());
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date(Date.now() + 90 * 60 * 1000)); // +1.5 hours
-  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(params.groupId || '');
   const [groups, setGroups] = useState<Group[]>([]);
+
+  // Advanced options
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isMandatory, setIsMandatory] = useState(true);
+  const [notes, setNotes] = useState('');
+  const [equipment, setEquipment] = useState<string[]>([]);
+  const [newEquipment, setNewEquipment] = useState('');
+  const [maxParticipants, setMaxParticipants] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+  const [recurringDays, setRecurringDays] = useState<number[]>([]);
+  const [recurringUntil, setRecurringUntil] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // +30 days
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [showRecurringUntilPicker, setShowRecurringUntilPicker] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingGroups, setIsLoadingGroups] = useState(true);
@@ -78,6 +95,30 @@ export default function CreateEventScreen() {
     }
   };
 
+  const handleRecurringUntilChange = (event: any, selectedDate?: Date) => {
+    setShowRecurringUntilPicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setRecurringUntil(selectedDate);
+    }
+  };
+
+  const addEquipment = () => {
+    if (newEquipment.trim()) {
+      setEquipment([...equipment, newEquipment.trim()]);
+      setNewEquipment('');
+    }
+  };
+
+  const removeEquipment = (index: number) => {
+    setEquipment(equipment.filter((_, i) => i !== index));
+  };
+
+  const toggleRecurringDay = (day: number) => {
+    setRecurringDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort()
+    );
+  };
+
   const validateForm = (): boolean => {
     if (!title.trim()) {
       Alert.alert('Validation Error', 'Please enter an event title.');
@@ -100,16 +141,40 @@ export default function CreateEventScreen() {
     setIsLoading(true);
 
     try {
-      await api.post('/events', {
+      // Combine date and time for startTime/endTime
+      const startDateTime = new Date(date);
+      startDateTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
+
+      const endDateTime = new Date(date);
+      endDateTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
+
+      const eventData: Record<string, any> = {
         title: title.trim(),
         description: description.trim() || undefined,
         type: eventType,
         groupId: selectedGroupId,
-        date: formatDate(date),
-        startTime: formatTime(startTime),
-        endTime: formatTime(endTime),
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
         location: location.trim() || undefined,
-      });
+        isMandatory,
+      };
+
+      // Advanced options
+      if (notes.trim()) eventData.notes = notes.trim();
+      if (equipment.length > 0) eventData.equipment = equipment;
+      if (maxParticipants && parseInt(maxParticipants) > 0) {
+        eventData.maxParticipants = parseInt(maxParticipants);
+      }
+      if (isRecurring) {
+        eventData.isRecurring = true;
+        eventData.recurringPattern = {
+          frequency: recurringFrequency,
+          days: recurringFrequency === 'weekly' ? recurringDays : undefined,
+          until: recurringUntil.toISOString(),
+        };
+      }
+
+      await api.post('/events', eventData);
 
       Alert.alert('Success', 'Event created successfully!', [
         { text: 'OK', onPress: () => router.back() },
@@ -143,8 +208,8 @@ export default function CreateEventScreen() {
         onValueChange={(value) => setEventType(value as EventType)}
         buttons={[
           { value: EventType.TRAINING, label: 'Training' },
-          { value: EventType.COMPETITION, label: 'Competition' },
-          { value: EventType.MEETING, label: 'Meeting' },
+          { value: EventType.MATCH, label: 'Match' },
+          { value: EventType.OTHER, label: 'Other' },
         ]}
         style={styles.segmentedButtons}
       />
@@ -282,6 +347,184 @@ export default function CreateEventScreen() {
         placeholderTextColor={Colors.textSecondary}
       />
 
+      {/* Recurring Event Section */}
+      <View style={styles.switchRow}>
+        <View>
+          <Text style={styles.switchLabel}>Recurring Event</Text>
+          <Text style={styles.switchDescription}>Repeat this event on a schedule</Text>
+        </View>
+        <Switch
+          value={isRecurring}
+          onValueChange={setIsRecurring}
+          color={Colors.primary}
+        />
+      </View>
+
+      {isRecurring && (
+        <View style={styles.recurringSection}>
+          {/* Frequency */}
+          <Text style={styles.label}>Frequency</Text>
+          <SegmentedButtons
+            value={recurringFrequency}
+            onValueChange={(value) => setRecurringFrequency(value as 'daily' | 'weekly' | 'monthly')}
+            buttons={[
+              { value: 'daily', label: 'Daily' },
+              { value: 'weekly', label: 'Weekly' },
+              { value: 'monthly', label: 'Monthly' },
+            ]}
+            style={styles.segmentedButtons}
+          />
+
+          {/* Days of Week (for weekly) */}
+          {recurringFrequency === 'weekly' && (
+            <>
+              <Text style={styles.label}>Repeat On</Text>
+              <View style={styles.daysRow}>
+                {DAYS_OF_WEEK.map((day, index) => (
+                  <TouchableOpacity
+                    key={day}
+                    style={[
+                      styles.dayButton,
+                      recurringDays.includes(index) && styles.dayButtonSelected,
+                    ]}
+                    onPress={() => toggleRecurringDay(index)}
+                  >
+                    <Text
+                      style={[
+                        styles.dayButtonText,
+                        recurringDays.includes(index) && styles.dayButtonTextSelected,
+                      ]}
+                    >
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* Until Date */}
+          <Text style={styles.label}>Repeat Until</Text>
+          <Button
+            mode="outlined"
+            onPress={() => setShowRecurringUntilPicker(true)}
+            style={styles.dateButton}
+            icon="calendar"
+            textColor={Colors.text}
+          >
+            {recurringUntil.toLocaleDateString()}
+          </Button>
+          {showRecurringUntilPicker && (
+            <DateTimePicker
+              value={recurringUntil}
+              mode="date"
+              display="default"
+              onChange={handleRecurringUntilChange}
+              minimumDate={date}
+            />
+          )}
+        </View>
+      )}
+
+      {/* Advanced Options Toggle */}
+      <TouchableOpacity
+        style={styles.advancedToggle}
+        onPress={() => setShowAdvanced(!showAdvanced)}
+      >
+        <Text style={styles.advancedToggleText}>Advanced Options</Text>
+        <MaterialCommunityIcons
+          name={showAdvanced ? 'chevron-up' : 'chevron-down'}
+          size={24}
+          color={Colors.primary}
+        />
+      </TouchableOpacity>
+
+      {showAdvanced && (
+        <View style={styles.advancedSection}>
+          {/* Mandatory Toggle */}
+          <View style={styles.switchRow}>
+            <View>
+              <Text style={styles.switchLabel}>Mandatory Event</Text>
+              <Text style={styles.switchDescription}>Members must attend</Text>
+            </View>
+            <Switch
+              value={isMandatory}
+              onValueChange={setIsMandatory}
+              color={Colors.primary}
+            />
+          </View>
+
+          {/* Notes */}
+          <Text style={styles.label}>Notes for Attendees</Text>
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Special instructions, reminders..."
+            mode="outlined"
+            multiline
+            numberOfLines={3}
+            style={[styles.input, styles.textArea]}
+            outlineColor={Colors.border}
+            activeOutlineColor={Colors.primary}
+            textColor={Colors.text}
+            placeholderTextColor={Colors.textSecondary}
+          />
+
+          {/* Equipment */}
+          <Text style={styles.label}>Required Equipment</Text>
+          <View style={styles.equipmentInputRow}>
+            <TextInput
+              value={newEquipment}
+              onChangeText={setNewEquipment}
+              placeholder="e.g., Shin guards, Water bottle"
+              mode="outlined"
+              style={[styles.input, styles.equipmentInput]}
+              outlineColor={Colors.border}
+              activeOutlineColor={Colors.primary}
+              textColor={Colors.text}
+              placeholderTextColor={Colors.textSecondary}
+              onSubmitEditing={addEquipment}
+            />
+            <IconButton
+              icon="plus"
+              mode="contained"
+              onPress={addEquipment}
+              containerColor={Colors.primary}
+              iconColor={Colors.text}
+            />
+          </View>
+          {equipment.length > 0 && (
+            <View style={styles.equipmentList}>
+              {equipment.map((item, index) => (
+                <Chip
+                  key={index}
+                  onClose={() => removeEquipment(index)}
+                  style={styles.equipmentChip}
+                  textStyle={styles.equipmentChipText}
+                >
+                  {item}
+                </Chip>
+              ))}
+            </View>
+          )}
+
+          {/* Max Participants */}
+          <Text style={styles.label}>Max Participants (optional)</Text>
+          <TextInput
+            value={maxParticipants}
+            onChangeText={setMaxParticipants}
+            placeholder="Leave empty for unlimited"
+            mode="outlined"
+            keyboardType="number-pad"
+            style={styles.input}
+            outlineColor={Colors.border}
+            activeOutlineColor={Colors.primary}
+            textColor={Colors.text}
+            placeholderTextColor={Colors.textSecondary}
+          />
+        </View>
+      )}
+
       {/* Submit Button */}
       <Button
         mode="contained"
@@ -387,5 +630,90 @@ const styles = StyleSheet.create({
   cancelButton: {
     marginTop: Spacing.sm,
     borderColor: Colors.border,
+  },
+  advancedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  advancedToggleText: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  advancedSection: {
+    marginTop: Spacing.sm,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  switchLabel: {
+    fontSize: FontSize.md,
+    fontWeight: '500',
+    color: Colors.text,
+  },
+  switchDescription: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  equipmentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  equipmentInput: {
+    flex: 1,
+  },
+  equipmentList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  equipmentChip: {
+    backgroundColor: Colors.surface,
+    height: 32,
+  },
+  equipmentChipText: {
+    fontSize: FontSize.sm,
+  },
+  recurringSection: {
+    marginTop: Spacing.sm,
+    paddingLeft: Spacing.sm,
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.primary,
+  },
+  daysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.xs,
+  },
+  dayButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dayButtonSelected: {
+    backgroundColor: Colors.primary,
+  },
+  dayButtonText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  dayButtonTextSelected: {
+    color: Colors.text,
   },
 });

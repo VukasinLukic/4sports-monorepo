@@ -1,26 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Card, FAB, Chip, ActivityIndicator } from 'react-native-paper';
+import { Text, Card, FAB, Chip, ActivityIndicator, Menu, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import EventCalendar from '@/components/EventCalendar';
 import api from '@/services/api';
-import { Event, EventType } from '@/types';
+import { Event, EventType, Group } from '@/types';
 
 type FilterType = 'all' | 'training' | 'competition';
 
 export default function CoachCalendar() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [groupMenuVisible, setGroupMenuVisible] = useState(false);
+
+  const fetchGroups = useCallback(async () => {
+    try {
+      const response = await api.get('/groups');
+      setGroups(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+    }
+  }, []);
 
   const fetchEvents = useCallback(async () => {
     try {
-      const response = await api.get('/events');
+      const params: Record<string, string> = {};
+      if (selectedGroupId) params.groupId = selectedGroupId;
+
+      const response = await api.get('/events', { params });
       setEvents(response.data.data || []);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -29,7 +44,11 @@ export default function CoachCalendar() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [selectedGroupId]);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
 
   useEffect(() => {
     fetchEvents();
@@ -41,6 +60,12 @@ export default function CoachCalendar() {
     }, [fetchEvents])
   );
 
+  const getSelectedGroupName = () => {
+    if (!selectedGroupId) return 'All Groups';
+    const group = groups.find(g => g._id === selectedGroupId);
+    return group?.name || 'All Groups';
+  };
+
   const onRefresh = () => {
     setIsRefreshing(true);
     fetchEvents();
@@ -50,9 +75,9 @@ export default function CoachCalendar() {
     switch (type) {
       case EventType.TRAINING:
         return Colors.eventTraining;
-      case EventType.COMPETITION:
+      case EventType.MATCH:
         return Colors.eventCompetition;
-      case EventType.MEETING:
+      case EventType.OTHER:
         return Colors.eventMeeting;
       default:
         return Colors.primary;
@@ -62,14 +87,22 @@ export default function CoachCalendar() {
   // Filter events
   const filteredEvents = events.filter(event => {
     if (filter === 'training') return event.type === EventType.TRAINING;
-    if (filter === 'competition') return event.type === EventType.COMPETITION;
+    if (filter === 'competition') return event.type === EventType.MATCH;
     return true;
   });
 
   // Filter by selected date if any
+  const getEventDate = (event: Event) => event.date || event.startTime;
+
   const displayedEvents = selectedDate
-    ? filteredEvents.filter(event => event.date.startsWith(selectedDate))
-    : filteredEvents.filter(event => new Date(event.date) >= new Date(new Date().setHours(0, 0, 0, 0)));
+    ? filteredEvents.filter(event => {
+        const eventDate = getEventDate(event);
+        return eventDate && eventDate.startsWith(selectedDate);
+      })
+    : filteredEvents.filter(event => {
+        const eventDate = getEventDate(event);
+        return eventDate && new Date(eventDate) >= new Date(new Date().setHours(0, 0, 0, 0));
+      });
 
   // Sort by date
   const sortedEvents = displayedEvents.sort(
@@ -81,7 +114,29 @@ export default function CoachCalendar() {
   };
 
   const navigateToEvent = (eventId: string) => {
-    router.push(`/(coach)/attendance/${eventId}`);
+    router.push(`/(coach)/events/${eventId}`);
+  };
+
+  const formatEventTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  };
+
+  const formatEventDate = (event: Event) => {
+    try {
+      const dateString = event.date || event.startTime;
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleDateString();
+    } catch {
+      return '';
+    }
   };
 
   if (isLoading) {
@@ -112,7 +167,47 @@ export default function CoachCalendar() {
           onDayPress={handleDayPress}
         />
 
-        {/* Filter Chips */}
+        {/* Group Filter */}
+        <View style={styles.groupFilterContainer}>
+          <Menu
+            visible={groupMenuVisible}
+            onDismiss={() => setGroupMenuVisible(false)}
+            anchor={
+              <Button
+                mode="outlined"
+                onPress={() => setGroupMenuVisible(true)}
+                icon="filter-variant"
+                textColor={Colors.text}
+                style={styles.groupFilterButton}
+              >
+                {getSelectedGroupName()}
+              </Button>
+            }
+            contentStyle={styles.menuContent}
+          >
+            <Menu.Item
+              onPress={() => {
+                setSelectedGroupId(null);
+                setGroupMenuVisible(false);
+              }}
+              title="All Groups"
+              leadingIcon={selectedGroupId === null ? 'check' : undefined}
+            />
+            {groups.map(group => (
+              <Menu.Item
+                key={group._id}
+                onPress={() => {
+                  setSelectedGroupId(group._id);
+                  setGroupMenuVisible(false);
+                }}
+                title={group.name}
+                leadingIcon={selectedGroupId === group._id ? 'check' : undefined}
+              />
+            ))}
+          </Menu>
+        </View>
+
+        {/* Type Filter Chips */}
         <View style={styles.filterRow}>
           <Chip
             selected={filter === 'all'}
@@ -139,7 +234,7 @@ export default function CoachCalendar() {
             selectedColor={Colors.eventCompetition}
             onPress={() => setFilter('competition')}
           >
-            Competition
+            Match
           </Chip>
         </View>
 
@@ -174,14 +269,14 @@ export default function CoachCalendar() {
                       <Text style={styles.eventTypeText}>{event.type}</Text>
                     </View>
                     <Text style={styles.eventTime}>
-                      {event.startTime} - {event.endTime}
+                      {formatEventTime(event.startTime)} - {formatEventTime(event.endTime)}
                     </Text>
                   </View>
                   <Text style={styles.eventTitle}>{event.title}</Text>
                   <View style={styles.eventMeta}>
                     <MaterialCommunityIcons name="calendar" size={16} color={Colors.textSecondary} />
                     <Text style={styles.eventDate}>
-                      {new Date(event.date).toLocaleDateString()}
+                      {formatEventDate(event)}
                     </Text>
                   </View>
                   {event.location && (
@@ -227,6 +322,15 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.md,
     paddingBottom: 100,
+  },
+  groupFilterContainer: {
+    marginTop: Spacing.md,
+  },
+  groupFilterButton: {
+    borderColor: Colors.border,
+  },
+  menuContent: {
+    backgroundColor: Colors.surface,
   },
   filterRow: {
     flexDirection: 'row',

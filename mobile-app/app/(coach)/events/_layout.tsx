@@ -29,6 +29,19 @@ export default function EventsLayout() {
           title: 'Event Details',
         }}
       />
+      <Stack.Screen
+        name="qr"
+        options={{
+          title: 'QR Code',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="edit"
+        options={{
+          title: 'Edit Event',
+        }}
+      />
     </Stack>
   );
 }
