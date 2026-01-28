@@ -1,15 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Text, TextInput, Button, HelperText, RadioButton } from 'react-native-paper';
-import { Link, router } from 'expo-router';
+import { Text, TextInput, Button, HelperText, Card } from 'react-native-paper';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/services/AuthContext';
 import { getAuthErrorMessage } from '@/services/auth';
-import { getApiErrorMessage } from '@/services/api';
+import api, { getApiErrorMessage } from '@/services/api';
 import { UserRole } from '@/types';
 import { AppColors, Spacing, FontSize, BorderRadius } from '@/constants';
 
+interface InviteInfo {
+  clubName: string;
+  groupName?: string;
+  role: string;
+}
+
 export default function RegisterScreen() {
   const { register, loading } = useAuth();
+  const params = useLocalSearchParams<{ inviteCode?: string }>();
+
+  // Invite info from validation
+  const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null);
+  const [loadingInvite, setLoadingInvite] = useState(false);
 
   // Form state
   const [email, setEmail] = useState('');
@@ -17,11 +28,37 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
-  const [role, setRole] = useState<UserRole>(UserRole.PARENT);
+  const [inviteCode, setInviteCode] = useState(params.inviteCode || '');
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Load invite info when inviteCode changes
+  useEffect(() => {
+    if (params.inviteCode) {
+      setInviteCode(params.inviteCode);
+      validateInviteCode(params.inviteCode);
+    }
+  }, [params.inviteCode]);
+
+  const validateInviteCode = async (code: string) => {
+    if (!code || code.length < 3) return;
+
+    try {
+      setLoadingInvite(true);
+      const response = await api.get(`/invites/validate/${code.trim()}`);
+      setInviteInfo({
+        clubName: response.data.data.clubName || response.data.data.club?.name,
+        groupName: response.data.data.groupName || response.data.data.group?.name,
+        role: response.data.data.role,
+      });
+    } catch (err) {
+      console.error('Failed to validate invite code:', err);
+      setInviteInfo(null);
+    } finally {
+      setLoadingInvite(false);
+    }
+  };
 
   // Validation
   const emailError = email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -71,10 +108,12 @@ export default function RegisterScreen() {
     }
 
     try {
-      await register(email, password, fullName, phoneNumber, role, inviteCode);
+      // Role is determined by the invite code type on the backend
+      const determinedRole = inviteInfo?.role === 'COACH' ? UserRole.COACH : UserRole.PARENT;
+      await register(email, password, fullName, phoneNumber, determinedRole, inviteCode);
       // Navigate directly based on role to avoid race conditions
-      console.log('Registration successful, navigating based on role:', role);
-      if (role === UserRole.COACH || role === UserRole.OWNER) {
+      console.log('Registration successful, navigating based on role:', determinedRole);
+      if (determinedRole === UserRole.COACH || determinedRole === UserRole.OWNER) {
         router.replace('/(coach)');
       } else {
         router.replace('/(parent)');
@@ -104,6 +143,23 @@ export default function RegisterScreen() {
           <Text style={styles.logo}>4SPORTS</Text>
           <Text style={styles.subtitle}>Create Account</Text>
         </View>
+
+        {/* Club Info Card */}
+        {inviteInfo && (
+          <Card style={styles.clubCard}>
+            <Card.Content>
+              <Text style={styles.clubName}>{inviteInfo.clubName}</Text>
+              {inviteInfo.groupName && (
+                <Text style={styles.groupName}>Group: {inviteInfo.groupName}</Text>
+              )}
+              <View style={styles.roleTag}>
+                <Text style={styles.roleTagText}>
+                  Joining as: {inviteInfo.role}
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
 
         <View style={styles.form}>
           {/* Full Name Input */}
@@ -233,40 +289,34 @@ export default function RegisterScreen() {
             </HelperText>
           )}
 
-          {/* Invite Code Input */}
-          <TextInput
-            label="Invite Code"
-            value={inviteCode}
-            onChangeText={setInviteCode}
-            mode="outlined"
-            autoCapitalize="characters"
-            error={!!inviteCodeError}
-            disabled={loading}
-            style={styles.input}
-            outlineColor={AppColors.border}
-            activeOutlineColor={AppColors.primary}
-            theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
-          />
-          {inviteCodeError && (
-            <HelperText type="error" visible={inviteCodeError}>
-              Invite code must be at least 3 characters
-            </HelperText>
+          {/* Invite Code Input - only show if not pre-filled */}
+          {!params.inviteCode && (
+            <>
+              <TextInput
+                label="Invite Code"
+                value={inviteCode}
+                onChangeText={(text) => {
+                  setInviteCode(text);
+                  if (text.length >= 6) {
+                    validateInviteCode(text);
+                  }
+                }}
+                mode="outlined"
+                autoCapitalize="characters"
+                error={!!inviteCodeError}
+                disabled={loading}
+                style={styles.input}
+                outlineColor={AppColors.border}
+                activeOutlineColor={AppColors.primary}
+                theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
+              />
+              {inviteCodeError && (
+                <HelperText type="error" visible={inviteCodeError}>
+                  Invite code must be at least 3 characters
+                </HelperText>
+              )}
+            </>
           )}
-
-          {/* Role Selection */}
-          <View style={styles.roleContainer}>
-            <Text style={styles.roleLabel}>I am a:</Text>
-            <RadioButton.Group onValueChange={(value) => setRole(value as UserRole)} value={role}>
-              <View style={styles.radioOption}>
-                <RadioButton.Android value={UserRole.COACH} color={AppColors.primary} />
-                <Text style={styles.radioLabel}>Coach</Text>
-              </View>
-              <View style={styles.radioOption}>
-                <RadioButton.Android value={UserRole.PARENT} color={AppColors.primary} />
-                <Text style={styles.radioLabel}>Parent</Text>
-              </View>
-            </RadioButton.Group>
-          </View>
 
           {/* Error Message */}
           {error && (
@@ -335,6 +385,36 @@ const styles = StyleSheet.create({
     fontSize: FontSize.lg,
     color: AppColors.textSecondary,
   },
+  clubCard: {
+    backgroundColor: AppColors.primary + '15',
+    marginBottom: Spacing.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: AppColors.primary,
+  },
+  clubName: {
+    fontSize: FontSize.lg,
+    fontWeight: 'bold',
+    color: AppColors.text,
+    marginBottom: Spacing.xs,
+  },
+  groupName: {
+    fontSize: FontSize.md,
+    color: AppColors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  roleTag: {
+    backgroundColor: AppColors.primary,
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.xs,
+  },
+  roleTagText: {
+    color: '#FFFFFF',
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
   form: {
     width: '100%',
     maxWidth: 400,
@@ -343,28 +423,6 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: Spacing.sm,
     backgroundColor: AppColors.surface,
-  },
-  roleContainer: {
-    marginVertical: Spacing.md,
-    padding: Spacing.md,
-    backgroundColor: AppColors.surface,
-    borderRadius: BorderRadius.sm,
-  },
-  roleLabel: {
-    color: AppColors.text,
-    fontSize: FontSize.md,
-    marginBottom: Spacing.sm,
-    fontWeight: 'bold',
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing.xs,
-  },
-  radioLabel: {
-    color: AppColors.text,
-    fontSize: FontSize.md,
-    marginLeft: Spacing.sm,
   },
   errorContainer: {
     backgroundColor: AppColors.error + '20',
