@@ -110,6 +110,12 @@ export default function CoachLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="groups"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

@@ -58,6 +58,9 @@ export interface Group {
   name: string;
   clubId: string;
   ageGroup?: string;
+  sport?: string;
+  description?: string;
+  color?: string;
   memberCount: number;
   coachIds: string[];
   createdAt: string;

@@ -19,6 +19,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import { useLocalSearchParams } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import api from '@/services/api';
@@ -42,6 +43,7 @@ interface InviteCode {
 }
 
 export default function InviteCodesScreen() {
+  const params = useLocalSearchParams<{ groupId?: string; groupName?: string }>();
   const [groups, setGroups] = useState<Group[]>([]);
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -59,15 +61,24 @@ export default function InviteCodesScreen() {
         api.get('/invites'),
       ]);
 
-      setGroups(groupsRes.data.data || []);
+      const groupsData = groupsRes.data.data || [];
+      setGroups(groupsData);
       setInviteCodes(invitesRes.data.data || []);
+
+      // Pre-select group if passed from params
+      if (params.groupId && groupsData.length > 0) {
+        const preSelectedGroup = groupsData.find((g: Group) => g._id === params.groupId);
+        if (preSelectedGroup) {
+          setSelectedGroup(preSelectedGroup);
+        }
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [params.groupId]);
 
   useEffect(() => {
     fetchData();
@@ -681,7 +692,8 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   statusChip: {
-    height: 24,
+    height: 28,
+    justifyContent: 'center',
   },
   statusChipActive: {
     backgroundColor: Colors.success + '30',
@@ -692,6 +704,7 @@ const styles = StyleSheet.create({
   statusChipText: {
     fontSize: FontSize.xs,
     color: Colors.text,
+    lineHeight: FontSize.xs + 2,
   },
   inviteActions: {
     flexDirection: 'row',

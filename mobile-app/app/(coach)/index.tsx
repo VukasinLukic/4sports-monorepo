@@ -101,6 +101,30 @@ export default function CoachDashboard() {
         >
           Payment
         </Button>
+
+        <Button
+          mode="contained"
+          icon="account-group"
+          style={styles.actionButton}
+          contentStyle={styles.actionButtonContent}
+          labelStyle={styles.actionButtonLabel}
+          buttonColor={Colors.warning}
+          onPress={() => router.push('/(coach)/groups')}
+        >
+          Groups
+        </Button>
+
+        <Button
+          mode="contained"
+          icon="qrcode-plus"
+          style={styles.actionButton}
+          contentStyle={styles.actionButtonContent}
+          labelStyle={styles.actionButtonLabel}
+          buttonColor="#6C5CE7"
+          onPress={() => router.push('/(coach)/invites')}
+        >
+          Invite Codes
+        </Button>
       </View>
 
       {/* Today's Events */}

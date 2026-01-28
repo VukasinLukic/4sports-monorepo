@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import Member from '../models/Member';
 import Payment from '../models/Payment';
-import Group from '../models/Group';
 
 /**
  * Get Membership Evidence by Group
