@@ -97,7 +97,7 @@ clubLogo: String (virtual/populated) // Za prikaz pri registraciji
 - [x] Ažurirati response da uključi club name, logo, role, group name
 
 #### 1.3 Ažuriranje AuthController - Register ✅
-**Fajl:** `backend/src/controllers/authController.ts`
+**Fajl:** `backend/src/controllers/authController.ts`  
 
 **Izmene:**
 - [x] Role se izvlači iz invite code tipa (COACH type → COACH role, MEMBER type → PARENT role)

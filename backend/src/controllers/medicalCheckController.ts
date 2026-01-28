@@ -5,8 +5,20 @@ import Member from '../models/Member';
 export const createMedicalCheck = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
-    const { memberId, issueDate, validUntil, documentUrl, doctorName, notes } = req.body;
-    if (!memberId || !issueDate || !validUntil) return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required fields' } });
+    const { memberId, issueDate, validUntil, examinationDate, documentUrl, doctorName, notes, note } = req.body;
+
+    // Support both formats:
+    // 1. Original: { memberId, issueDate, validUntil }
+    // 2. Mobile app: { memberId, examinationDate, note } - calculates validUntil as 6 months
+    const actualIssueDate = issueDate || examinationDate;
+    if (!memberId || !actualIssueDate) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required fields: memberId and issueDate/examinationDate are required' } });
+    }
+
+    // Calculate validUntil as 6 months from issue date if not provided
+    const issueDateObj = new Date(actualIssueDate);
+    const actualValidUntil = validUntil || new Date(issueDateObj.getTime() + 6 * 30 * 24 * 60 * 60 * 1000);
+    const actualNotes = notes || note;
 
     const member = await Member.findById(memberId);
     if (!member) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found' } });
@@ -16,8 +28,25 @@ export const createMedicalCheck = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
     }
 
-    const status = new Date(validUntil) > new Date() ? 'VALID' : 'EXPIRED';
-    const medicalCheck = await MedicalCheck.create({ memberId, issueDate, validUntil, documentUrl, doctorName, notes, status, uploadedBy: req.user._id });
+    const status = new Date(actualValidUntil) > new Date() ? 'VALID' : 'EXPIRED';
+    const medicalCheck = await MedicalCheck.create({
+      memberId,
+      issueDate: actualIssueDate,
+      validUntil: actualValidUntil,
+      documentUrl,
+      doctorName,
+      notes: actualNotes,
+      status,
+      uploadedBy: req.user._id,
+    });
+
+    // Also update the member's medicalInfo
+    member.medicalInfo = {
+      ...member.medicalInfo,
+      expiryDate: new Date(actualValidUntil),
+    };
+    await member.save();
+
     return res.status(201).json({ success: true, data: medicalCheck });
   } catch (error: any) {
     console.error('❌ Create Medical Check Error:', error);

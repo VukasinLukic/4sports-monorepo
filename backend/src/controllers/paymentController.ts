@@ -5,15 +5,42 @@ import Member from '../models/Member';
 export const createPayment = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
-    const { memberId, type, amount, description, dueDate } = req.body;
+    const { memberId, type, amount, description, dueDate, paymentMethod, paymentDate, note } = req.body;
     const clubId = req.user.clubId;
     if (!clubId) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
-    if (!memberId || !type || !amount || !dueDate) return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required fields' } });
+
+    // Support both "create pending payment" and "record completed payment" flows
+    if (!memberId || !amount) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required fields: memberId and amount are required' } });
+    }
 
     const member = await Member.findById(memberId);
     if (!member || !member.isInClub(clubId)) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found in club' } });
 
-    const payment = await Payment.create({ clubId, memberId, type, amount, description, dueDate, createdBy: req.user._id });
+    // If paymentMethod is provided, this is a "record payment" (already paid)
+    const isPaid = !!paymentMethod;
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const paymentData: any = {
+      clubId,
+      memberId,
+      type: type || 'MEMBERSHIP',
+      amount,
+      description: description || note,
+      dueDate: dueDate || now,
+      createdBy: req.user._id,
+      period: { month: currentMonth, year: currentYear },
+    };
+
+    if (isPaid) {
+      paymentData.status = 'PAID';
+      paymentData.paidDate = paymentDate ? new Date(paymentDate) : now;
+      paymentData.paymentMethod = paymentMethod;
+    }
+
+    const payment = await Payment.create(paymentData);
     return res.status(201).json({ success: true, data: payment });
   } catch (error: any) {
     console.error('❌ Create Payment Error:', error);
