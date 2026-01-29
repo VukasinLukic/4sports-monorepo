@@ -226,38 +226,44 @@ export default function MemberHome() {
                                 event.type === EventType.MATCH ? Colors.success : Colors.info;
 
           return (
-            <Card key={event._id} style={[styles.eventCard, isToday && styles.todayEventCard]}>
-              <Card.Content style={styles.eventCardContent}>
-                <View style={styles.eventDateBox}>
-                  <Text style={styles.eventDay}>{eventDate.getDate()}</Text>
-                  <Text style={styles.eventMonth}>
-                    {eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.eventInfo}>
-                  <View style={styles.eventTitleRow}>
-                    <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-                    {isToday && (
-                      <Chip style={styles.todayChip} textStyle={styles.todayChipText}>Today</Chip>
+            <TouchableOpacity
+              key={event._id}
+              onPress={() => router.push({ pathname: '/(member)/events/[id]', params: { id: event._id } })}
+              activeOpacity={0.7}
+            >
+              <Card style={[styles.eventCard, isToday && styles.todayEventCard]}>
+                <Card.Content style={styles.eventCardContent}>
+                  <View style={styles.eventDateBox}>
+                    <Text style={styles.eventDay}>{eventDate.getDate()}</Text>
+                    <Text style={styles.eventMonth}>
+                      {eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.eventInfo}>
+                    <View style={styles.eventTitleRow}>
+                      <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                      {isToday && (
+                        <Chip style={styles.todayChip} textStyle={styles.todayChipText}>Today</Chip>
+                      )}
+                    </View>
+                    <View style={styles.eventMeta}>
+                      <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
+                      <Text style={styles.eventMetaText}>
+                        {eventDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                      <View style={[styles.eventTypeDot, { backgroundColor: eventTypeColor }]} />
+                      <Text style={[styles.eventTypeText, { color: eventTypeColor }]}>{event.type}</Text>
+                    </View>
+                    {event.location && (
+                      <View style={styles.eventMeta}>
+                        <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
+                        <Text style={styles.eventMetaText} numberOfLines={1}>{event.location}</Text>
+                      </View>
                     )}
                   </View>
-                  <View style={styles.eventMeta}>
-                    <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
-                    <Text style={styles.eventMetaText}>
-                      {eventDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                    <View style={[styles.eventTypeDot, { backgroundColor: eventTypeColor }]} />
-                    <Text style={[styles.eventTypeText, { color: eventTypeColor }]}>{event.type}</Text>
-                  </View>
-                  {event.location && (
-                    <View style={styles.eventMeta}>
-                      <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
-                      <Text style={styles.eventMetaText} numberOfLines={1}>{event.location}</Text>
-                    </View>
-                  )}
-                </View>
-              </Card.Content>
-            </Card>
+                </Card.Content>
+              </Card>
+            </TouchableOpacity>
           );
         })
       )}

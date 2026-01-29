@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { Text, Card, ActivityIndicator } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import EventCalendar from '@/components/EventCalendar';
@@ -165,38 +165,44 @@ export default function MemberCalendar() {
               </Card>
             ) : (
               selectedDateEvents.map(event => (
-                <Card key={event._id} style={styles.eventCard}>
-                  <Card.Content>
-                    <View style={styles.eventHeader}>
-                      <View style={[styles.eventTypeBadge, { backgroundColor: getEventTypeColor(event.type) + '20' }]}>
-                        <Text style={[styles.eventTypeText, { color: getEventTypeColor(event.type) }]}>
-                          {event.type}
+                <TouchableOpacity
+                  key={event._id}
+                  onPress={() => router.push({ pathname: '/(member)/events/[id]', params: { id: event._id } })}
+                  activeOpacity={0.7}
+                >
+                  <Card style={styles.eventCard}>
+                    <Card.Content>
+                      <View style={styles.eventHeader}>
+                        <View style={[styles.eventTypeBadge, { backgroundColor: getEventTypeColor(event.type) + '20' }]}>
+                          <Text style={[styles.eventTypeText, { color: getEventTypeColor(event.type) }]}>
+                            {event.type}
+                          </Text>
+                        </View>
+                        {event.isMandatory && (
+                          <Text style={styles.mandatoryBadge}>Mandatory</Text>
+                        )}
+                      </View>
+                      <Text style={styles.eventTitle}>{event.title}</Text>
+                      <View style={styles.eventMeta}>
+                        <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
+                        <Text style={styles.eventMetaText}>
+                          {formatTime(event.startTime)} - {formatTime(event.endTime)}
                         </Text>
                       </View>
-                      {event.isMandatory && (
-                        <Text style={styles.mandatoryBadge}>Mandatory</Text>
+                      {event.location && (
+                        <View style={styles.eventMeta}>
+                          <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
+                          <Text style={styles.eventMetaText}>{event.location}</Text>
+                        </View>
                       )}
-                    </View>
-                    <Text style={styles.eventTitle}>{event.title}</Text>
-                    <View style={styles.eventMeta}>
-                      <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
-                      <Text style={styles.eventMetaText}>
-                        {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                      </Text>
-                    </View>
-                    {event.location && (
-                      <View style={styles.eventMeta}>
-                        <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
-                        <Text style={styles.eventMetaText}>{event.location}</Text>
-                      </View>
-                    )}
-                    {event.description && (
-                      <Text style={styles.eventDescription} numberOfLines={2}>
-                        {event.description}
-                      </Text>
-                    )}
-                  </Card.Content>
-                </Card>
+                      {event.description && (
+                        <Text style={styles.eventDescription} numberOfLines={2}>
+                          {event.description}
+                        </Text>
+                      )}
+                    </Card.Content>
+                  </Card>
+                </TouchableOpacity>
               ))
             )}
           </>
@@ -218,36 +224,42 @@ export default function MemberCalendar() {
               upcomingEvents.map(event => {
                 const eventDate = new Date(event.date || event.startTime);
                 return (
-                  <Card key={event._id} style={styles.eventCard}>
-                    <Card.Content style={styles.eventCardContent}>
-                      <View style={styles.eventDate}>
-                        <Text style={styles.eventDay}>{eventDate.getDate()}</Text>
-                        <Text style={styles.eventMonth}>
-                          {eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={styles.eventDetails}>
-                        <View style={[styles.eventTypeBadge, { backgroundColor: getEventTypeColor(event.type) + '20' }]}>
-                          <Text style={[styles.eventTypeText, { color: getEventTypeColor(event.type) }]}>
-                            {event.type}
+                  <TouchableOpacity
+                    key={event._id}
+                    onPress={() => router.push({ pathname: '/(member)/events/[id]', params: { id: event._id } })}
+                    activeOpacity={0.7}
+                  >
+                    <Card style={styles.eventCard}>
+                      <Card.Content style={styles.eventCardContent}>
+                        <View style={styles.eventDate}>
+                          <Text style={styles.eventDay}>{eventDate.getDate()}</Text>
+                          <Text style={styles.eventMonth}>
+                            {eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
                           </Text>
                         </View>
-                        <Text style={styles.eventTitle}>{event.title}</Text>
-                        <View style={styles.eventMeta}>
-                          <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={styles.eventMetaText}>
-                            {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                          </Text>
-                        </View>
-                        {event.location && (
-                          <View style={styles.eventMeta}>
-                            <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
-                            <Text style={styles.eventMetaText}>{event.location}</Text>
+                        <View style={styles.eventDetails}>
+                          <View style={[styles.eventTypeBadge, { backgroundColor: getEventTypeColor(event.type) + '20' }]}>
+                            <Text style={[styles.eventTypeText, { color: getEventTypeColor(event.type) }]}>
+                              {event.type}
+                            </Text>
                           </View>
-                        )}
-                      </View>
-                    </Card.Content>
-                  </Card>
+                          <Text style={styles.eventTitle}>{event.title}</Text>
+                          <View style={styles.eventMeta}>
+                            <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
+                            <Text style={styles.eventMetaText}>
+                              {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                            </Text>
+                          </View>
+                          {event.location && (
+                            <View style={styles.eventMeta}>
+                              <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
+                              <Text style={styles.eventMetaText}>{event.location}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </Card.Content>
+                    </Card>
+                  </TouchableOpacity>
                 );
               })
             )}

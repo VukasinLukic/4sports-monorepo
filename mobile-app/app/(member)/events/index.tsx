@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { Text, Card, Chip, ActivityIndicator } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import api from '@/services/api';
 import { Event, EventType } from '@/types';
 
-export default function MemberEvents() {
+export default function MemberEventsIndex() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -35,6 +35,13 @@ export default function MemberEvents() {
   const onRefresh = () => {
     setIsRefreshing(true);
     fetchEvents();
+  };
+
+  const handleEventPress = (eventId: string) => {
+    router.push({
+      pathname: '/(member)/events/[id]',
+      params: { id: eventId },
+    });
   };
 
   const getEventTypeInfo = (type: EventType) => {
@@ -82,55 +89,57 @@ export default function MemberEvents() {
     const eventIsToday = isToday(item.startTime);
 
     return (
-      <Card style={[styles.eventCard, eventIsToday && styles.todayCard]}>
-        <Card.Content>
-          <View style={styles.eventHeader}>
-            <View style={styles.eventTitleRow}>
-              <View style={[styles.typeIndicator, { backgroundColor: typeInfo.color }]} />
-              <Text style={styles.eventTitle}>{item.title}</Text>
-            </View>
-            {eventIsToday && (
-              <Chip style={styles.todayChip} textStyle={styles.todayChipText}>
-                Today
-              </Chip>
-            )}
-          </View>
-
-          <View style={styles.eventDetails}>
-            <View style={styles.detailRow}>
-              <MaterialCommunityIcons name="calendar" size={16} color={Colors.textSecondary} />
-              <Text style={styles.detailText}>{formatDate(item.startTime)}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <MaterialCommunityIcons name="clock-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.detailText}>
-                {formatTime(item.startTime)} - {formatTime(item.endTime)}
-              </Text>
-            </View>
-            {item.location && (
-              <View style={styles.detailRow}>
-                <MaterialCommunityIcons name="map-marker" size={16} color={Colors.textSecondary} />
-                <Text style={styles.detailText}>{item.location}</Text>
+      <TouchableOpacity onPress={() => handleEventPress(item._id)} activeOpacity={0.7}>
+        <Card style={[styles.eventCard, eventIsToday && styles.todayCard]}>
+          <Card.Content>
+            <View style={styles.eventHeader}>
+              <View style={styles.eventTitleRow}>
+                <View style={[styles.typeIndicator, { backgroundColor: typeInfo.color }]} />
+                <Text style={styles.eventTitle}>{item.title}</Text>
               </View>
-            )}
-          </View>
-
-          <View style={styles.eventFooter}>
-            <Chip
-              style={[styles.typeChip, { backgroundColor: typeInfo.color + '20' }]}
-              textStyle={[styles.typeChipText, { color: typeInfo.color }]}
-              icon={() => (
-                <MaterialCommunityIcons name={typeInfo.icon} size={14} color={typeInfo.color} />
+              {eventIsToday && (
+                <Chip style={styles.todayChip} textStyle={styles.todayChipText}>
+                  Today
+                </Chip>
               )}
-            >
-              {typeInfo.label}
-            </Chip>
-            {item.isMandatory && (
-              <Text style={styles.mandatoryText}>Mandatory</Text>
-            )}
-          </View>
-        </Card.Content>
-      </Card>
+            </View>
+
+            <View style={styles.eventDetails}>
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons name="calendar" size={16} color={Colors.textSecondary} />
+                <Text style={styles.detailText}>{formatDate(item.startTime)}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons name="clock-outline" size={16} color={Colors.textSecondary} />
+                <Text style={styles.detailText}>
+                  {formatTime(item.startTime)} - {formatTime(item.endTime)}
+                </Text>
+              </View>
+              {item.location && (
+                <View style={styles.detailRow}>
+                  <MaterialCommunityIcons name="map-marker" size={16} color={Colors.textSecondary} />
+                  <Text style={styles.detailText}>{item.location}</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.eventFooter}>
+              <Chip
+                style={[styles.typeChip, { backgroundColor: typeInfo.color + '20' }]}
+                textStyle={[styles.typeChipText, { color: typeInfo.color }]}
+                icon={() => (
+                  <MaterialCommunityIcons name={typeInfo.icon} size={14} color={typeInfo.color} />
+                )}
+              >
+                {typeInfo.label}
+              </Chip>
+              {item.isMandatory && (
+                <Text style={styles.mandatoryText}>Mandatory</Text>
+              )}
+            </View>
+          </Card.Content>
+        </Card>
+      </TouchableOpacity>
     );
   };
 
