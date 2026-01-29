@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import PostCard from '@/components/PostCard';
 import api from '@/services/api';
 import { Post, Group } from '@/types';
@@ -18,6 +19,7 @@ interface PostWithAuthor extends Post {
 }
 
 export default function CoachNewsFeed() {
+  const { t } = useLanguage();
   const [posts, setPosts] = useState<PostWithAuthor[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export default function CoachNewsFeed() {
   const renderPost = ({ item }: { item: PostWithAuthor }) => (
     <PostCard
       post={item}
-      authorName={item.author?.fullName || 'Coach'}
+      authorName={item.author?.fullName || t('roles.coach')}
       authorAvatar={item.author?.profilePicture}
       onLike={handleLike}
       onComment={handleComment}
@@ -95,9 +97,9 @@ export default function CoachNewsFeed() {
     <Card style={styles.emptyCard}>
       <Card.Content style={styles.emptyContent}>
         <MaterialCommunityIcons name="newspaper-variant-outline" size={64} color={Colors.textSecondary} />
-        <Text style={styles.emptyTitle}>No Posts Yet</Text>
+        <Text style={styles.emptyTitle}>{t('news.noPosts') || 'No Posts Yet'}</Text>
         <Text style={styles.emptyText}>
-          Share news, updates, and announcements with your club members
+          {t('news.noPostsDescription') || 'Share news, updates, and announcements with your club members'}
         </Text>
       </Card.Content>
     </Card>
@@ -105,14 +107,14 @@ export default function CoachNewsFeed() {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.title}>News Feed</Text>
+      <Text style={styles.title}>{t('news.title') || 'News Feed'}</Text>
 
       {/* Group Filter */}
       {groups.length > 0 && (
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={[{ _id: null, name: 'All Groups' }, ...groups]}
+          data={[{ _id: null, name: t('groups.allGroups') || 'All Groups' }, ...groups]}
           keyExtractor={(item) => item._id || 'all'}
           style={styles.filterList}
           contentContainerStyle={styles.filterContainer}
@@ -136,7 +138,7 @@ export default function CoachNewsFeed() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading news feed...</Text>
+        <Text style={styles.loadingText}>{t('news.loadingFeed') || 'Loading news feed...'}</Text>
       </View>
     );
   }

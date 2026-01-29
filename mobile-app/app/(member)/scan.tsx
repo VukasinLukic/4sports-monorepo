@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import { useCameraPermissions } from '@/hooks/useCameraPermissions';
 import { useAuth } from '@/services/AuthContext';
 import api from '@/services/api';
@@ -18,6 +19,7 @@ interface QRData {
 }
 
 export default function MemberScanScreen() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { hasPermission, isLoading: permissionLoading, requestPermission } = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -58,12 +60,12 @@ export default function MemberScanScreen() {
       const qrData: QRData = JSON.parse(result.data);
 
       if (qrData.type !== 'EVENT_ATTENDANCE') {
-        Alert.alert('Invalid QR Code', 'This QR code is not for attendance check-in.');
+        Alert.alert(t('qr.invalidCode') || 'Invalid QR Code', t('qr.notForAttendance') || 'This QR code is not for attendance check-in.');
         return;
       }
 
       if (!member) {
-        Alert.alert('Error', 'Member profile not loaded. Please try again.');
+        Alert.alert(t('common.error'), t('qr.profileNotLoaded') || 'Member profile not loaded. Please try again.');
         return;
       }
 
@@ -75,7 +77,7 @@ export default function MemberScanScreen() {
 
     } catch (error) {
       console.error('QR parse error:', error);
-      Alert.alert('Invalid QR Code', 'Could not read this QR code. Please try again.');
+      Alert.alert(t('qr.invalidCode') || 'Invalid QR Code', t('qr.couldNotRead') || 'Could not read this QR code. Please try again.');
       resetScanner();
     }
   };
@@ -92,15 +94,15 @@ export default function MemberScanScreen() {
       const { event } = response.data.data || {};
 
       Alert.alert(
-        'Check-In Successful!',
-        `You have been marked present${event?.title ? ` for "${event.title}"` : ''}.`,
+        t('qr.checkInSuccess') || 'Check-In Successful!',
+        `${t('qr.markedPresent') || 'You have been marked present'}${event?.title ? ` for "${event.title}"` : ''}.`,
         [
           {
-            text: 'Done',
+            text: t('common.done') || 'Done',
             onPress: () => router.back(),
           },
           {
-            text: 'Scan Again',
+            text: t('qr.scanAgain') || 'Scan Again',
             onPress: resetScanner,
           },
         ]
@@ -108,15 +110,15 @@ export default function MemberScanScreen() {
     } catch (error: any) {
       console.error('Check-in error:', error);
 
-      const errorMessage = error.response?.data?.message || 'Failed to check in. Please try again.';
+      const errorMessage = error.response?.data?.message || t('qr.failedToCheckIn') || 'Failed to check in. Please try again.';
 
-      Alert.alert('Check-In Failed', errorMessage, [
+      Alert.alert(t('qr.checkInFailed') || 'Check-In Failed', errorMessage, [
         {
-          text: 'Try Again',
+          text: t('common.tryAgain') || 'Try Again',
           onPress: resetScanner,
         },
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           onPress: () => router.back(),
           style: 'cancel',
         },
@@ -139,7 +141,7 @@ export default function MemberScanScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Checking camera permission...</Text>
+        <Text style={styles.loadingText}>{t('qr.checkingPermission') || 'Checking camera permission...'}</Text>
       </View>
     );
   }
@@ -149,16 +151,16 @@ export default function MemberScanScreen() {
     return (
       <View style={styles.centerContainer}>
         <MaterialCommunityIcons name="camera-off" size={64} color={Colors.textSecondary} />
-        <Text style={styles.noPermissionTitle}>Camera Access Required</Text>
+        <Text style={styles.noPermissionTitle}>{t('qr.cameraRequired') || 'Camera Access Required'}</Text>
         <Text style={styles.noPermissionText}>
-          To scan QR codes for attendance check-in, please allow camera access.
+          {t('qr.allowCameraText') || 'To scan QR codes for attendance check-in, please allow camera access.'}
         </Text>
         <Button
           mode="contained"
           onPress={requestPermission}
           style={styles.permissionButton}
         >
-          Allow Camera Access
+          {t('qr.allowCamera') || 'Allow Camera Access'}
         </Button>
       </View>
     );
@@ -169,7 +171,7 @@ export default function MemberScanScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+        <Text style={styles.loadingText}>{t('qr.loadingProfile') || 'Loading profile...'}</Text>
       </View>
     );
   }
@@ -189,7 +191,7 @@ export default function MemberScanScreen() {
           {/* Top Section */}
           <View style={styles.overlayTop}>
             <Text style={styles.instructionText}>
-              Scan the event QR code to check in
+              {t('qr.scanToCheckIn') || 'Scan the event QR code to check in'}
             </Text>
             <View style={styles.memberBadge}>
               <MaterialCommunityIcons name="account" size={16} color={Colors.text} />
@@ -213,7 +215,7 @@ export default function MemberScanScreen() {
             {isProcessing && (
               <View style={styles.processingContainer}>
                 <ActivityIndicator size="small" color={Colors.primary} />
-                <Text style={styles.processingText}>Checking in...</Text>
+                <Text style={styles.processingText}>{t('qr.checkingIn') || 'Checking in...'}</Text>
               </View>
             )}
 
@@ -222,7 +224,7 @@ export default function MemberScanScreen() {
               <Card.Content style={styles.infoContent}>
                 <MaterialCommunityIcons name="information-outline" size={20} color={Colors.info} />
                 <Text style={styles.infoText}>
-                  Point your camera at the QR code displayed by your coach
+                  {t('qr.pointCamera') || 'Point your camera at the QR code displayed by your coach'}
                 </Text>
               </Card.Content>
             </Card>
@@ -235,7 +237,7 @@ export default function MemberScanScreen() {
               buttonColor={Colors.surface}
               textColor={Colors.text}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
           </View>
         </View>

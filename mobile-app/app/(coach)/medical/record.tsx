@@ -6,9 +6,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import { useMembers, useRecordMedical } from '@/hooks/useMembers';
 
 export default function RecordMedicalScreen() {
+  const { t } = useLanguage();
   const { memberId, memberName } = useLocalSearchParams<{ memberId?: string; memberName?: string }>();
 
   const [selectedMemberId, setSelectedMemberId] = useState<string>(memberId || '');
@@ -35,7 +37,7 @@ export default function RecordMedicalScreen() {
 
   const validateForm = (): boolean => {
     if (!selectedMemberId) {
-      Alert.alert('Validation Error', 'Please select a member.');
+      Alert.alert(t('common.error'), t('validation.selectMember') || 'Please select a member.');
       return false;
     }
     return true;
@@ -52,14 +54,14 @@ export default function RecordMedicalScreen() {
       },
       {
         onSuccess: () => {
-          Alert.alert('Success', 'Medical check recorded successfully!', [
-            { text: 'OK', onPress: () => router.back() },
+          Alert.alert(t('common.success'), t('medical.recordedSuccess') || 'Medical check recorded successfully!', [
+            { text: t('common.ok'), onPress: () => router.back() },
           ]);
         },
         onError: (error: any) => {
           Alert.alert(
-            'Error',
-            error.response?.data?.message || 'Failed to record medical check. Please try again.'
+            t('common.error'),
+            error.response?.data?.message || t('medical.recordFailed') || 'Failed to record medical check. Please try again.'
           );
         },
       }
@@ -70,7 +72,7 @@ export default function RecordMedicalScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -82,7 +84,7 @@ export default function RecordMedicalScreen() {
         <Card style={styles.memberCard}>
           <Card.Content style={styles.memberContent}>
             <MaterialCommunityIcons name="account" size={24} color={Colors.primary} />
-            <Text style={styles.memberName}>Recording medical check for: {memberName}</Text>
+            <Text style={styles.memberName}>{t('medical.recordingFor') || 'Recording medical check for:'} {memberName}</Text>
           </Card.Content>
         </Card>
       )}
@@ -92,7 +94,7 @@ export default function RecordMedicalScreen() {
         <Card.Content style={styles.infoContent}>
           <MaterialCommunityIcons name="information" size={20} color={Colors.info} />
           <Text style={styles.infoText}>
-            Medical checks are valid for 6 months from the examination date. The system will automatically track expiration.
+            {t('medical.validityInfo') || 'Medical checks are valid for 6 months from the examination date. The system will automatically track expiration.'}
           </Text>
         </Card.Content>
       </Card>
@@ -100,12 +102,12 @@ export default function RecordMedicalScreen() {
       {/* Member Selection (if not pre-selected) */}
       {!memberId && (
         <>
-          <Text style={styles.label}>Select Member *</Text>
+          <Text style={styles.label}>{t('members.selectMember')} *</Text>
           {members.length === 0 ? (
             <Card style={styles.emptyCard}>
               <Card.Content style={styles.emptyContent}>
                 <MaterialCommunityIcons name="account-group-outline" size={24} color={Colors.textSecondary} />
-                <Text style={styles.emptyText}>No members available</Text>
+                <Text style={styles.emptyText}>{t('members.noMembers') || 'No members available'}</Text>
               </Card.Content>
             </Card>
           ) : (
@@ -131,7 +133,7 @@ export default function RecordMedicalScreen() {
       )}
 
       {/* Examination Date */}
-      <Text style={styles.label}>Examination Date *</Text>
+      <Text style={styles.label}>{t('medical.examinationDate')} *</Text>
       <Button
         mode="outlined"
         onPress={() => setShowDatePicker(true)}
@@ -156,23 +158,23 @@ export default function RecordMedicalScreen() {
         <Card.Content style={styles.expiryContent}>
           <View style={styles.expiryRow}>
             <MaterialCommunityIcons name="calendar-clock" size={20} color={Colors.info} />
-            <Text style={styles.expiryLabel}>Expiry Date:</Text>
+            <Text style={styles.expiryLabel}>{t('medical.expiryDate')}:</Text>
           </View>
           <Text style={styles.expiryDate}>
             {new Date(examinationDate.getTime() + 6 * 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
           </Text>
           <Text style={styles.expiryNote}>
-            (6 months from examination date)
+            ({t('medical.sixMonthsFromExam') || '6 months from examination date'})
           </Text>
         </Card.Content>
       </Card>
 
       {/* Note */}
-      <Text style={styles.label}>Note (Optional)</Text>
+      <Text style={styles.label}>{t('common.note')} ({t('common.optional')})</Text>
       <TextInput
         value={note}
         onChangeText={setNote}
-        placeholder="e.g., Regular checkup, all clear"
+        placeholder={t('medical.notePlaceholder') || 'e.g., Regular checkup, all clear'}
         mode="outlined"
         multiline
         numberOfLines={3}
@@ -193,7 +195,7 @@ export default function RecordMedicalScreen() {
         icon="check"
         buttonColor={Colors.info}
       >
-        Record Medical Check
+        {t('medical.recordMedical')}
       </Button>
 
       {/* Cancel Button */}
@@ -203,7 +205,7 @@ export default function RecordMedicalScreen() {
         style={styles.cancelButton}
         textColor={Colors.textSecondary}
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
     </ScrollView>
   );

@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 
 interface AttendanceRecord {
@@ -27,6 +28,7 @@ interface AttendanceData {
 }
 
 export default function MemberAttendance() {
+  const { t } = useLanguage();
   const [attendanceData, setAttendanceData] = useState<AttendanceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -58,15 +60,15 @@ export default function MemberAttendance() {
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'PRESENT':
-        return { color: Colors.success, label: 'Present', icon: 'check-circle' as const };
+        return { color: Colors.success, label: t('status.present'), icon: 'check-circle' as const };
       case 'LATE':
-        return { color: Colors.warning, label: 'Late', icon: 'clock' as const };
+        return { color: Colors.warning, label: t('status.late'), icon: 'clock' as const };
       case 'ABSENT':
-        return { color: Colors.error, label: 'Absent', icon: 'close-circle' as const };
+        return { color: Colors.error, label: t('status.absent'), icon: 'close-circle' as const };
       case 'EXCUSED':
-        return { color: Colors.info, label: 'Excused', icon: 'account-check' as const };
+        return { color: Colors.info, label: t('status.excused'), icon: 'account-check' as const };
       default:
-        return { color: Colors.textSecondary, label: 'Unknown', icon: 'help-circle' as const };
+        return { color: Colors.textSecondary, label: t('status.unknown') || 'Unknown', icon: 'help-circle' as const };
     }
   };
 
@@ -107,7 +109,7 @@ export default function MemberAttendance() {
       <Card style={styles.recordCard}>
         <Card.Content style={styles.recordContent}>
           <View style={styles.recordInfo}>
-            <Text style={styles.eventTitle}>{item.eventId?.title || 'Event'}</Text>
+            <Text style={styles.eventTitle}>{item.eventId?.title || t('events.event')}</Text>
             <View style={styles.eventMeta}>
               <MaterialCommunityIcons name="calendar" size={14} color={Colors.textSecondary} />
               <Text style={styles.eventMetaText}>
@@ -118,7 +120,7 @@ export default function MemberAttendance() {
               <View style={styles.eventMeta}>
                 <MaterialCommunityIcons name="qrcode-scan" size={14} color={Colors.textSecondary} />
                 <Text style={styles.eventMetaText}>
-                  Checked in: {formatTime(item.checkinTime)}
+                  {t('attendance.checkedIn')}: {formatTime(item.checkinTime)}
                 </Text>
               </View>
             )}
@@ -141,7 +143,7 @@ export default function MemberAttendance() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading attendance...</Text>
+        <Text style={styles.loadingText}>{t('attendance.loading') || 'Loading attendance...'}</Text>
       </View>
     );
   }
@@ -152,7 +154,7 @@ export default function MemberAttendance() {
       <Card style={styles.statsCard}>
         <Card.Content>
           <View style={styles.rateContainer}>
-            <Text style={styles.rateLabel}>Attendance Rate:</Text>
+            <Text style={styles.rateLabel}>{t('attendance.rate')}:</Text>
             <Text
               style={[
                 styles.rateValue,
@@ -174,29 +176,29 @@ export default function MemberAttendance() {
             <View style={styles.statItem}>
               <MaterialCommunityIcons name="check-circle" size={20} color={Colors.success} />
               <Text style={styles.statNumber}>{stats.present}</Text>
-              <Text style={styles.statLabel}>Present</Text>
+              <Text style={styles.statLabel}>{t('status.present')}</Text>
             </View>
             <View style={styles.statItem}>
               <MaterialCommunityIcons name="clock" size={20} color={Colors.warning} />
               <Text style={styles.statNumber}>{stats.late}</Text>
-              <Text style={styles.statLabel}>Late</Text>
+              <Text style={styles.statLabel}>{t('status.late')}</Text>
             </View>
             <View style={styles.statItem}>
               <MaterialCommunityIcons name="close-circle" size={20} color={Colors.error} />
               <Text style={styles.statNumber}>{stats.absent}</Text>
-              <Text style={styles.statLabel}>Absent</Text>
+              <Text style={styles.statLabel}>{t('status.absent')}</Text>
             </View>
             <View style={styles.statItem}>
               <MaterialCommunityIcons name="calendar-check" size={20} color={Colors.textSecondary} />
               <Text style={styles.statNumber}>{stats.total}</Text>
-              <Text style={styles.statLabel}>Total</Text>
+              <Text style={styles.statLabel}>{t('common.total')}</Text>
             </View>
           </View>
         </Card.Content>
       </Card>
 
       {/* Records List */}
-      <Text style={styles.sectionTitle}>Recent Events</Text>
+      <Text style={styles.sectionTitle}>{t('attendance.recentEvents') || 'Recent Events'}</Text>
       <FlatList
         data={attendanceData?.attendance || []}
         renderItem={renderAttendanceRecord}
@@ -209,9 +211,9 @@ export default function MemberAttendance() {
           <Card style={styles.emptyCard}>
             <Card.Content style={styles.emptyContent}>
               <MaterialCommunityIcons name="calendar-blank" size={48} color={Colors.textSecondary} />
-              <Text style={styles.emptyText}>No attendance records yet</Text>
+              <Text style={styles.emptyText}>{t('attendance.noRecords') || 'No attendance records yet'}</Text>
               <Text style={styles.emptySubtext}>
-                Your attendance history will appear here
+                {t('attendance.historyAppearHere') || 'Your attendance history will appear here'}
               </Text>
             </Card.Content>
           </Card>

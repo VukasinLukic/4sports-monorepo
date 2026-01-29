@@ -6,10 +6,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { EventType, Event } from '@/types';
 
 export default function EditEventScreen() {
+  const { t } = useLanguage();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [title, setTitle] = useState('');
@@ -56,7 +58,7 @@ export default function EditEventScreen() {
       setEndTime(end);
     } catch (error) {
       console.error('Error fetching event:', error);
-      Alert.alert('Error', 'Failed to load event');
+      Alert.alert(t('common.error'), t('errors.loadingFailed'));
       router.back();
     } finally {
       setIsLoading(false);
@@ -90,11 +92,11 @@ export default function EditEventScreen() {
 
   const validateForm = (): boolean => {
     if (!title.trim()) {
-      Alert.alert('Validation Error', 'Please enter an event title.');
+      Alert.alert(t('common.error'), t('validation.eventTitleRequired') || 'Please enter an event title.');
       return false;
     }
     if (startTime >= endTime) {
-      Alert.alert('Validation Error', 'End time must be after start time.');
+      Alert.alert(t('common.error'), t('validation.endTimeAfterStart') || 'End time must be after start time.');
       return false;
     }
     return true;
@@ -125,14 +127,14 @@ export default function EditEventScreen() {
         status,
       });
 
-      Alert.alert('Success', 'Event updated successfully!', [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert(t('common.success'), t('events.eventUpdated'), [
+        { text: t('common.ok'), onPress: () => router.back() },
       ]);
     } catch (error: any) {
       console.error('Error updating event:', error);
       Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to update event. Please try again.'
+        t('common.error'),
+        error.response?.data?.message || t('errors.saveFailed')
       );
     } finally {
       setIsSaving(false);
@@ -143,7 +145,7 @@ export default function EditEventScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading event...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -151,37 +153,37 @@ export default function EditEventScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Status */}
-      <Text style={styles.label}>Event Status</Text>
+      <Text style={styles.label}>{t('events.eventStatus') || 'Event Status'}</Text>
       <SegmentedButtons
         value={status}
         onValueChange={(value) => setStatus(value as 'SCHEDULED' | 'CANCELLED' | 'COMPLETED')}
         buttons={[
-          { value: 'SCHEDULED', label: 'Scheduled' },
-          { value: 'COMPLETED', label: 'Completed' },
-          { value: 'CANCELLED', label: 'Cancelled' },
+          { value: 'SCHEDULED', label: t('events.scheduled') || 'Scheduled' },
+          { value: 'COMPLETED', label: t('status.completed') },
+          { value: 'CANCELLED', label: t('status.cancelled') },
         ]}
         style={styles.segmentedButtons}
       />
 
       {/* Event Type */}
-      <Text style={styles.label}>Event Type</Text>
+      <Text style={styles.label}>{t('events.eventType')}</Text>
       <SegmentedButtons
         value={eventType}
         onValueChange={(value) => setEventType(value as EventType)}
         buttons={[
-          { value: EventType.TRAINING, label: 'Training' },
-          { value: EventType.MATCH, label: 'Match' },
-          { value: EventType.OTHER, label: 'Other' },
+          { value: EventType.TRAINING, label: t('eventTypes.training') },
+          { value: EventType.MATCH, label: t('eventTypes.match') },
+          { value: EventType.OTHER, label: t('eventTypes.other') },
         ]}
         style={styles.segmentedButtons}
       />
 
       {/* Title */}
-      <Text style={styles.label}>Title *</Text>
+      <Text style={styles.label}>{t('events.eventName')} *</Text>
       <TextInput
         value={title}
         onChangeText={setTitle}
-        placeholder="Event title"
+        placeholder={t('events.eventName')}
         mode="outlined"
         style={styles.input}
         outlineColor={Colors.border}
@@ -191,7 +193,7 @@ export default function EditEventScreen() {
       />
 
       {/* Date */}
-      <Text style={styles.label}>Date *</Text>
+      <Text style={styles.label}>{t('events.eventDate')} *</Text>
       <Button
         mode="outlined"
         onPress={() => setShowDatePicker(true)}
@@ -213,7 +215,7 @@ export default function EditEventScreen() {
       {/* Time */}
       <View style={styles.timeRow}>
         <View style={styles.timeColumn}>
-          <Text style={styles.label}>Start Time *</Text>
+          <Text style={styles.label}>{t('events.startTime')} *</Text>
           <Button
             mode="outlined"
             onPress={() => setShowStartTimePicker(true)}
@@ -233,7 +235,7 @@ export default function EditEventScreen() {
           )}
         </View>
         <View style={styles.timeColumn}>
-          <Text style={styles.label}>End Time *</Text>
+          <Text style={styles.label}>{t('events.endTime')} *</Text>
           <Button
             mode="outlined"
             onPress={() => setShowEndTimePicker(true)}
@@ -255,11 +257,11 @@ export default function EditEventScreen() {
       </View>
 
       {/* Location */}
-      <Text style={styles.label}>Location</Text>
+      <Text style={styles.label}>{t('events.location')}</Text>
       <TextInput
         value={location}
         onChangeText={setLocation}
-        placeholder="Event location"
+        placeholder={t('events.location')}
         mode="outlined"
         style={styles.input}
         outlineColor={Colors.border}
@@ -269,11 +271,11 @@ export default function EditEventScreen() {
       />
 
       {/* Description */}
-      <Text style={styles.label}>Description</Text>
+      <Text style={styles.label}>{t('events.description')}</Text>
       <TextInput
         value={description}
         onChangeText={setDescription}
-        placeholder="Event description"
+        placeholder={t('events.description')}
         mode="outlined"
         multiline
         numberOfLines={4}
@@ -285,11 +287,11 @@ export default function EditEventScreen() {
       />
 
       {/* Notes */}
-      <Text style={styles.label}>Notes for Attendees</Text>
+      <Text style={styles.label}>{t('events.notesForAttendees') || 'Notes for Attendees'}</Text>
       <TextInput
         value={notes}
         onChangeText={setNotes}
-        placeholder="Special instructions..."
+        placeholder={t('events.notesPlaceholder') || 'Special instructions...'}
         mode="outlined"
         multiline
         numberOfLines={3}
@@ -303,8 +305,8 @@ export default function EditEventScreen() {
       {/* Mandatory Toggle */}
       <View style={styles.switchRow}>
         <View>
-          <Text style={styles.switchLabel}>Mandatory Event</Text>
-          <Text style={styles.switchDescription}>Members must attend</Text>
+          <Text style={styles.switchLabel}>{t('events.mandatory')}</Text>
+          <Text style={styles.switchDescription}>{t('events.mandatoryDescription') || 'Members must attend'}</Text>
         </View>
         <Switch
           value={isMandatory}
@@ -314,11 +316,11 @@ export default function EditEventScreen() {
       </View>
 
       {/* Max Participants */}
-      <Text style={styles.label}>Max Participants (optional)</Text>
+      <Text style={styles.label}>{t('events.maxParticipants') || 'Max Participants'} ({t('common.optional')})</Text>
       <TextInput
         value={maxParticipants}
         onChangeText={setMaxParticipants}
-        placeholder="Leave empty for unlimited"
+        placeholder={t('events.maxParticipantsPlaceholder') || 'Leave empty for unlimited'}
         mode="outlined"
         keyboardType="number-pad"
         style={styles.input}
@@ -337,7 +339,7 @@ export default function EditEventScreen() {
         style={styles.submitButton}
         icon="check"
       >
-        Save Changes
+        {t('common.save')}
       </Button>
 
       {/* Cancel Button */}
@@ -347,7 +349,7 @@ export default function EditEventScreen() {
         style={styles.cancelButton}
         textColor={Colors.textSecondary}
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
     </ScrollView>
   );

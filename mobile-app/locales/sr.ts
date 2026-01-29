@@ -38,6 +38,10 @@ export default {
     viewAll: 'Pogledaj sve',
     showMore: 'Prikaži više',
     showLess: 'Prikaži manje',
+    total: 'Ukupno',
+    tryAgain: 'Pokušaj ponovo',
+    goBack: 'Nazad',
+    note: 'Napomena',
   },
 
   // Navigation & Tabs
@@ -106,6 +110,10 @@ export default {
     inviteCodeRequired: 'Pozivni kod je obavezan',
     enterBothEmailPassword: 'Unesite email i lozinku',
     enterAllFields: 'Popunite sva obavezna polja',
+    selectMember: 'Izaberite člana.',
+    validAmount: 'Unesite validan iznos.',
+    enterContent: 'Unesite sadržaj za vašu objavu.',
+    contentMinLength: 'Sadržaj objave mora imati najmanje 3 karaktera.',
   },
 
   errors: {
@@ -121,6 +129,7 @@ export default {
     loadingFailed: 'Učitavanje podataka nije uspelo',
     saveFailed: 'Čuvanje nije uspelo',
     deleteFailed: 'Brisanje nije uspelo',
+    loadEventFailed: 'Učitavanje detalja događaja nije uspelo',
   },
 
   // Status labels
@@ -144,6 +153,8 @@ export default {
     excused: 'Opravdano',
     notCreated: 'Nije kreirano',
     notSet: 'Nije postavljeno',
+    declined: 'Odbijeno',
+    unknown: 'Nepoznato',
   },
 
   // Event types
@@ -193,6 +204,7 @@ export default {
     myProfile: 'Moj profil',
     noMembers: 'Nema članova',
     noMembersDescription: 'Dodajte prvog člana da biste počeli.',
+    selectMember: 'Izaberite člana',
     searchMembers: 'Pretraži članove...',
     filterByGroup: 'Filtriraj po grupi',
     filterByStatus: 'Filtriraj po statusu',
@@ -275,6 +287,27 @@ export default {
     viewAllEvents: 'Pogledaj sve događaje',
     eventsOn: 'Događaji',
     mandatory: 'Obavezno',
+    loading: 'Učitavanje događaja...',
+    notFound: 'Događaj nije pronađen',
+    overview: 'Pregled',
+    participants: 'Učesnici',
+    date: 'Datum',
+    time: 'Vreme',
+    group: 'Grupa',
+    notes: 'Napomene',
+    requiredEquipment: 'Potrebna oprema',
+    noParticipants: 'Još nema učesnika',
+    eventNamePlaceholder: 'npr. Nedeljni trening',
+    locationPlaceholder: 'npr. Sportski centar Arena',
+    descriptionPlaceholder: 'Dodajte opis događaja...',
+    recurringDescription: 'Omogući ponavljanje događaja.',
+    advancedOptions: 'Napredne opcije',
+    mandatoryDescription: 'Učenici moraju obavezno prisustvovati ovom događaju.',
+    notesForAttendees: 'Napomene za učesnike',
+    notesPlaceholder: 'Dodajte napomene koje će videti učesnici...',
+    equipmentPlaceholder: 'npr. Lopta, patike',
+    maxParticipants: 'Maksimalan broj učesnika',
+    maxParticipantsPlaceholder: 'Unesite broj',
   },
 
   // Attendance
@@ -301,6 +334,13 @@ export default {
     attendanceSaved: 'Prisustvo je uspešno sačuvano',
     confirmed: 'potvrđeno',
     pending: 'na čekanju',
+    rate: 'Stopa prisustva',
+    loading: 'Učitavanje prisustva...',
+    recentEvents: 'Nedavni događaji',
+    noRecords: 'Još nema evidencije prisustva',
+    historyAppearHere: 'Vaša istorija prisustva će se pojaviti ovde',
+    checkedIn: 'Prijavljen',
+    summary: 'Pregled prisustva',
   },
 
   // Payments
@@ -328,6 +368,16 @@ export default {
     totalDue: 'Ukupno dugovanje',
     balance: 'Stanje',
     paymentRecorded: 'Uplata je uspešno evidentirana',
+    loading: 'Učitavanje uplata...',
+    summary: 'Pregled uplata',
+    period: 'Period',
+    due: 'Rok',
+    recordedSuccess: 'Uplata je uspešno evidentirana!',
+    recordFailed: 'Evidentiranje uplate nije uspelo. Pokušajte ponovo.',
+    recordingFor: 'Evidentiranje uplate za:',
+    enterAmount: 'Unesite iznos',
+    notePlaceholder: 'npr. Mesečna članarina za januar',
+    bank: 'Banka',
   },
 
   // Groups
@@ -351,6 +401,8 @@ export default {
     groupUpdated: 'Grupa je uspešno ažurirana',
     selectGroup: 'Izaberite grupu',
     allGroups: 'Sve grupe',
+    coaches: 'trenera',
+    searchGroups: 'Pretraži grupe...',
   },
 
   // News
@@ -374,6 +426,24 @@ export default {
     postDeleted: 'Objava je uspešno obrisana',
     postCreated: 'Objava je uspešno kreirana',
     postUpdated: 'Objava je uspešno ažurirana',
+    noPosts: 'Još nema objava',
+    noPostsDescription: 'Podelite vesti, obaveštenja i najave sa članovima kluba',
+    loadingFeed: 'Učitavanje vesti...',
+    allMembers: 'Svi članovi',
+    whatsOnYourMind: 'Šta vam je na umu?',
+    postPlaceholder: 'Podelite vesti, obaveštenja ili najave...',
+    addPhotos: 'Dodaj fotografije',
+    maxImages: 'Maksimalno 5 slika',
+    addImagesCount: 'Dodaj slike',
+    visibleToGroup: 'Ova objava će biti vidljiva samo članovima izabrane grupe.',
+    visibleToAll: 'Ova objava će biti vidljiva svim članovima kluba.',
+    post: 'Objavi',
+    postSuccess: 'Objava je uspešno kreirana!',
+    postFailed: 'Kreiranje objave nije uspelo. Pokušajte ponovo.',
+    permissionRequired: 'Potrebna dozvola',
+    allowPhotoAccess: 'Dozvolite pristup galeriji da biste dodali slike.',
+    failedPickImages: 'Nije uspelo učitavanje slika. Pokušajte ponovo.',
+    postToGroup: 'Objavi u grupi',
   },
 
   // Invites
@@ -397,6 +467,10 @@ export default {
     validFor: 'Važi',
     days: 'dana',
     targetRole: 'Ciljna uloga',
+    expires: 'Ističe',
+    deactivate: 'Deaktiviraj',
+    generateDescription: 'Generišite pozivni kod koji novi članovi mogu koristiti za registraciju u vašem klubu.',
+    shareInviteDescription: 'Podelite ovaj kod sa novim članovima da bi se pridružili vašem klubu.',
   },
 
   // Medical
@@ -416,6 +490,13 @@ export default {
     dueForCheck: 'Potreban lekarski pregled',
     expiringSoon: 'Uskoro ističe',
     allClear: 'Sve u redu',
+    examinationDate: 'Datum pregleda',
+    recordedSuccess: 'Lekarski pregled je uspešno evidentiran!',
+    recordFailed: 'Evidentiranje lekarskog pregleda nije uspelo. Pokušajte ponovo.',
+    recordingFor: 'Evidentiranje lekarskog pregleda za:',
+    notePlaceholder: 'npr. Redovan pregled, sve u redu',
+    validityInfo: 'Lekarski pregledi važe 6 meseci od datuma pregleda. Sistem automatski prati istek.',
+    sixMonthsFromExam: '6 meseci od datuma pregleda',
   },
 
   // Profile
@@ -466,6 +547,23 @@ export default {
     refreshQR: 'Osveži QR kod',
     scannerPermission: 'Potrebna je dozvola za kameru za skeniranje QR kodova',
     requestPermission: 'Dozvoli pristup',
+    invalidCode: 'Nevažeći QR kod',
+    notForAttendance: 'Ovaj QR kod nije za prijavu prisustva.',
+    profileNotLoaded: 'Profil člana nije učitan. Pokušajte ponovo.',
+    couldNotRead: 'Nije moguće pročitati ovaj QR kod. Pokušajte ponovo.',
+    checkInSuccess: 'Prijava uspešna!',
+    markedPresent: 'Označeni ste kao prisutni',
+    scanAgain: 'Skeniraj ponovo',
+    checkInFailed: 'Prijava nije uspela',
+    failedToCheckIn: 'Prijava nije uspela. Pokušajte ponovo.',
+    checkingPermission: 'Provera dozvole za kameru...',
+    cameraRequired: 'Potreban pristup kameri',
+    allowCameraText: 'Da biste skenirali QR kodove za prijavu prisustva, dozvolite pristup kameri.',
+    allowCamera: 'Dozvoli pristup kameri',
+    loadingProfile: 'Učitavanje profila...',
+    scanToCheckIn: 'Skenirajte QR kod događaja za prijavu',
+    checkingIn: 'Prijavljivanje...',
+    pointCamera: 'Usmerite kameru prema QR kodu koji prikazuje vaš trener',
   },
 
   // Calendar

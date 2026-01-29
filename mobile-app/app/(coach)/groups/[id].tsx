@@ -21,6 +21,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { Group, Member } from '@/types';
 
@@ -37,6 +38,7 @@ interface GroupMember {
 }
 
 export default function GroupDetailsScreen() {
+  const { t } = useLanguage();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -57,7 +59,7 @@ export default function GroupDetailsScreen() {
       setMembers(membersRes.data.data || []);
     } catch (error) {
       console.error('Error fetching group:', error);
-      Alert.alert('Error', 'Failed to load group details');
+      Alert.alert(t('common.error'), t('errors.loadingFailed'));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -84,12 +86,12 @@ export default function GroupDetailsScreen() {
   const handleDeleteGroup = () => {
     setMenuVisible(false);
     Alert.alert(
-      'Delete Group',
-      'Are you sure you want to delete this group? This action cannot be undone.',
+      t('groups.deleteGroup'),
+      t('groups.deleteGroupConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -97,7 +99,7 @@ export default function GroupDetailsScreen() {
               router.back();
             } catch (error) {
               console.error('Error deleting group:', error);
-              Alert.alert('Error', 'Failed to delete group');
+              Alert.alert(t('common.error'), t('errors.deleteFailed'));
             }
           },
         },
@@ -107,12 +109,12 @@ export default function GroupDetailsScreen() {
 
   const handleRemoveMember = (member: GroupMember) => {
     Alert.alert(
-      'Remove Member',
-      `Are you sure you want to remove ${member.fullName} from this group?`,
+      t('groups.removeFromGroup'),
+      `${t('confirm.removeMessage') || 'Are you sure you want to remove'} ${member.fullName}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('confirm.remove'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -120,7 +122,7 @@ export default function GroupDetailsScreen() {
               setMembers(members.filter((m) => m._id !== member._id));
             } catch (error) {
               console.error('Error removing member:', error);
-              Alert.alert('Error', 'Failed to remove member');
+              Alert.alert(t('common.error'), t('errors.deleteFailed'));
             }
           },
         },
@@ -155,7 +157,7 @@ export default function GroupDetailsScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading group...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -168,9 +170,9 @@ export default function GroupDetailsScreen() {
           size={64}
           color={Colors.error}
         />
-        <Text style={styles.errorText}>Group not found</Text>
+        <Text style={styles.errorText}>{t('errors.notFound')}</Text>
         <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
-          Go Back
+          {t('common.back')}
         </Button>
       </View>
     );
@@ -196,13 +198,13 @@ export default function GroupDetailsScreen() {
             >
               <Menu.Item
                 onPress={handleEditGroup}
-                title="Edit Group"
+                title={t('groups.editGroup')}
                 leadingIcon="pencil"
               />
               <Divider />
               <Menu.Item
                 onPress={handleDeleteGroup}
-                title="Delete Group"
+                title={t('groups.deleteGroup')}
                 leadingIcon="delete"
                 titleStyle={{ color: Colors.error }}
               />
@@ -256,11 +258,11 @@ export default function GroupDetailsScreen() {
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
                 <Text style={styles.statNumber}>{members.length}</Text>
-                <Text style={styles.statLabel}>Members</Text>
+                <Text style={styles.statLabel}>{t('navigation.members')}</Text>
               </View>
               <View style={styles.statBox}>
                 <Text style={styles.statNumber}>{group.coachIds?.length || 0}</Text>
-                <Text style={styles.statLabel}>Coaches</Text>
+                <Text style={styles.statLabel}>{t('groups.coaches') || 'Coaches'}</Text>
               </View>
             </View>
           </Card.Content>
@@ -275,7 +277,7 @@ export default function GroupDetailsScreen() {
             style={styles.actionButton}
             contentStyle={styles.actionButtonContent}
           >
-            Invite Members
+            {t('invites.createInvite')}
           </Button>
           <Button
             mode="outlined"
@@ -284,14 +286,14 @@ export default function GroupDetailsScreen() {
             style={styles.actionButton}
             contentStyle={styles.actionButtonContent}
           >
-            Edit Group
+            {t('groups.editGroup')}
           </Button>
         </View>
 
         {/* Members Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Members ({members.length})</Text>
+            <Text style={styles.sectionTitle}>{t('navigation.members')} ({members.length})</Text>
           </View>
 
           {members.length === 0 ? (
@@ -302,9 +304,9 @@ export default function GroupDetailsScreen() {
                   size={48}
                   color={Colors.textSecondary}
                 />
-                <Text style={styles.emptyText}>No members yet</Text>
+                <Text style={styles.emptyText}>{t('empty.noMembers')}</Text>
                 <Text style={styles.emptySubtext}>
-                  Generate an invite code and share it with parents
+                  {t('invites.shareInviteDescription') || 'Generate an invite code and share it with parents'}
                 </Text>
                 <Button
                   mode="contained"
@@ -312,7 +314,7 @@ export default function GroupDetailsScreen() {
                   onPress={handleGenerateInviteCode}
                   style={styles.inviteButton}
                 >
-                  Generate Invite Code
+                  {t('invites.generateCode')}
                 </Button>
               </Card.Content>
             </Card>
@@ -339,12 +341,12 @@ export default function GroupDetailsScreen() {
                       <Text style={styles.memberName}>{member.fullName}</Text>
                       {member.dateOfBirth && (
                         <Text style={styles.memberAge}>
-                          Age: {calculateAge(member.dateOfBirth)} years
+                          {t('members.age')}: {calculateAge(member.dateOfBirth)} {t('members.years')}
                         </Text>
                       )}
                       {member.parentId && (
                         <Text style={styles.memberParent}>
-                          Parent: {member.parentId.fullName}
+                          {t('roles.parent')}: {member.parentId.fullName}
                         </Text>
                       )}
                     </View>

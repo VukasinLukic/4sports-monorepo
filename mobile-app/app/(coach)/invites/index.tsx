@@ -22,6 +22,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { Group } from '@/types';
 
@@ -43,6 +44,7 @@ interface InviteCode {
 }
 
 export default function InviteCodesScreen() {
+  const { t } = useLanguage();
   const params = useLocalSearchParams<{ groupId?: string; groupName?: string }>();
   const [groups, setGroups] = useState<Group[]>([]);
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
@@ -154,19 +156,19 @@ export default function InviteCodesScreen() {
   };
 
   const getInviteMessage = (code: string, groupName: string) => {
-    return `Pridružite se našem klubu u aplikaciji 4Sports!\n\n` +
-      `Grupa: ${groupName}\n` +
-      `Pozivni kod: ${code}\n\n` +
-      `1. Preuzmite aplikaciju 4Sports\n` +
-      `2. Izaberite "Imam pozivni kod"\n` +
-      `3. Unesite kod: ${code}\n` +
-      `4. Registrujte se i dodajte svoje dete`;
+    return `${t('invites.joinClubMessage') || 'Pridružite se našem klubu u aplikaciji 4Sports!'}\n\n` +
+      `${t('groups.group')}: ${groupName}\n` +
+      `${t('invites.inviteCode')}: ${code}\n\n` +
+      `1. ${t('invites.step1') || 'Preuzmite aplikaciju 4Sports'}\n` +
+      `2. ${t('invites.step2') || 'Izaberite "Imam pozivni kod"'}\n` +
+      `3. ${t('invites.step3') || 'Unesite kod'}: ${code}\n` +
+      `4. ${t('invites.step4') || 'Registrujte se i dodajte svoje dete'}`;
   };
 
   const handleCopyCode = async (code: string, groupName: string) => {
     const message = getInviteMessage(code, groupName);
     await Clipboard.setStringAsync(message);
-    Alert.alert('Copied!', 'Invite message copied to clipboard');
+    Alert.alert(t('invites.codeCopied'), t('invites.messageCopied') || 'Invite message copied to clipboard');
   };
 
   const handleShareCode = async (code: string, groupName: string) => {
@@ -183,12 +185,12 @@ export default function InviteCodesScreen() {
 
   const handleDeactivateCode = async (code: string) => {
     Alert.alert(
-      'Deactivate Code',
-      'Are you sure you want to deactivate this invite code?',
+      t('invites.deactivateCode') || 'Deactivate Code',
+      t('invites.deactivateConfirm') || 'Are you sure you want to deactivate this invite code?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Deactivate',
+          text: t('invites.deactivate') || 'Deactivate',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -196,7 +198,7 @@ export default function InviteCodesScreen() {
               fetchData();
             } catch (error) {
               console.error('Error deactivating code:', error);
-              Alert.alert('Error', 'Failed to deactivate code');
+              Alert.alert(t('common.error'), t('errors.generic'));
             }
           },
         },
@@ -221,7 +223,7 @@ export default function InviteCodesScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -241,9 +243,9 @@ export default function InviteCodesScreen() {
       {/* Generate New Code Section */}
       <Card style={styles.generateCard}>
         <Card.Content>
-          <Text style={styles.sectionTitle}>Generate Invite Code</Text>
+          <Text style={styles.sectionTitle}>{t('invites.generateCode')}</Text>
           <Text style={styles.sectionDescription}>
-            Select a group and generate an invite code that parents can use to register.
+            {t('invites.generateDescription') || 'Select a group and generate an invite code that parents can use to register.'}
           </Text>
 
           {/* No Groups - Create Test Group */}
@@ -254,9 +256,9 @@ export default function InviteCodesScreen() {
                 size={48}
                 color={Colors.textSecondary}
               />
-              <Text style={styles.noGroupsText}>No groups available</Text>
+              <Text style={styles.noGroupsText}>{t('empty.noGroups')}</Text>
               <Text style={styles.noGroupsSubtext}>
-                Create a test group to start generating invite codes
+                {t('invites.createGroupFirst') || 'Create a group to start generating invite codes'}
               </Text>
               <Button
                 mode="contained"
@@ -266,14 +268,14 @@ export default function InviteCodesScreen() {
                 style={styles.createGroupButton}
                 icon="plus"
               >
-                Create Test Group
+                {t('groups.createGroup')}
               </Button>
             </View>
           ) : (
             <>
               {/* Group Selector */}
               <View style={styles.groupSelector}>
-                <Text style={styles.label}>Select Group</Text>
+                <Text style={styles.label}>{t('groups.selectGroup')}</Text>
                 <Menu
                   visible={menuVisible}
                   onDismiss={() => setMenuVisible(false)}
@@ -287,7 +289,7 @@ export default function InviteCodesScreen() {
                     >
                       {selectedGroup
                         ? `${selectedGroup.name}${selectedGroup.ageGroup ? ` (${selectedGroup.ageGroup})` : ''}`
-                        : 'Choose a group...'}
+                        : t('groups.selectGroup') + '...'}
                     </Button>
                   }
                   contentStyle={styles.menuContent}
@@ -315,7 +317,7 @@ export default function InviteCodesScreen() {
                 style={styles.generateButton}
                 icon="qrcode"
               >
-                Generate Code
+                {t('invites.generateCode')}
               </Button>
             </>
           )}
@@ -332,7 +334,7 @@ export default function InviteCodesScreen() {
                 size={24}
                 color={Colors.success}
               />
-              <Text style={styles.codeSuccessText}>Code Generated!</Text>
+              <Text style={styles.codeSuccessText}>{t('invites.codeGenerated')}</Text>
             </View>
 
             <View style={styles.codeDisplay}>
@@ -340,11 +342,11 @@ export default function InviteCodesScreen() {
             </View>
 
             <Text style={styles.codeInfo}>
-              Group: {generatedCode.groupId?.name || 'Unknown'}
+              {t('groups.group')}: {generatedCode.groupId?.name || 'Unknown'}
               {generatedCode.groupId?.ageGroup && ` (${generatedCode.groupId.ageGroup})`}
             </Text>
             <Text style={styles.codeInfo}>
-              Max uses: {generatedCode.maxUses} | Expires: {formatDate(generatedCode.expiresAt)}
+              {t('invites.maxUses') || 'Max uses'}: {generatedCode.maxUses} | {t('invites.expires') || 'Expires'}: {formatDate(generatedCode.expiresAt)}
             </Text>
 
             <View style={styles.codeActions}>
@@ -359,7 +361,7 @@ export default function InviteCodesScreen() {
                 }
                 style={styles.actionButton}
               >
-                Copy Message
+                {t('invites.copyCode')}
               </Button>
               <Button
                 mode="outlined"
@@ -373,7 +375,7 @@ export default function InviteCodesScreen() {
                 style={styles.actionButton}
                 textColor={Colors.text}
               >
-                Share
+                {t('invites.shareCode')}
               </Button>
             </View>
           </Card.Content>
@@ -382,7 +384,7 @@ export default function InviteCodesScreen() {
 
       {/* Existing Codes Section */}
       <View style={styles.existingSection}>
-        <Text style={styles.sectionTitle}>Existing Invite Codes</Text>
+        <Text style={styles.sectionTitle}>{t('invites.existingCodes') || 'Existing Invite Codes'}</Text>
 
         {inviteCodes.length === 0 ? (
           <Card style={styles.emptyCard}>
@@ -392,9 +394,9 @@ export default function InviteCodesScreen() {
                 size={48}
                 color={Colors.textSecondary}
               />
-              <Text style={styles.emptyText}>No invite codes yet</Text>
+              <Text style={styles.emptyText}>{t('invites.noInvites')}</Text>
               <Text style={styles.emptySubtext}>
-                Generate your first code above
+                {t('invites.noInvitesDescription')}
               </Text>
             </Card.Content>
           </Card>
@@ -421,7 +423,7 @@ export default function InviteCodesScreen() {
                       ]}
                       textStyle={styles.statusChipText}
                     >
-                      {invite.isValid ? 'Active' : 'Inactive'}
+                      {invite.isValid ? t('status.active') : t('status.inactive')}
                     </Chip>
                   </View>
                   <View style={styles.inviteActions}>
@@ -475,7 +477,7 @@ export default function InviteCodesScreen() {
                       color={Colors.textSecondary}
                     />
                     <Text style={styles.inviteDetailText}>
-                      {invite.usedCount} / {invite.maxUses} used
+                      {invite.usedCount} / {invite.maxUses} {t('invites.used')}
                     </Text>
                   </View>
                   <View style={styles.inviteDetail}>
@@ -495,8 +497,8 @@ export default function InviteCodesScreen() {
                       ]}
                     >
                       {isExpired(invite.expiresAt)
-                        ? 'Expired'
-                        : `Expires ${formatDate(invite.expiresAt)}`}
+                        ? t('status.expired')
+                        : `${t('invites.expires') || 'Expires'} ${formatDate(invite.expiresAt)}`}
                     </Text>
                   </View>
                 </View>
@@ -509,7 +511,7 @@ export default function InviteCodesScreen() {
                     style={styles.deactivateButton}
                     compact
                   >
-                    Deactivate
+                    {t('invites.deactivate') || 'Deactivate'}
                   </Button>
                 )}
               </Card.Content>

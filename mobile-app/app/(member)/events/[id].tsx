@@ -5,12 +5,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { Event, EventType, EventParticipant, EventParticipantsStats } from '@/types';
 
 type TabType = 'overview' | 'participants';
 
 export default function MemberEventDetailScreen() {
+  const { t } = useLanguage();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<Event | null>(null);
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
@@ -25,7 +27,7 @@ export default function MemberEventDetailScreen() {
       setEvent(response.data.data);
     } catch (error) {
       console.error('Error fetching event:', error);
-      Alert.alert('Error', 'Failed to load event details');
+      Alert.alert(t('common.error'), t('errors.loadEventFailed') || 'Failed to load event details');
     }
   }, [id]);
 
@@ -118,7 +120,7 @@ export default function MemberEventDetailScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading event...</Text>
+        <Text style={styles.loadingText}>{t('events.loading') || 'Loading event...'}</Text>
       </View>
     );
   }
@@ -127,9 +129,9 @@ export default function MemberEventDetailScreen() {
     return (
       <View style={styles.centerContainer}>
         <MaterialCommunityIcons name="calendar-remove" size={64} color={Colors.textSecondary} />
-        <Text style={styles.errorText}>Event not found</Text>
+        <Text style={styles.errorText}>{t('events.notFound') || 'Event not found'}</Text>
         <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
-          Go Back
+          {t('common.goBack') || 'Go Back'}
         </Button>
       </View>
     );
@@ -148,7 +150,7 @@ export default function MemberEventDetailScreen() {
           </View>
           {event.status === 'CANCELLED' && (
             <Chip style={styles.cancelledChip} textStyle={styles.cancelledChipText}>
-              Cancelled
+              {t('status.cancelled')}
             </Chip>
           )}
         </View>
@@ -162,8 +164,8 @@ export default function MemberEventDetailScreen() {
         value={activeTab}
         onValueChange={(value) => setActiveTab(value as TabType)}
         buttons={[
-          { value: 'overview', label: 'Overview' },
-          { value: 'participants', label: `Participants (${stats?.total || 0})` },
+          { value: 'overview', label: t('events.overview') },
+          { value: 'participants', label: `${t('events.participants')} (${stats?.total || 0})` },
         ]}
         style={styles.tabs}
       />
@@ -182,14 +184,14 @@ export default function MemberEventDetailScreen() {
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="calendar" size={24} color={Colors.primary} />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Date</Text>
+                    <Text style={styles.infoLabel}>{t('events.date')}</Text>
                     <Text style={styles.infoValue}>{startFormatted.date}</Text>
                   </View>
                 </View>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="clock-outline" size={24} color={Colors.primary} />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Time</Text>
+                    <Text style={styles.infoLabel}>{t('events.time')}</Text>
                     <Text style={styles.infoValue}>{startFormatted.time} - {endFormatted.time}</Text>
                   </View>
                 </View>
@@ -203,7 +205,7 @@ export default function MemberEventDetailScreen() {
                   <View style={styles.infoRow}>
                     <MaterialCommunityIcons name="map-marker" size={24} color={Colors.primary} />
                     <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Location</Text>
+                      <Text style={styles.infoLabel}>{t('events.location')}</Text>
                       <Text style={styles.infoValue}>{event.location}</Text>
                     </View>
                   </View>
@@ -217,7 +219,7 @@ export default function MemberEventDetailScreen() {
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="account-group" size={24} color={Colors.primary} />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Group</Text>
+                    <Text style={styles.infoLabel}>{t('events.group')}</Text>
                     <Text style={styles.infoValue}>{getGroupName()}</Text>
                   </View>
                 </View>
@@ -228,7 +230,7 @@ export default function MemberEventDetailScreen() {
             {event.description && (
               <Card style={styles.card}>
                 <Card.Content>
-                  <Text style={styles.sectionTitle}>Description</Text>
+                  <Text style={styles.sectionTitle}>{t('events.description')}</Text>
                   <Text style={styles.description}>{event.description}</Text>
                 </Card.Content>
               </Card>
@@ -238,7 +240,7 @@ export default function MemberEventDetailScreen() {
             {event.notes && (
               <Card style={styles.card}>
                 <Card.Content>
-                  <Text style={styles.sectionTitle}>Notes</Text>
+                  <Text style={styles.sectionTitle}>{t('events.notes')}</Text>
                   <Text style={styles.description}>{event.notes}</Text>
                 </Card.Content>
               </Card>
@@ -248,7 +250,7 @@ export default function MemberEventDetailScreen() {
             {event.equipment && event.equipment.length > 0 && (
               <Card style={styles.card}>
                 <Card.Content>
-                  <Text style={styles.sectionTitle}>Required Equipment</Text>
+                  <Text style={styles.sectionTitle}>{t('events.requiredEquipment') || 'Required Equipment'}</Text>
                   <View style={styles.equipmentList}>
                     {event.equipment.map((item, index) => (
                       <Chip key={index} style={styles.equipmentChip} textStyle={styles.equipmentChipText}>
@@ -264,23 +266,23 @@ export default function MemberEventDetailScreen() {
             {stats && (
               <Card style={styles.card}>
                 <Card.Content>
-                  <Text style={styles.sectionTitle}>Attendance Summary</Text>
+                  <Text style={styles.sectionTitle}>{t('attendance.summary')}</Text>
                   <View style={styles.statsRow}>
                     <View style={styles.statItem}>
                       <Text style={[styles.statNumber, { color: Colors.success }]}>{stats.confirmed}</Text>
-                      <Text style={styles.statLabel}>Confirmed</Text>
+                      <Text style={styles.statLabel}>{t('status.confirmed')}</Text>
                     </View>
                     <View style={styles.statItem}>
                       <Text style={[styles.statNumber, { color: Colors.error }]}>{stats.declined}</Text>
-                      <Text style={styles.statLabel}>Declined</Text>
+                      <Text style={styles.statLabel}>{t('status.declined')}</Text>
                     </View>
                     <View style={styles.statItem}>
                       <Text style={[styles.statNumber, { color: Colors.warning }]}>{stats.pending}</Text>
-                      <Text style={styles.statLabel}>Pending</Text>
+                      <Text style={styles.statLabel}>{t('status.pending')}</Text>
                     </View>
                     <View style={styles.statItem}>
                       <Text style={[styles.statNumber, { color: Colors.primary }]}>{stats.present}</Text>
-                      <Text style={styles.statLabel}>Present</Text>
+                      <Text style={styles.statLabel}>{t('status.present')}</Text>
                     </View>
                   </View>
                 </Card.Content>
@@ -294,17 +296,17 @@ export default function MemberEventDetailScreen() {
               <View style={styles.participantStats}>
                 <View style={[styles.participantStatChip, { backgroundColor: Colors.success + '20' }]}>
                   <Text style={[styles.participantStatText, { color: Colors.success }]}>
-                    {stats.present} Present
+                    {stats.present} {t('status.present')}
                   </Text>
                 </View>
                 <View style={[styles.participantStatChip, { backgroundColor: Colors.warning + '20' }]}>
                   <Text style={[styles.participantStatText, { color: Colors.warning }]}>
-                    {stats.confirmed} Confirmed
+                    {stats.confirmed} {t('status.confirmed')}
                   </Text>
                 </View>
                 <View style={[styles.participantStatChip, { backgroundColor: Colors.error + '20' }]}>
                   <Text style={[styles.participantStatText, { color: Colors.error }]}>
-                    {stats.absent} Absent
+                    {stats.absent} {t('status.absent')}
                   </Text>
                 </View>
               </View>
@@ -315,7 +317,7 @@ export default function MemberEventDetailScreen() {
               <Card style={styles.emptyCard}>
                 <Card.Content style={styles.emptyContent}>
                   <MaterialCommunityIcons name="account-group-outline" size={48} color={Colors.textSecondary} />
-                  <Text style={styles.emptyText}>No participants yet</Text>
+                  <Text style={styles.emptyText}>{t('events.noParticipants') || 'No participants yet'}</Text>
                 </Card.Content>
               </Card>
             ) : (

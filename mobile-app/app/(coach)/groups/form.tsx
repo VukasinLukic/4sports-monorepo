@@ -19,6 +19,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { Group } from '@/types';
 
@@ -48,6 +49,7 @@ const SPORTS = [
 ];
 
 export default function GroupFormScreen() {
+  const { t } = useLanguage();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
 
@@ -82,7 +84,7 @@ export default function GroupFormScreen() {
       setColor(group.color || PRESET_COLORS[0]);
     } catch (error) {
       console.error('Error fetching group:', error);
-      Alert.alert('Error', 'Failed to load group');
+      Alert.alert(t('common.error'), t('errors.loadingFailed'));
       router.back();
     } finally {
       setIsLoading(false);
@@ -91,7 +93,7 @@ export default function GroupFormScreen() {
 
   const handleSave = async () => {
     if (!isValid) {
-      Alert.alert('Validation Error', 'Please enter a valid group name');
+      Alert.alert(t('common.error'), t('validation.groupNameRequired') || 'Please enter a valid group name');
       return;
     }
 
@@ -115,8 +117,8 @@ export default function GroupFormScreen() {
     } catch (error: any) {
       console.error('Error saving group:', error);
       Alert.alert(
-        'Error',
-        error.response?.data?.error?.message || 'Failed to save group'
+        t('common.error'),
+        error.response?.data?.error?.message || t('errors.saveFailed')
       );
     } finally {
       setIsSaving(false);
@@ -127,7 +129,7 @@ export default function GroupFormScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading group...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -136,7 +138,7 @@ export default function GroupFormScreen() {
     <>
       <Stack.Screen
         options={{
-          title: isEditing ? 'Edit Group' : 'Create Group',
+          title: isEditing ? t('groups.editGroup') : t('groups.createGroup'),
         }}
       />
 
@@ -151,7 +153,7 @@ export default function GroupFormScreen() {
           {/* Group Name */}
           <View style={styles.field}>
             <TextInput
-              label="Group Name *"
+              label={`${t('groups.groupName')} *`}
               value={name}
               onChangeText={setName}
               mode="outlined"
@@ -163,14 +165,14 @@ export default function GroupFormScreen() {
             />
             {nameError && (
               <HelperText type="error" visible={nameError}>
-                Group name must be at least 2 characters
+                {t('validation.groupNameMin') || 'Group name must be at least 2 characters'}
               </HelperText>
             )}
           </View>
 
           {/* Color Picker */}
           <View style={styles.field}>
-            <Text style={styles.label}>Group Color</Text>
+            <Text style={styles.label}>{t('groups.groupColor') || 'Group Color'}</Text>
             <View style={styles.colorGrid}>
               {PRESET_COLORS.map((c) => (
                 <TouchableOpacity
@@ -196,7 +198,7 @@ export default function GroupFormScreen() {
 
           {/* Age Group Selector */}
           <View style={styles.field}>
-            <Text style={styles.label}>Age Group</Text>
+            <Text style={styles.label}>{t('groups.ageGroup') || 'Age Group'}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -226,7 +228,7 @@ export default function GroupFormScreen() {
 
           {/* Sport Selector */}
           <View style={styles.field}>
-            <Text style={styles.label}>Sport</Text>
+            <Text style={styles.label}>{t('groups.sport') || 'Sport'}</Text>
             <View style={styles.chipGrid}>
               {SPORTS.map((s) => (
                 <TouchableOpacity
@@ -253,7 +255,7 @@ export default function GroupFormScreen() {
           {/* Description */}
           <View style={styles.field}>
             <TextInput
-              label="Description (optional)"
+              label={`${t('groups.groupDescription')} (${t('common.optional')})`}
               value={description}
               onChangeText={setDescription}
               mode="outlined"
@@ -268,12 +270,12 @@ export default function GroupFormScreen() {
 
           {/* Preview */}
           <View style={styles.previewSection}>
-            <Text style={styles.label}>Preview</Text>
+            <Text style={styles.label}>{t('groups.preview') || 'Preview'}</Text>
             <View style={styles.previewCard}>
               <View style={[styles.previewColorBar, { backgroundColor: color }]} />
               <View style={styles.previewContent}>
                 <Text style={styles.previewName}>
-                  {name.trim() || 'Group Name'}
+                  {name.trim() || t('groups.groupName')}
                 </Text>
                 <View style={styles.previewTags}>
                   {ageGroup && (
@@ -300,7 +302,7 @@ export default function GroupFormScreen() {
             style={styles.saveButton}
             contentStyle={styles.saveButtonContent}
           >
-            {isEditing ? 'Save Changes' : 'Create Group'}
+            {isEditing ? t('common.save') : t('groups.createGroup')}
           </Button>
 
           {/* Cancel Button */}
@@ -311,7 +313,7 @@ export default function GroupFormScreen() {
             style={styles.cancelButton}
             textColor={Colors.textSecondary}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
         </ScrollView>
       </KeyboardAvoidingView>

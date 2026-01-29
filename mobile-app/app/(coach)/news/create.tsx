@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { Group } from '@/types';
 
@@ -16,6 +17,7 @@ interface SelectedImage {
 }
 
 export default function CreatePostScreen() {
+  const { t } = useLanguage();
   const [content, setContent] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
@@ -43,8 +45,8 @@ export default function CreatePostScreen() {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Permission Required',
-          'Please allow access to your photo library to add images.'
+          t('news.permissionRequired') || 'Permission Required',
+          t('news.allowPhotoAccess') || 'Please allow access to your photo library to add images.'
         );
         return;
       }
@@ -69,7 +71,7 @@ export default function CreatePostScreen() {
       }
     } catch (error) {
       console.error('Error picking images:', error);
-      Alert.alert('Error', 'Failed to pick images. Please try again.');
+      Alert.alert(t('common.error'), t('news.failedPickImages') || 'Failed to pick images. Please try again.');
     }
   };
 
@@ -79,11 +81,11 @@ export default function CreatePostScreen() {
 
   const validateForm = (): boolean => {
     if (!content.trim()) {
-      Alert.alert('Validation Error', 'Please enter some content for your post.');
+      Alert.alert(t('common.error'), t('validation.enterContent') || 'Please enter some content for your post.');
       return false;
     }
     if (content.trim().length < 3) {
-      Alert.alert('Validation Error', 'Post content must be at least 3 characters.');
+      Alert.alert(t('common.error'), t('validation.contentMinLength') || 'Post content must be at least 3 characters.');
       return false;
     }
     return true;
@@ -137,14 +139,14 @@ export default function CreatePostScreen() {
         mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
       });
 
-      Alert.alert('Success', 'Post created successfully!', [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert(t('common.success'), t('news.postSuccess') || 'Post created successfully!', [
+        { text: t('common.ok'), onPress: () => router.back() },
       ]);
     } catch (error: any) {
       console.error('Error creating post:', error);
       Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to create post. Please try again.'
+        t('common.error'),
+        error.response?.data?.message || t('news.postFailed') || 'Failed to create post. Please try again.'
       );
     } finally {
       setIsLoading(false);
@@ -154,7 +156,7 @@ export default function CreatePostScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Group Selection */}
-      <Text style={styles.label}>Post to Group (Optional)</Text>
+      <Text style={styles.label}>{t('news.postToGroup')} ({t('common.optional')})</Text>
       {isLoadingGroups ? (
         <ActivityIndicator size="small" color={Colors.primary} />
       ) : (
@@ -166,7 +168,7 @@ export default function CreatePostScreen() {
               style={styles.groupChip}
               selectedColor={Colors.primary}
             >
-              All Members
+              {t('news.allMembers')}
             </Chip>
             {groups.map(group => (
               <Chip
@@ -184,11 +186,11 @@ export default function CreatePostScreen() {
       )}
 
       {/* Content */}
-      <Text style={styles.label}>What's on your mind? *</Text>
+      <Text style={styles.label}>{t('news.whatsOnYourMind')} *</Text>
       <TextInput
         value={content}
         onChangeText={setContent}
-        placeholder="Share news, updates, or announcements..."
+        placeholder={t('news.postPlaceholder')}
         mode="outlined"
         multiline
         numberOfLines={6}
@@ -200,7 +202,7 @@ export default function CreatePostScreen() {
       />
 
       {/* Image Picker */}
-      <Text style={styles.label}>Add Photos (Optional)</Text>
+      <Text style={styles.label}>{t('news.addPhotos')} ({t('common.optional')})</Text>
       <TouchableOpacity
         style={styles.imagePickerButton}
         onPress={pickImages}
@@ -209,8 +211,8 @@ export default function CreatePostScreen() {
         <MaterialCommunityIcons name="image-plus" size={24} color={Colors.primary} />
         <Text style={styles.imagePickerText}>
           {selectedImages.length >= 5
-            ? 'Maximum 5 images'
-            : `Add Images (${selectedImages.length}/5)`}
+            ? t('news.maxImages')
+            : `${t('news.addImagesCount')} (${selectedImages.length}/5)`}
         </Text>
       </TouchableOpacity>
 
@@ -239,8 +241,8 @@ export default function CreatePostScreen() {
           <MaterialCommunityIcons name="information" size={20} color={Colors.info} />
           <Text style={styles.infoText}>
             {selectedGroupId
-              ? 'This post will only be visible to members of the selected group.'
-              : 'This post will be visible to all club members.'}
+              ? t('news.visibleToGroup')
+              : t('news.visibleToAll')}
           </Text>
         </Card.Content>
       </Card>
@@ -255,7 +257,7 @@ export default function CreatePostScreen() {
         icon="send"
         buttonColor={Colors.primary}
       >
-        Post
+        {t('news.post')}
       </Button>
 
       {/* Cancel Button */}
@@ -265,7 +267,7 @@ export default function CreatePostScreen() {
         style={styles.cancelButton}
         textColor={Colors.textSecondary}
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
     </ScrollView>
   );

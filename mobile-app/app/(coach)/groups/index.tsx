@@ -18,10 +18,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { Group } from '@/types';
 
 export default function GroupsScreen() {
+  const { t } = useLanguage();
   const [groups, setGroups] = useState<Group[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -128,7 +130,7 @@ export default function GroupsScreen() {
                 color={Colors.textSecondary}
               />
               <Text style={styles.statText}>
-                {group.memberCount || 0} members
+                {group.memberCount || 0} {t('navigation.members').toLowerCase()}
               </Text>
             </View>
             <View style={styles.statItem}>
@@ -138,7 +140,7 @@ export default function GroupsScreen() {
                 color={Colors.textSecondary}
               />
               <Text style={styles.statText}>
-                {group.coachIds?.length || 0} coaches
+                {group.coachIds?.length || 0} {t('groups.coaches') || 'coaches'}
               </Text>
             </View>
           </View>
@@ -157,7 +159,7 @@ export default function GroupsScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading groups...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -166,7 +168,7 @@ export default function GroupsScreen() {
     <View style={styles.container}>
       {/* Search Bar */}
       <Searchbar
-        placeholder="Search groups..."
+        placeholder={t('groups.searchGroups') || 'Search groups...'}
         onChangeText={setSearchQuery}
         value={searchQuery}
         style={styles.searchBar}
@@ -184,12 +186,12 @@ export default function GroupsScreen() {
             color={Colors.textSecondary}
           />
           <Text style={styles.emptyTitle}>
-            {searchQuery ? 'No groups found' : 'No groups yet'}
+            {searchQuery ? t('empty.noResults') : t('empty.noGroups')}
           </Text>
           <Text style={styles.emptySubtitle}>
             {searchQuery
-              ? 'Try a different search term'
-              : 'Create your first group to get started'}
+              ? t('empty.noResultsDescription')
+              : t('empty.noGroupsDescription')}
           </Text>
         </View>
       ) : (

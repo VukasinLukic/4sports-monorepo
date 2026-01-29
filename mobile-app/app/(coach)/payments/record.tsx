@@ -6,10 +6,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import { useMembers, useRecordPayment } from '@/hooks/useMembers';
 import { Member, PaymentMethod } from '@/types';
 
 export default function RecordPaymentScreen() {
+  const { t } = useLanguage();
   const { memberId, memberName } = useLocalSearchParams<{ memberId?: string; memberName?: string }>();
 
   const [selectedMemberId, setSelectedMemberId] = useState<string>(memberId || '');
@@ -38,11 +40,11 @@ export default function RecordPaymentScreen() {
 
   const validateForm = (): boolean => {
     if (!selectedMemberId) {
-      Alert.alert('Validation Error', 'Please select a member.');
+      Alert.alert(t('common.error'), t('validation.selectMember') || 'Please select a member.');
       return false;
     }
     if (!amount.trim() || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      Alert.alert('Validation Error', 'Please enter a valid amount.');
+      Alert.alert(t('common.error'), t('validation.validAmount') || 'Please enter a valid amount.');
       return false;
     }
     return true;
@@ -61,14 +63,14 @@ export default function RecordPaymentScreen() {
       },
       {
         onSuccess: () => {
-          Alert.alert('Success', 'Payment recorded successfully!', [
-            { text: 'OK', onPress: () => router.back() },
+          Alert.alert(t('common.success'), t('payments.recordedSuccess') || 'Payment recorded successfully!', [
+            { text: t('common.ok'), onPress: () => router.back() },
           ]);
         },
         onError: (error: any) => {
           Alert.alert(
-            'Error',
-            error.response?.data?.message || 'Failed to record payment. Please try again.'
+            t('common.error'),
+            error.response?.data?.message || t('payments.recordFailed') || 'Failed to record payment. Please try again.'
           );
         },
       }
@@ -79,7 +81,7 @@ export default function RecordPaymentScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -91,7 +93,7 @@ export default function RecordPaymentScreen() {
         <Card style={styles.memberCard}>
           <Card.Content style={styles.memberContent}>
             <MaterialCommunityIcons name="account" size={24} color={Colors.primary} />
-            <Text style={styles.memberName}>Recording payment for: {memberName}</Text>
+            <Text style={styles.memberName}>{t('payments.recordingFor') || 'Recording payment for:'} {memberName}</Text>
           </Card.Content>
         </Card>
       )}
@@ -99,12 +101,12 @@ export default function RecordPaymentScreen() {
       {/* Member Selection (if not pre-selected) */}
       {!memberId && (
         <>
-          <Text style={styles.label}>Select Member *</Text>
+          <Text style={styles.label}>{t('members.selectMember')} *</Text>
           {members.length === 0 ? (
             <Card style={styles.emptyCard}>
               <Card.Content style={styles.emptyContent}>
                 <MaterialCommunityIcons name="account-group-outline" size={24} color={Colors.textSecondary} />
-                <Text style={styles.emptyText}>No members available</Text>
+                <Text style={styles.emptyText}>{t('members.noMembers') || 'No members available'}</Text>
               </Card.Content>
             </Card>
           ) : (
@@ -130,11 +132,11 @@ export default function RecordPaymentScreen() {
       )}
 
       {/* Amount */}
-      <Text style={styles.label}>Amount *</Text>
+      <Text style={styles.label}>{t('payments.amount')} *</Text>
       <TextInput
         value={amount}
         onChangeText={setAmount}
-        placeholder="Enter amount"
+        placeholder={t('payments.enterAmount') || 'Enter amount'}
         mode="outlined"
         keyboardType="decimal-pad"
         style={styles.input}
@@ -146,20 +148,20 @@ export default function RecordPaymentScreen() {
       />
 
       {/* Payment Method */}
-      <Text style={styles.label}>Payment Method *</Text>
+      <Text style={styles.label}>{t('payments.method')} *</Text>
       <SegmentedButtons
         value={paymentMethod}
         onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
         buttons={[
-          { value: PaymentMethod.CASH, label: 'Cash', icon: 'cash' },
-          { value: PaymentMethod.BANK_TRANSFER, label: 'Bank', icon: 'bank' },
-          { value: PaymentMethod.CARD, label: 'Card', icon: 'credit-card' },
+          { value: PaymentMethod.CASH, label: t('payments.cash'), icon: 'cash' },
+          { value: PaymentMethod.BANK_TRANSFER, label: t('payments.bank'), icon: 'bank' },
+          { value: PaymentMethod.CARD, label: t('payments.card'), icon: 'credit-card' },
         ]}
         style={styles.segmentedButtons}
       />
 
       {/* Payment Date */}
-      <Text style={styles.label}>Payment Date *</Text>
+      <Text style={styles.label}>{t('payments.date')} *</Text>
       <Button
         mode="outlined"
         onPress={() => setShowDatePicker(true)}
@@ -180,11 +182,11 @@ export default function RecordPaymentScreen() {
       )}
 
       {/* Note */}
-      <Text style={styles.label}>Note (Optional)</Text>
+      <Text style={styles.label}>{t('common.note')} ({t('common.optional')})</Text>
       <TextInput
         value={note}
         onChangeText={setNote}
-        placeholder="e.g., Monthly fee for January"
+        placeholder={t('payments.notePlaceholder') || 'e.g., Monthly fee for January'}
         mode="outlined"
         multiline
         numberOfLines={3}
@@ -205,7 +207,7 @@ export default function RecordPaymentScreen() {
         icon="check"
         buttonColor={Colors.success}
       >
-        Record Payment
+        {t('payments.recordPayment')}
       </Button>
 
       {/* Cancel Button */}
@@ -215,7 +217,7 @@ export default function RecordPaymentScreen() {
         style={styles.cancelButton}
         textColor={Colors.textSecondary}
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
     </ScrollView>
   );

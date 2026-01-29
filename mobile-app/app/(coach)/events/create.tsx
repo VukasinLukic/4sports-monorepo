@@ -6,13 +6,23 @@ import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { EventType, Group } from '@/types';
 
-const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
 export default function CreateEventScreen() {
+  const { t } = useLanguage();
   const params = useLocalSearchParams<{ date?: string; groupId?: string }>();
+
+  const DAYS_OF_WEEK = [
+    t('dateTime.days.sun') || 'Sun',
+    t('dateTime.days.mon') || 'Mon',
+    t('dateTime.days.tue') || 'Tue',
+    t('dateTime.days.wed') || 'Wed',
+    t('dateTime.days.thu') || 'Thu',
+    t('dateTime.days.fri') || 'Fri',
+    t('dateTime.days.sat') || 'Sat',
+  ];
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -121,15 +131,15 @@ export default function CreateEventScreen() {
 
   const validateForm = (): boolean => {
     if (!title.trim()) {
-      Alert.alert('Validation Error', 'Please enter an event title.');
+      Alert.alert(t('common.error'), t('validation.eventTitleRequired') || 'Please enter an event title.');
       return false;
     }
     if (!selectedGroupId) {
-      Alert.alert('Validation Error', 'Please select a group.');
+      Alert.alert(t('common.error'), t('validation.groupRequired') || 'Please select a group.');
       return false;
     }
     if (startTime >= endTime) {
-      Alert.alert('Validation Error', 'End time must be after start time.');
+      Alert.alert(t('common.error'), t('validation.endTimeAfterStart') || 'End time must be after start time.');
       return false;
     }
     return true;
@@ -176,14 +186,14 @@ export default function CreateEventScreen() {
 
       await api.post('/events', eventData);
 
-      Alert.alert('Success', 'Event created successfully!', [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert(t('common.success'), t('events.eventCreated'), [
+        { text: t('common.ok'), onPress: () => router.back() },
       ]);
     } catch (error: any) {
       console.error('Error creating event:', error);
       Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to create event. Please try again.'
+        t('common.error'),
+        error.response?.data?.message || t('errors.saveFailed')
       );
     } finally {
       setIsLoading(false);
@@ -194,7 +204,7 @@ export default function CreateEventScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -202,24 +212,24 @@ export default function CreateEventScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Event Type */}
-      <Text style={styles.label}>Event Type</Text>
+      <Text style={styles.label}>{t('events.eventType')}</Text>
       <SegmentedButtons
         value={eventType}
         onValueChange={(value) => setEventType(value as EventType)}
         buttons={[
-          { value: EventType.TRAINING, label: 'Training' },
-          { value: EventType.MATCH, label: 'Match' },
-          { value: EventType.OTHER, label: 'Other' },
+          { value: EventType.TRAINING, label: t('eventTypes.training') },
+          { value: EventType.MATCH, label: t('eventTypes.match') },
+          { value: EventType.OTHER, label: t('eventTypes.other') },
         ]}
         style={styles.segmentedButtons}
       />
 
       {/* Title */}
-      <Text style={styles.label}>Title *</Text>
+      <Text style={styles.label}>{t('events.eventName')} *</Text>
       <TextInput
         value={title}
         onChangeText={setTitle}
-        placeholder="e.g., Morning Training Session"
+        placeholder={t('events.eventNamePlaceholder') || 'e.g., Morning Training Session'}
         mode="outlined"
         style={styles.input}
         outlineColor={Colors.border}
@@ -229,11 +239,11 @@ export default function CreateEventScreen() {
       />
 
       {/* Group Selection */}
-      <Text style={styles.label}>Group *</Text>
+      <Text style={styles.label}>{t('groups.group')} *</Text>
       {groups.length === 0 ? (
         <View style={styles.noGroupsContainer}>
           <MaterialCommunityIcons name="account-group-outline" size={24} color={Colors.textSecondary} />
-          <Text style={styles.noGroupsText}>No groups available. Create a group first.</Text>
+          <Text style={styles.noGroupsText}>{t('empty.noGroups')}. {t('groups.createGroup')}.</Text>
         </View>
       ) : (
         <View style={styles.groupsContainer}>
@@ -253,7 +263,7 @@ export default function CreateEventScreen() {
       )}
 
       {/* Date */}
-      <Text style={styles.label}>Date *</Text>
+      <Text style={styles.label}>{t('events.eventDate')} *</Text>
       <Button
         mode="outlined"
         onPress={() => setShowDatePicker(true)}
@@ -276,7 +286,7 @@ export default function CreateEventScreen() {
       {/* Time */}
       <View style={styles.timeRow}>
         <View style={styles.timeColumn}>
-          <Text style={styles.label}>Start Time *</Text>
+          <Text style={styles.label}>{t('events.startTime')} *</Text>
           <Button
             mode="outlined"
             onPress={() => setShowStartTimePicker(true)}
@@ -296,7 +306,7 @@ export default function CreateEventScreen() {
           )}
         </View>
         <View style={styles.timeColumn}>
-          <Text style={styles.label}>End Time *</Text>
+          <Text style={styles.label}>{t('events.endTime')} *</Text>
           <Button
             mode="outlined"
             onPress={() => setShowEndTimePicker(true)}
@@ -318,11 +328,11 @@ export default function CreateEventScreen() {
       </View>
 
       {/* Location */}
-      <Text style={styles.label}>Location</Text>
+      <Text style={styles.label}>{t('events.location')}</Text>
       <TextInput
         value={location}
         onChangeText={setLocation}
-        placeholder="e.g., Main Field, Sports Hall"
+        placeholder={t('events.locationPlaceholder') || 'e.g., Main Field, Sports Hall'}
         mode="outlined"
         style={styles.input}
         outlineColor={Colors.border}
@@ -332,11 +342,11 @@ export default function CreateEventScreen() {
       />
 
       {/* Description */}
-      <Text style={styles.label}>Description</Text>
+      <Text style={styles.label}>{t('events.description')}</Text>
       <TextInput
         value={description}
         onChangeText={setDescription}
-        placeholder="Additional details about the event..."
+        placeholder={t('events.descriptionPlaceholder') || 'Additional details about the event...'}
         mode="outlined"
         multiline
         numberOfLines={4}
@@ -350,8 +360,8 @@ export default function CreateEventScreen() {
       {/* Recurring Event Section */}
       <View style={styles.switchRow}>
         <View>
-          <Text style={styles.switchLabel}>Recurring Event</Text>
-          <Text style={styles.switchDescription}>Repeat this event on a schedule</Text>
+          <Text style={styles.switchLabel}>{t('events.recurring')}</Text>
+          <Text style={styles.switchDescription}>{t('events.recurringDescription') || 'Repeat this event on a schedule'}</Text>
         </View>
         <Switch
           value={isRecurring}
@@ -363,14 +373,14 @@ export default function CreateEventScreen() {
       {isRecurring && (
         <View style={styles.recurringSection}>
           {/* Frequency */}
-          <Text style={styles.label}>Frequency</Text>
+          <Text style={styles.label}>{t('events.frequency') || 'Frequency'}</Text>
           <SegmentedButtons
             value={recurringFrequency}
             onValueChange={(value) => setRecurringFrequency(value as 'daily' | 'weekly' | 'monthly')}
             buttons={[
-              { value: 'daily', label: 'Daily' },
-              { value: 'weekly', label: 'Weekly' },
-              { value: 'monthly', label: 'Monthly' },
+              { value: 'daily', label: t('events.daily') || 'Daily' },
+              { value: 'weekly', label: t('events.weekly') },
+              { value: 'monthly', label: t('events.monthly') || 'Monthly' },
             ]}
             style={styles.segmentedButtons}
           />
@@ -378,7 +388,7 @@ export default function CreateEventScreen() {
           {/* Days of Week (for weekly) */}
           {recurringFrequency === 'weekly' && (
             <>
-              <Text style={styles.label}>Repeat On</Text>
+              <Text style={styles.label}>{t('events.repeatOn') || 'Repeat On'}</Text>
               <View style={styles.daysRow}>
                 {DAYS_OF_WEEK.map((day, index) => (
                   <TouchableOpacity
@@ -404,7 +414,7 @@ export default function CreateEventScreen() {
           )}
 
           {/* Until Date */}
-          <Text style={styles.label}>Repeat Until</Text>
+          <Text style={styles.label}>{t('events.repeatUntil') || 'Repeat Until'}</Text>
           <Button
             mode="outlined"
             onPress={() => setShowRecurringUntilPicker(true)}
@@ -431,7 +441,7 @@ export default function CreateEventScreen() {
         style={styles.advancedToggle}
         onPress={() => setShowAdvanced(!showAdvanced)}
       >
-        <Text style={styles.advancedToggleText}>Advanced Options</Text>
+        <Text style={styles.advancedToggleText}>{t('events.advancedOptions') || 'Advanced Options'}</Text>
         <MaterialCommunityIcons
           name={showAdvanced ? 'chevron-up' : 'chevron-down'}
           size={24}
@@ -444,8 +454,8 @@ export default function CreateEventScreen() {
           {/* Mandatory Toggle */}
           <View style={styles.switchRow}>
             <View>
-              <Text style={styles.switchLabel}>Mandatory Event</Text>
-              <Text style={styles.switchDescription}>Members must attend</Text>
+              <Text style={styles.switchLabel}>{t('events.mandatory')}</Text>
+              <Text style={styles.switchDescription}>{t('events.mandatoryDescription') || 'Members must attend'}</Text>
             </View>
             <Switch
               value={isMandatory}
@@ -455,11 +465,11 @@ export default function CreateEventScreen() {
           </View>
 
           {/* Notes */}
-          <Text style={styles.label}>Notes for Attendees</Text>
+          <Text style={styles.label}>{t('events.notesForAttendees') || 'Notes for Attendees'}</Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}
-            placeholder="Special instructions, reminders..."
+            placeholder={t('events.notesPlaceholder') || 'Special instructions, reminders...'}
             mode="outlined"
             multiline
             numberOfLines={3}
@@ -471,12 +481,12 @@ export default function CreateEventScreen() {
           />
 
           {/* Equipment */}
-          <Text style={styles.label}>Required Equipment</Text>
+          <Text style={styles.label}>{t('events.requiredEquipment') || 'Required Equipment'}</Text>
           <View style={styles.equipmentInputRow}>
             <TextInput
               value={newEquipment}
               onChangeText={setNewEquipment}
-              placeholder="e.g., Shin guards, Water bottle"
+              placeholder={t('events.equipmentPlaceholder') || 'e.g., Shin guards, Water bottle'}
               mode="outlined"
               style={[styles.input, styles.equipmentInput]}
               outlineColor={Colors.border}
@@ -509,11 +519,11 @@ export default function CreateEventScreen() {
           )}
 
           {/* Max Participants */}
-          <Text style={styles.label}>Max Participants (optional)</Text>
+          <Text style={styles.label}>{t('events.maxParticipants') || 'Max Participants'} ({t('common.optional')})</Text>
           <TextInput
             value={maxParticipants}
             onChangeText={setMaxParticipants}
-            placeholder="Leave empty for unlimited"
+            placeholder={t('events.maxParticipantsPlaceholder') || 'Leave empty for unlimited'}
             mode="outlined"
             keyboardType="number-pad"
             style={styles.input}
@@ -534,7 +544,7 @@ export default function CreateEventScreen() {
         style={styles.submitButton}
         icon="check"
       >
-        Create Event
+        {t('events.createEvent')}
       </Button>
 
       {/* Cancel Button */}
@@ -544,7 +554,7 @@ export default function CreateEventScreen() {
         style={styles.cancelButton}
         textColor={Colors.textSecondary}
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
     </ScrollView>
   );

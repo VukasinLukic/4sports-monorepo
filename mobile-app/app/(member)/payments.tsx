@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 
 interface Payment {
@@ -24,6 +25,7 @@ interface Payment {
 type FilterType = 'all' | 'paid' | 'pending' | 'overdue';
 
 export default function MemberPayments() {
+  const { t } = useLanguage();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -123,20 +125,20 @@ export default function MemberPayments() {
           {item.period && (
             <View style={styles.detailRow}>
               <MaterialCommunityIcons name="calendar-month" size={16} color={Colors.textSecondary} />
-              <Text style={styles.detailText}>Period: {formatPeriod(item.period)}</Text>
+              <Text style={styles.detailText}>{t('payments.period')}: {formatPeriod(item.period)}</Text>
             </View>
           )}
 
           <View style={styles.detailRow}>
             <MaterialCommunityIcons name="calendar-clock" size={16} color={Colors.textSecondary} />
-            <Text style={styles.detailText}>Due: {formatDate(item.dueDate)}</Text>
+            <Text style={styles.detailText}>{t('payments.due')}: {formatDate(item.dueDate)}</Text>
           </View>
 
           {item.paidDate && (
             <View style={styles.detailRow}>
               <MaterialCommunityIcons name="check-circle" size={16} color={Colors.success} />
               <Text style={[styles.detailText, { color: Colors.success }]}>
-                Paid: {formatDate(item.paidDate)}
+                {t('payments.paidOn')}: {formatDate(item.paidDate)}
               </Text>
             </View>
           )}
@@ -149,7 +151,7 @@ export default function MemberPayments() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading payments...</Text>
+        <Text style={styles.loadingText}>{t('payments.loading') || 'Loading payments...'}</Text>
       </View>
     );
   }
@@ -159,27 +161,27 @@ export default function MemberPayments() {
       {/* Summary Card */}
       <Card style={styles.summaryCard}>
         <Card.Content>
-          <Text style={styles.summaryTitle}>Payment Summary</Text>
+          <Text style={styles.summaryTitle}>{t('payments.summary')}</Text>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryAmount, { color: Colors.success }]}>
                 {summary.paid.toLocaleString()}
               </Text>
-              <Text style={styles.summaryLabel}>Paid</Text>
+              <Text style={styles.summaryLabel}>{t('status.paid')}</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryAmount, { color: Colors.warning }]}>
                 {summary.pending.toLocaleString()}
               </Text>
-              <Text style={styles.summaryLabel}>Pending</Text>
+              <Text style={styles.summaryLabel}>{t('status.pending')}</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryAmount, { color: Colors.error }]}>
                 {summary.overdue.toLocaleString()}
               </Text>
-              <Text style={styles.summaryLabel}>Overdue</Text>
+              <Text style={styles.summaryLabel}>{t('status.overdue')}</Text>
             </View>
           </View>
         </Card.Content>
@@ -190,10 +192,10 @@ export default function MemberPayments() {
         value={filter}
         onValueChange={(value) => setFilter(value as FilterType)}
         buttons={[
-          { value: 'all', label: 'All' },
-          { value: 'paid', label: 'Paid' },
-          { value: 'pending', label: 'Pending' },
-          { value: 'overdue', label: 'Overdue' },
+          { value: 'all', label: t('common.all') },
+          { value: 'paid', label: t('status.paid') },
+          { value: 'pending', label: t('status.pending') },
+          { value: 'overdue', label: t('status.overdue') },
         ]}
         style={styles.filter}
       />
@@ -211,7 +213,7 @@ export default function MemberPayments() {
           <Card style={styles.emptyCard}>
             <Card.Content style={styles.emptyContent}>
               <MaterialCommunityIcons name="cash-remove" size={48} color={Colors.textSecondary} />
-              <Text style={styles.emptyText}>No payments found</Text>
+              <Text style={styles.emptyText}>{t('payments.noPayments') || 'No payments found'}</Text>
             </Card.Content>
           </Card>
         }

@@ -38,6 +38,10 @@ export default {
     viewAll: 'View All',
     showMore: 'Show More',
     showLess: 'Show Less',
+    total: 'Total',
+    tryAgain: 'Try Again',
+    goBack: 'Go Back',
+    note: 'Note',
   },
 
   // Navigation & Tabs
@@ -106,6 +110,7 @@ export default {
     inviteCodeRequired: 'Invite code is required',
     enterBothEmailPassword: 'Please enter both email and password',
     enterAllFields: 'Please fill in all required fields',
+    selectMember: 'Please select a member.',
   },
 
   errors: {
@@ -121,6 +126,7 @@ export default {
     loadingFailed: 'Failed to load data',
     saveFailed: 'Failed to save',
     deleteFailed: 'Failed to delete',
+    loadEventFailed: 'Failed to load event details',
   },
 
   // Status labels
@@ -144,6 +150,8 @@ export default {
     excused: 'Excused',
     notCreated: 'Not Created',
     notSet: 'Not Set',
+    declined: 'Declined',
+    unknown: 'Unknown',
   },
 
   // Event types
@@ -193,6 +201,7 @@ export default {
     myProfile: 'My Profile',
     noMembers: 'No Members Yet',
     noMembersDescription: 'Add your first member to get started.',
+    selectMember: 'Select Member',
     searchMembers: 'Search members...',
     filterByGroup: 'Filter by group',
     filterByStatus: 'Filter by status',
@@ -275,6 +284,27 @@ export default {
     viewAllEvents: 'View All Events',
     eventsOn: 'Events on',
     mandatory: 'Mandatory',
+    loading: 'Loading event...',
+    notFound: 'Event not found',
+    overview: 'Overview',
+    participants: 'Participants',
+    date: 'Date',
+    time: 'Time',
+    group: 'Group',
+    notes: 'Notes',
+    requiredEquipment: 'Required Equipment',
+    noParticipants: 'No participants yet',
+    eventNamePlaceholder: 'e.g., Weekly Training',
+    locationPlaceholder: 'e.g., Sports Center Arena',
+    descriptionPlaceholder: 'Add event description...',
+    recurringDescription: 'This event will automatically appear every week.',
+    advancedOptions: 'Advanced Options',
+    mandatoryDescription: 'Participants must attend this event.',
+    notesForAttendees: 'Notes for Attendees',
+    notesPlaceholder: 'Add notes that attendees will see...',
+    equipmentPlaceholder: 'e.g., Ball, cleats',
+    maxParticipants: 'Maximum Participants',
+    maxParticipantsPlaceholder: 'Enter number',
   },
 
   // Attendance
@@ -301,6 +331,13 @@ export default {
     attendanceSaved: 'Attendance saved successfully',
     confirmed: 'confirmed',
     pending: 'pending',
+    rate: 'Attendance Rate',
+    loading: 'Loading attendance...',
+    recentEvents: 'Recent Events',
+    noRecords: 'No attendance records yet',
+    historyAppearHere: 'Your attendance history will appear here',
+    checkedIn: 'Checked In',
+    summary: 'Attendance Summary',
   },
 
   // Payments
@@ -328,6 +365,16 @@ export default {
     totalDue: 'Total Due',
     balance: 'Balance',
     paymentRecorded: 'Payment recorded successfully',
+    loading: 'Loading payments...',
+    summary: 'Payment Summary',
+    period: 'Period',
+    due: 'Due',
+    recordedSuccess: 'Payment recorded successfully!',
+    recordFailed: 'Failed to record payment. Please try again.',
+    recordingFor: 'Recording payment for:',
+    enterAmount: 'Enter amount',
+    notePlaceholder: 'e.g., Monthly fee for January',
+    bank: 'Bank',
   },
 
   // Groups
@@ -351,6 +398,8 @@ export default {
     groupUpdated: 'Group updated successfully',
     selectGroup: 'Select Group',
     allGroups: 'All Groups',
+    coaches: 'coaches',
+    searchGroups: 'Search groups...',
   },
 
   // News
@@ -374,6 +423,24 @@ export default {
     postDeleted: 'Post deleted successfully',
     postCreated: 'Post created successfully',
     postUpdated: 'Post updated successfully',
+    noPosts: 'No Posts Yet',
+    noPostsDescription: 'Share news, updates, and announcements with your club members',
+    loadingFeed: 'Loading news feed...',
+    allMembers: 'All Members',
+    whatsOnYourMind: "What's on your mind?",
+    postPlaceholder: 'Share news, updates, or announcements...',
+    addPhotos: 'Add Photos',
+    maxImages: 'Maximum 5 images',
+    addImagesCount: 'Add images',
+    visibleToGroup: 'This post will be visible only to members of the selected group.',
+    visibleToAll: 'This post will be visible to all club members.',
+    post: 'Post',
+    postSuccess: 'Post created successfully!',
+    postFailed: 'Failed to create post. Please try again.',
+    permissionRequired: 'Permission Required',
+    allowPhotoAccess: 'Allow access to your photo library to add images.',
+    failedPickImages: 'Failed to load images. Please try again.',
+    postToGroup: 'Post to Group',
   },
 
   // Invites
@@ -397,6 +464,10 @@ export default {
     validFor: 'Valid for',
     days: 'days',
     targetRole: 'Target Role',
+    expires: 'Expires',
+    deactivate: 'Deactivate',
+    generateDescription: 'Generate an invite code that new members can use to register for your club.',
+    shareInviteDescription: 'Share this code with new members to join your club.',
   },
 
   // Medical
@@ -416,6 +487,13 @@ export default {
     dueForCheck: 'Due for Medical Check',
     expiringSoon: 'Expiring Soon',
     allClear: 'All Clear',
+    examinationDate: 'Examination Date',
+    recordedSuccess: 'Medical check recorded successfully!',
+    recordFailed: 'Failed to record medical check. Please try again.',
+    recordingFor: 'Recording medical check for:',
+    notePlaceholder: 'e.g., Regular checkup, all clear',
+    validityInfo: 'Medical checks are valid for 6 months from the examination date. The system will automatically track expiration.',
+    sixMonthsFromExam: '6 months from examination date',
   },
 
   // Profile
@@ -466,6 +544,23 @@ export default {
     refreshQR: 'Refresh QR Code',
     scannerPermission: 'Camera permission is required to scan QR codes',
     requestPermission: 'Grant Permission',
+    invalidCode: 'Invalid QR Code',
+    notForAttendance: 'This QR code is not for attendance check-in.',
+    profileNotLoaded: 'Member profile not loaded. Please try again.',
+    couldNotRead: 'Could not read this QR code. Please try again.',
+    checkInSuccess: 'Check-In Successful!',
+    markedPresent: 'You have been marked present',
+    scanAgain: 'Scan Again',
+    checkInFailed: 'Check-In Failed',
+    failedToCheckIn: 'Failed to check in. Please try again.',
+    checkingPermission: 'Checking camera permission...',
+    cameraRequired: 'Camera Access Required',
+    allowCameraText: 'To scan QR codes for attendance check-in, please allow camera access.',
+    allowCamera: 'Allow Camera Access',
+    loadingProfile: 'Loading profile...',
+    scanToCheckIn: 'Scan the event QR code to check in',
+    checkingIn: 'Checking in...',
+    pointCamera: 'Point your camera at the QR code displayed by your coach',
   },
 
   // Calendar
