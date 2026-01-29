@@ -2,20 +2,37 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import { Text, Avatar, Button, ActivityIndicator, IconButton, Divider } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
 import { StoredAccount } from '@/services/accountManager';
+import { User } from '@/types';
 
 interface AccountSwitcherProps {
   visible: boolean;
   onClose: () => void;
-  onAccountSwitch: () => void;
+  onAccountSwitch: (user: User) => void;
 }
 
+// Helper to navigate based on user role
+const navigateToRoleScreen = (userRole: string) => {
+  const role = userRole?.toUpperCase();
+  if (role === 'COACH' || role === 'OWNER') {
+    router.replace('/(coach)');
+  } else if (role === 'PARENT') {
+    router.replace('/(parent)');
+  } else if (role === 'MEMBER') {
+    router.replace('/(member)');
+  } else {
+    router.replace('/(auth)/login');
+  }
+};
+
 export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: AccountSwitcherProps) {
-  const { user, firebaseUser, getStoredAccounts, switchAccount, removeStoredAccount } = useAuth();
+  const { user, firebaseUser, getStoredAccounts, switchAccount, switchAccountPasswordless, hasStoredCredentials, removeStoredAccount } = useAuth();
   const [accounts, setAccounts] = useState<StoredAccount[]>([]);
+  const [accountCredentials, setAccountCredentials] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [email, setEmail] = useState('');
@@ -25,7 +42,14 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
   const loadAccounts = useCallback(async () => {
     const storedAccounts = await getStoredAccounts();
     setAccounts(storedAccounts);
-  }, [getStoredAccounts]);
+
+    // Check which accounts have stored credentials
+    const credentialsMap: Record<string, boolean> = {};
+    for (const account of storedAccounts) {
+      credentialsMap[account.id] = await hasStoredCredentials(account.email);
+    }
+    setAccountCredentials(credentialsMap);
+  }, [getStoredAccounts, hasStoredCredentials]);
 
   useEffect(() => {
     if (visible) {
@@ -40,10 +64,37 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
       return;
     }
 
-    setShowAddAccount(true);
-    setEmail(account.email);
-    setPassword('');
-    setSwitchingError(null);
+    // Check if we have stored credentials for passwordless switch
+    const hasCreds = accountCredentials[account.id];
+
+    if (hasCreds) {
+      // Passwordless switch
+      setIsLoading(true);
+      setSwitchingError(null);
+
+      try {
+        const userData = await switchAccountPasswordless(account.email);
+        onAccountSwitch(userData);
+        onClose();
+        // Navigate to correct screen based on role
+        navigateToRoleScreen(userData.role);
+      } catch (error: any) {
+        console.error('Passwordless switch error:', error);
+        // If passwordless fails, fall back to password form
+        setShowAddAccount(true);
+        setEmail(account.email);
+        setPassword('');
+        setSwitchingError('Session expired. Please enter your password.');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // No stored credentials, show password form
+      setShowAddAccount(true);
+      setEmail(account.email);
+      setPassword('');
+      setSwitchingError(null);
+    }
   };
 
   const handleAddAccount = () => {
@@ -63,12 +114,14 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
     setSwitchingError(null);
 
     try {
-      await switchAccount(email, password);
+      const userData = await switchAccount(email, password);
       setShowAddAccount(false);
       setEmail('');
       setPassword('');
-      onAccountSwitch();
+      onAccountSwitch(userData);
       onClose();
+      // Navigate to correct screen based on role
+      navigateToRoleScreen(userData.role);
     } catch (error: any) {
       console.error('Switch account error:', error);
       setSwitchingError(error.message || 'Failed to switch account');
@@ -145,6 +198,14 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
               onPress={onClose}
             />
           </View>
+
+          {/* Loading overlay for passwordless switch */}
+          {isLoading && !showAddAccount && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>Switching account...</Text>
+            </View>
+          )}
 
           {showAddAccount ? (
             // Add/Switch Account Form
@@ -389,5 +450,15 @@ const styles = StyleSheet.create({
   loginButton: {
     flex: 1,
     backgroundColor: Colors.primary,
+  },
+  loadingOverlay: {
+    padding: Spacing.xxl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
   },
 });

@@ -61,7 +61,8 @@
         {
           "photosPermission": "Allow 4Sports to access your photo library to upload profile pictures and media."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "router": {

@@ -38,12 +38,23 @@ export default function MemberProfile() {
       if (memberData?.clubs && memberData.clubs.length > 0) {
         const activeClub = memberData.clubs.find((c: any) => c.status === 'ACTIVE');
         if (activeClub?.clubId) {
-          const clubId = typeof activeClub.clubId === 'object' ? activeClub.clubId._id : activeClub.clubId;
-          try {
-            const clubResponse = await api.get(`/clubs/${clubId}`);
-            setClubInfo(clubResponse.data.data);
-          } catch {
-            // Club info might not be available
+          // Handle both populated object and string ID
+          let clubId: string | null = null;
+          if (typeof activeClub.clubId === 'string') {
+            clubId = activeClub.clubId;
+          } else if (activeClub.clubId?._id) {
+            clubId = activeClub.clubId._id;
+          } else if (activeClub.clubId?.id) {
+            clubId = activeClub.clubId.id;
+          }
+
+          if (clubId) {
+            try {
+              const clubResponse = await api.get(`/clubs/${clubId}`);
+              setClubInfo(clubResponse.data.data);
+            } catch {
+              // Club info might not be available
+            }
           }
         }
       }
@@ -402,9 +413,9 @@ export default function MemberProfile() {
       <AccountSwitcher
         visible={showAccountSwitcher}
         onClose={() => setShowAccountSwitcher(false)}
-        onAccountSwitch={() => {
-          // Navigate to appropriate screen based on role
-          router.replace('/');
+        onAccountSwitch={(switchedUser) => {
+          // Navigation is handled by AccountSwitcher based on user role
+          console.log('Switched to user:', switchedUser.email, 'role:', switchedUser.role);
         }}
       />
     </ScrollView>

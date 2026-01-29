@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 const ACCOUNTS_KEY = '@4sports_accounts';
 const CURRENT_ACCOUNT_KEY = '@4sports_current_account';
+const CREDENTIALS_PREFIX = '4sports_cred_';
 
 export interface StoredAccount {
   id: string; // Firebase UID
@@ -10,6 +12,7 @@ export interface StoredAccount {
   role: string;
   profileImage?: string;
   lastUsed: number; // timestamp
+  hasStoredCredentials?: boolean; // Indicates if password is stored securely
 }
 
 /**
@@ -127,4 +130,63 @@ export const getMostRecentAccount = async (excludeId?: string): Promise<StoredAc
     console.error('Error getting most recent account:', error);
     return null;
   }
+};
+
+/**
+ * Store credentials securely for passwordless switching
+ */
+export const storeCredentials = async (email: string, password: string): Promise<void> => {
+  try {
+    const key = `${CREDENTIALS_PREFIX}${email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    console.log('Storing credentials with key:', key, 'for email:', email);
+    await SecureStore.setItemAsync(key, password);
+    console.log('Credentials stored successfully for:', email);
+
+    // Verify storage worked
+    const verify = await SecureStore.getItemAsync(key);
+    console.log('Credential verification:', verify ? 'SUCCESS' : 'FAILED');
+  } catch (error) {
+    console.error('Error storing credentials:', error);
+    // Don't throw - passwordless is optional feature
+  }
+};
+
+/**
+ * Retrieve stored credentials for passwordless switching
+ */
+export const getStoredCredentials = async (email: string): Promise<string | null> => {
+  try {
+    const key = `${CREDENTIALS_PREFIX}${email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    console.log('Retrieving credentials with key:', key);
+    const password = await SecureStore.getItemAsync(key);
+    console.log('Credentials retrieved:', password ? 'FOUND' : 'NOT FOUND');
+    return password;
+  } catch (error) {
+    console.error('Error retrieving credentials:', error);
+    return null;
+  }
+};
+
+/**
+ * Remove stored credentials
+ */
+export const removeStoredCredentials = async (email: string): Promise<void> => {
+  try {
+    const key = `${CREDENTIALS_PREFIX}${email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    await SecureStore.deleteItemAsync(key);
+    console.log('Credentials removed for:', email);
+  } catch (error) {
+    console.error('Error removing credentials:', error);
+  }
+};
+
+/**
+ * Check if credentials are stored for an account
+ */
+export const hasStoredCredentials = async (email: string): Promise<boolean> => {
+  console.log('Checking stored credentials for:', email);
+  const creds = await getStoredCredentials(email);
+  const hasCredentials = creds !== null;
+  console.log('Has stored credentials:', hasCredentials);
+  return hasCredentials;
 };

@@ -10,6 +10,10 @@ import {
   addOrUpdateAccount,
   removeAccount,
   setCurrentAccountId,
+  storeCredentials,
+  getStoredCredentials,
+  removeStoredCredentials,
+  hasStoredCredentials as checkStoredCredentials,
 } from './accountManager';
 
 interface AuthContextType {
@@ -32,6 +36,8 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   getStoredAccounts: () => Promise<StoredAccount[]>;
   switchAccount: (email: string, password: string) => Promise<User>;
+  switchAccountPasswordless: (email: string) => Promise<User>;
+  hasStoredCredentials: (email: string) => Promise<boolean>;
   removeStoredAccount: (id: string) => Promise<void>;
 }
 
@@ -147,6 +153,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoading(false);
         setIsInitialized(true);
 
+        // Store credentials securely for passwordless switching
+        await storeCredentials(email, password);
+
         // Save account to storage for account switching
         await addOrUpdateAccount({
           id: userCredential.user.uid,
@@ -155,6 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           role: userData.role,
           profileImage: userData.profilePicture,
           lastUsed: Date.now(),
+          hasStoredCredentials: true,
         });
         await setCurrentAccountId(userCredential.user.uid);
 
@@ -248,6 +258,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
       setIsInitialized(true);
 
+      // Store credentials securely for passwordless switching
+      await storeCredentials(email, password);
+
       // Save account to storage for account switching
       await addOrUpdateAccount({
         id: userCredential.user.uid,
@@ -256,6 +269,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         role: userData.role,
         profileImage: userData.profilePicture,
         lastUsed: Date.now(),
+        hasStoredCredentials: true,
       });
       await setCurrentAccountId(userCredential.user.uid);
 
@@ -325,8 +339,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return await login(email, password);
   }, [logoutFromCurrentOnly, login]);
 
+  // Switch to another account without password (using stored credentials)
+  const switchAccountPasswordless = useCallback(async (email: string): Promise<User> => {
+    // Get stored credentials
+    const storedPassword = await getStoredCredentials(email);
+
+    if (!storedPassword) {
+      throw new Error('No stored credentials found. Please login with password.');
+    }
+
+    // First logout from current account
+    await logoutFromCurrentOnly();
+
+    // Then login with stored credentials
+    return await login(email, storedPassword);
+  }, [logoutFromCurrentOnly, login]);
+
+  // Check if credentials are stored for an account
+  const hasStoredCredentialsCheck = useCallback(async (email: string): Promise<boolean> => {
+    return await checkStoredCredentials(email);
+  }, []);
+
   // Remove a stored account
   const removeStoredAccount = useCallback(async (id: string): Promise<void> => {
+    // Get account info before removing to clean up credentials
+    const accounts = await getStoredAccounts();
+    const account = accounts.find(a => a.id === id);
+    if (account) {
+      await removeStoredCredentials(account.email);
+    }
     await removeAccount(id);
   }, []);
 
@@ -344,8 +385,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     refreshUser,
     getStoredAccounts: getStoredAccountsList,
     switchAccount,
+    switchAccountPasswordless,
+    hasStoredCredentials: hasStoredCredentialsCheck,
     removeStoredAccount,
-  }), [user, firebaseUser, loading, error, isInitialized, login, register, logout, logoutFromCurrentOnly, refreshUser, getStoredAccountsList, switchAccount, removeStoredAccount]);
+  }), [user, firebaseUser, loading, error, isInitialized, login, register, logout, logoutFromCurrentOnly, refreshUser, getStoredAccountsList, switchAccount, switchAccountPasswordless, hasStoredCredentialsCheck, removeStoredAccount]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

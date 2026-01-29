@@ -272,9 +272,9 @@ export default function ParentProfile() {
       <AccountSwitcher
         visible={showAccountSwitcher}
         onClose={() => setShowAccountSwitcher(false)}
-        onAccountSwitch={() => {
-          // Navigate to appropriate screen based on role
-          router.replace('/');
+        onAccountSwitch={(switchedUser) => {
+          // Navigation is handled by AccountSwitcher based on user role
+          console.log('Switched to user:', switchedUser.email, 'role:', switchedUser.role);
         }}
       />
     </ScrollView>
