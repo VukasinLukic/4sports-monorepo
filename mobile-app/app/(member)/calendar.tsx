@@ -5,11 +5,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import EventCalendar from '@/components/EventCalendar';
 import api from '@/services/api';
 import { Event, EventType } from '@/types';
 
 export default function MemberCalendar() {
+  const { t } = useLanguage();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,7 +112,7 @@ export default function MemberCalendar() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading calendar...</Text>
+        <Text style={styles.loadingText}>{t('calendar.loadingCalendar')}</Text>
       </View>
     );
   }
@@ -138,15 +140,15 @@ export default function MemberCalendar() {
         <View style={styles.legendRow}>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: Colors.eventTraining }]} />
-            <Text style={styles.legendText}>Training</Text>
+            <Text style={styles.legendText}>{t('eventTypes.training')}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: Colors.eventCompetition }]} />
-            <Text style={styles.legendText}>Match</Text>
+            <Text style={styles.legendText}>{t('eventTypes.match')}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: Colors.eventMeeting }]} />
-            <Text style={styles.legendText}>Other</Text>
+            <Text style={styles.legendText}>{t('eventTypes.other')}</Text>
           </View>
         </View>
 
@@ -160,7 +162,7 @@ export default function MemberCalendar() {
               <Card style={styles.emptyCard}>
                 <Card.Content style={styles.emptyContent}>
                   <MaterialCommunityIcons name="calendar-blank" size={32} color={Colors.textSecondary} />
-                  <Text style={styles.emptyText}>No events on this day</Text>
+                  <Text style={styles.emptyText}>{t('empty.noEventsOnDay')}</Text>
                 </Card.Content>
               </Card>
             ) : (
@@ -179,7 +181,7 @@ export default function MemberCalendar() {
                           </Text>
                         </View>
                         {event.isMandatory && (
-                          <Text style={styles.mandatoryBadge}>Mandatory</Text>
+                          <Text style={styles.mandatoryBadge}>{t('events.mandatory')}</Text>
                         )}
                       </View>
                       <Text style={styles.eventTitle}>{event.title}</Text>
@@ -211,13 +213,13 @@ export default function MemberCalendar() {
         {/* Upcoming Events Section */}
         {!selectedDate && (
           <>
-            <Text style={styles.sectionTitle}>Upcoming Events</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
             {upcomingEvents.length === 0 ? (
               <Card style={styles.emptyCard}>
                 <Card.Content style={styles.emptyContent}>
                   <MaterialCommunityIcons name="calendar-blank-outline" size={48} color={Colors.textSecondary} />
-                  <Text style={styles.emptyText}>No upcoming events</Text>
-                  <Text style={styles.emptySubtext}>Events scheduled by your club will appear here</Text>
+                  <Text style={styles.emptyText}>{t('empty.noUpcomingEvents')}</Text>
+                  <Text style={styles.emptySubtext}>{t('empty.eventsScheduledWillAppear')}</Text>
                 </Card.Content>
               </Card>
             ) : (

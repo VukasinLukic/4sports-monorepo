@@ -3,12 +3,14 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 're
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import { Link, router } from 'expo-router';
 import { useAuth } from '@/services/AuthContext';
+import { useLanguage } from '@/services/LanguageContext';
 import { getAuthErrorMessage } from '@/services/auth';
 import { UserRole } from '@/types';
 import { AppColors, Spacing, FontSize, BorderRadius } from '@/constants';
 
 export default function LoginScreen() {
   const { login, loading, user } = useAuth();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -23,17 +25,17 @@ export default function LoginScreen() {
 
     // Validate inputs
     if (!email || !password) {
-      setError('Please enter both email and password');
+      setError(t('validation.enterBothEmailPassword'));
       return;
     }
 
     if (emailError) {
-      setError('Please enter a valid email address');
+      setError(t('validation.invalidEmail'));
       return;
     }
 
     if (passwordError) {
-      setError('Password must be at least 6 characters');
+      setError(t('validation.passwordMin'));
       return;
     }
 
@@ -71,13 +73,13 @@ export default function LoginScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.logo}>4SPORTS</Text>
-          <Text style={styles.subtitle}>Welcome Back</Text>
+          <Text style={styles.subtitle}>{t('auth.welcomeBack')}</Text>
         </View>
 
         <View style={styles.form}>
           {/* Email Input */}
           <TextInput
-            label="Email"
+            label={t('auth.email')}
             value={email}
             onChangeText={setEmail}
             mode="outlined"
@@ -94,13 +96,13 @@ export default function LoginScreen() {
           />
           {emailError && (
             <HelperText type="error" visible={emailError}>
-              Invalid email format
+              {t('validation.invalidEmail')}
             </HelperText>
           )}
 
           {/* Password Input */}
           <TextInput
-            label="Password"
+            label={t('auth.password')}
             value={password}
             onChangeText={setPassword}
             mode="outlined"
@@ -124,7 +126,7 @@ export default function LoginScreen() {
           />
           {passwordError && (
             <HelperText type="error" visible={passwordError}>
-              Password must be at least 6 characters
+              {t('validation.passwordMin')}
             </HelperText>
           )}
 
@@ -145,14 +147,14 @@ export default function LoginScreen() {
             contentStyle={styles.buttonContent}
             labelStyle={styles.buttonLabel}
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? t('auth.loggingIn') : t('auth.login')}
           </Button>
 
           {/* Register Link */}
           <View style={styles.linkContainer}>
-            <Text style={styles.linkText}>Don't have an account? </Text>
+            <Text style={styles.linkText}>{t('auth.noAccount')} </Text>
             <Link href="/(auth)/register" asChild>
-              <Text style={styles.link}>Register</Text>
+              <Text style={styles.link}>{t('auth.register')}</Text>
             </Link>
           </View>
         </View>

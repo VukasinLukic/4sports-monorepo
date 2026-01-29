@@ -3,6 +3,7 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 're
 import { Text, TextInput, Button, HelperText, Card } from 'react-native-paper';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/services/AuthContext';
+import { useLanguage } from '@/services/LanguageContext';
 import { getAuthErrorMessage } from '@/services/auth';
 import api, { getApiErrorMessage } from '@/services/api';
 import { UserRole } from '@/types';
@@ -17,6 +18,7 @@ interface InviteInfo {
 
 export default function RegisterScreen() {
   const { register, loading } = useAuth();
+  const { t } = useLanguage();
   const params = useLocalSearchParams<{ inviteCode?: string }>();
 
   // Invite info from validation
@@ -74,37 +76,37 @@ export default function RegisterScreen() {
 
     // Validate inputs
     if (!email || !password || !confirmPassword || !fullName || !phoneNumber || !inviteCode) {
-      setError('Please fill in all fields');
+      setError(t('validation.enterAllFields'));
       return;
     }
 
     if (emailError) {
-      setError('Please enter a valid email address');
+      setError(t('validation.invalidEmail'));
       return;
     }
 
     if (passwordError) {
-      setError('Password must be at least 6 characters');
+      setError(t('validation.passwordMin'));
       return;
     }
 
     if (confirmPasswordError) {
-      setError('Passwords do not match');
+      setError(t('validation.passwordsNoMatch'));
       return;
     }
 
     if (fullNameError) {
-      setError('Please enter your full name');
+      setError(t('validation.fullNameRequired'));
       return;
     }
 
     if (phoneNumberError) {
-      setError('Please enter a valid phone number');
+      setError(t('validation.phoneInvalid'));
       return;
     }
 
     if (inviteCodeError) {
-      setError('Please enter a valid invite code');
+      setError(t('validation.inviteCodeRequired'));
       return;
     }
 
@@ -146,7 +148,7 @@ export default function RegisterScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.logo}>4SPORTS</Text>
-          <Text style={styles.subtitle}>Create Account</Text>
+          <Text style={styles.subtitle}>{t('auth.createAccount')}</Text>
         </View>
 
         {/* Club Info Card */}
@@ -155,11 +157,11 @@ export default function RegisterScreen() {
             <Card.Content>
               <Text style={styles.clubName}>{inviteInfo.clubName}</Text>
               {inviteInfo.groupName && (
-                <Text style={styles.groupName}>Group: {inviteInfo.groupName}</Text>
+                <Text style={styles.groupName}>{t('groups.group')}: {inviteInfo.groupName}</Text>
               )}
               <View style={styles.roleTag}>
                 <Text style={styles.roleTagText}>
-                  Joining as: {inviteInfo.role}
+                  {t('roles.' + inviteInfo.role.toLowerCase())}
                 </Text>
               </View>
             </Card.Content>
@@ -169,7 +171,7 @@ export default function RegisterScreen() {
         <View style={styles.form}>
           {/* Full Name Input */}
           <TextInput
-            label="Full Name"
+            label={t('auth.fullName')}
             value={fullName}
             onChangeText={setFullName}
             mode="outlined"
@@ -185,13 +187,13 @@ export default function RegisterScreen() {
           />
           {fullNameError && (
             <HelperText type="error" visible={fullNameError}>
-              Full name must be at least 2 characters
+              {t('validation.fullNameRequired')}
             </HelperText>
           )}
 
           {/* Email Input */}
           <TextInput
-            label="Email"
+            label={t('auth.email')}
             value={email}
             onChangeText={setEmail}
             mode="outlined"
@@ -208,13 +210,13 @@ export default function RegisterScreen() {
           />
           {emailError && (
             <HelperText type="error" visible={emailError}>
-              Invalid email format
+              {t('validation.invalidEmail')}
             </HelperText>
           )}
 
           {/* Phone Number Input */}
           <TextInput
-            label="Phone Number"
+            label={t('auth.phoneNumber')}
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             mode="outlined"
@@ -230,13 +232,13 @@ export default function RegisterScreen() {
           />
           {phoneNumberError && (
             <HelperText type="error" visible={phoneNumberError}>
-              Phone number must be at least 6 characters
+              {t('validation.phoneInvalid')}
             </HelperText>
           )}
 
           {/* Password Input */}
           <TextInput
-            label="Password"
+            label={t('auth.password')}
             value={password}
             onChangeText={setPassword}
             mode="outlined"
@@ -260,13 +262,13 @@ export default function RegisterScreen() {
           />
           {passwordError && (
             <HelperText type="error" visible={passwordError}>
-              Password must be at least 6 characters
+              {t('validation.passwordMin')}
             </HelperText>
           )}
 
           {/* Confirm Password Input */}
           <TextInput
-            label="Confirm Password"
+            label={t('auth.confirmPassword')}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             mode="outlined"
@@ -290,7 +292,7 @@ export default function RegisterScreen() {
           />
           {confirmPasswordError && (
             <HelperText type="error" visible={confirmPasswordError}>
-              Passwords do not match
+              {t('validation.passwordsNoMatch')}
             </HelperText>
           )}
 
@@ -298,7 +300,7 @@ export default function RegisterScreen() {
           {!params.inviteCode && (
             <>
               <TextInput
-                label="Invite Code"
+                label={t('auth.inviteCode')}
                 value={inviteCode}
                 onChangeText={(text) => {
                   setInviteCode(text);
@@ -317,7 +319,7 @@ export default function RegisterScreen() {
               />
               {inviteCodeError && (
                 <HelperText type="error" visible={inviteCodeError}>
-                  Invite code must be at least 3 characters
+                  {t('validation.inviteCodeRequired')}
                 </HelperText>
               )}
             </>
@@ -348,14 +350,14 @@ export default function RegisterScreen() {
             contentStyle={styles.buttonContent}
             labelStyle={styles.buttonLabel}
           >
-            {loading ? 'Creating Account...' : 'Register'}
+            {loading ? t('auth.registering') : t('auth.register')}
           </Button>
 
           {/* Login Link */}
           <View style={styles.linkContainer}>
-            <Text style={styles.linkText}>Already have an account? </Text>
+            <Text style={styles.linkText}>{t('auth.hasAccount')} </Text>
             <Link href="/(auth)/login" asChild>
-              <Text style={styles.link}>Login</Text>
+              <Text style={styles.link}>{t('auth.login')}</Text>
             </Link>
           </View>
         </View>

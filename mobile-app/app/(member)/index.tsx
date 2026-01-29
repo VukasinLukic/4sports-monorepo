@@ -6,11 +6,13 @@ import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { PaymentStatus, Member, Event, EventType } from '@/types';
 
 export default function MemberHome() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [member, setMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -52,26 +54,26 @@ export default function MemberHome() {
   const getPaymentStatusInfo = (status: PaymentStatus) => {
     switch (status) {
       case PaymentStatus.PAID:
-        return { color: Colors.success, label: 'Paid', icon: 'check-circle' as const };
+        return { color: Colors.success, label: t('status.paid'), icon: 'check-circle' as const };
       case PaymentStatus.UNPAID:
-        return { color: Colors.error, label: 'Unpaid', icon: 'alert-circle' as const };
+        return { color: Colors.error, label: t('status.unpaid'), icon: 'alert-circle' as const };
       case PaymentStatus.PARTIAL:
-        return { color: Colors.warning, label: 'Partial', icon: 'clock' as const };
+        return { color: Colors.warning, label: t('status.partial'), icon: 'clock' as const };
       default:
-        return { color: Colors.textSecondary, label: 'Unknown', icon: 'help-circle' as const };
+        return { color: Colors.textSecondary, label: t('status.pending'), icon: 'help-circle' as const };
     }
   };
 
   const getMedicalStatusInfo = (status: string) => {
     switch (status) {
       case 'VALID':
-        return { color: Colors.success, label: 'Medical OK', icon: 'check-circle' as const };
+        return { color: Colors.success, label: t('status.valid'), icon: 'check-circle' as const };
       case 'EXPIRED':
-        return { color: Colors.error, label: 'Expired', icon: 'alert-circle' as const };
+        return { color: Colors.error, label: t('status.expired'), icon: 'alert-circle' as const };
       case 'EXPIRING_SOON':
-        return { color: Colors.warning, label: 'Expiring', icon: 'clock' as const };
+        return { color: Colors.warning, label: t('status.expiring'), icon: 'clock' as const };
       default:
-        return { color: Colors.textSecondary, label: 'Unknown', icon: 'help-circle' as const };
+        return { color: Colors.textSecondary, label: t('status.pending'), icon: 'help-circle' as const };
     }
   };
 
@@ -89,7 +91,7 @@ export default function MemberHome() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -99,14 +101,14 @@ export default function MemberHome() {
 
   // Get group name from member
   const getGroupName = () => {
-    if (!member?.clubs || member.clubs.length === 0) return 'Not assigned';
+    if (!member?.clubs || member.clubs.length === 0) return t('profile.notAssigned');
     const activeClub = member.clubs.find(c => c.status === 'ACTIVE');
-    if (!activeClub) return 'Not assigned';
+    if (!activeClub) return t('profile.notAssigned');
     const groupId = activeClub.groupId;
     if (typeof groupId === 'object' && groupId?.name) {
       return groupId.name;
     }
-    return 'Unknown';
+    return t('profile.notAssigned');
   };
 
   return (
@@ -123,8 +125,8 @@ export default function MemberHome() {
     >
       {/* Welcome Section */}
       <View style={styles.welcomeSection}>
-        <Text style={styles.greeting}>Welcome back,</Text>
-        <Text style={styles.userName}>{user?.fullName || member?.fullName || 'Member'}</Text>
+        <Text style={styles.greeting}>{t('dashboard.welcomeBack')}</Text>
+        <Text style={styles.userName}>{user?.fullName || member?.fullName || t('roles.member')}</Text>
       </View>
 
       {/* Profile Card */}
@@ -139,7 +141,7 @@ export default function MemberHome() {
             <View style={styles.profileInfo}>
               <Text style={styles.memberName}>{member.fullName}</Text>
               <Text style={styles.memberGroup}>{getGroupName()}</Text>
-              {member.age && <Text style={styles.memberAge}>Age: {member.age}</Text>}
+              {member.age && <Text style={styles.memberAge}>{t('members.age')}: {member.age}</Text>}
               <View style={styles.badgeRow}>
                 {paymentInfo && (
                   <View style={[styles.badge, { backgroundColor: paymentInfo.color + '20' }]}>
@@ -165,7 +167,7 @@ export default function MemberHome() {
           <View style={styles.infoItem}>
             <MaterialCommunityIcons name="calendar-today" size={24} color={Colors.info} />
             <Text style={styles.infoNumber}>{upcomingEvents.length}</Text>
-            <Text style={styles.infoLabel}>Upcoming Events</Text>
+            <Text style={styles.infoLabel}>{t('dashboard.upcomingEvents')}</Text>
           </View>
         </Card.Content>
       </Card>
@@ -179,7 +181,7 @@ export default function MemberHome() {
           <View style={[styles.quickActionIcon, { backgroundColor: Colors.success + '20' }]}>
             <MaterialCommunityIcons name="cash-multiple" size={24} color={Colors.success} />
           </View>
-          <Text style={styles.quickActionText}>Payments</Text>
+          <Text style={styles.quickActionText}>{t('payments.title')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -189,7 +191,7 @@ export default function MemberHome() {
           <View style={[styles.quickActionIcon, { backgroundColor: Colors.info + '20' }]}>
             <MaterialCommunityIcons name="calendar-check" size={24} color={Colors.info} />
           </View>
-          <Text style={styles.quickActionText}>Attendance</Text>
+          <Text style={styles.quickActionText}>{t('attendance.title')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -199,15 +201,15 @@ export default function MemberHome() {
           <View style={[styles.quickActionIcon, { backgroundColor: Colors.primary + '20' }]}>
             <MaterialCommunityIcons name="qrcode-scan" size={24} color={Colors.primary} />
           </View>
-          <Text style={styles.quickActionText}>Check In</Text>
+          <Text style={styles.quickActionText}>{t('attendance.checkIn')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Upcoming Events Preview */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Upcoming Events</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
         <TouchableOpacity onPress={() => router.push('/(member)/calendar')}>
-          <Text style={styles.seeAllText}>See all</Text>
+          <Text style={styles.seeAllText}>{t('common.seeAll')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -215,7 +217,7 @@ export default function MemberHome() {
         <Card style={styles.eventPreviewCard}>
           <Card.Content style={styles.emptyContent}>
             <MaterialCommunityIcons name="calendar-blank" size={32} color={Colors.textSecondary} />
-            <Text style={styles.noEventsText}>No upcoming events</Text>
+            <Text style={styles.noEventsText}>{t('empty.noUpcomingEvents')}</Text>
           </Card.Content>
         </Card>
       ) : (
@@ -243,7 +245,7 @@ export default function MemberHome() {
                     <View style={styles.eventTitleRow}>
                       <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
                       {isToday && (
-                        <Chip style={styles.todayChip} textStyle={styles.todayChipText}>Today</Chip>
+                        <Chip style={styles.todayChip} textStyle={styles.todayChipText}>{t('dateTime.today')}</Chip>
                       )}
                     </View>
                     <View style={styles.eventMeta}>
@@ -269,11 +271,11 @@ export default function MemberHome() {
       )}
 
       {/* Notifications Preview */}
-      <Text style={styles.sectionTitle}>Recent Notifications</Text>
+      <Text style={styles.sectionTitle}>{t('profile.recentNotifications')}</Text>
       <Card style={styles.notificationCard}>
         <Card.Content style={styles.notificationContent}>
           <MaterialCommunityIcons name="bell-outline" size={24} color={Colors.textSecondary} />
-          <Text style={styles.noNotificationsText}>No new notifications</Text>
+          <Text style={styles.noNotificationsText}>{t('profile.noNewNotifications')}</Text>
         </Card.Content>
       </Card>
     </ScrollView>

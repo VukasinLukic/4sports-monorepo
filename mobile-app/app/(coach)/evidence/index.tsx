@@ -21,6 +21,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { Group } from '@/types';
 
@@ -79,6 +80,7 @@ interface EvidenceStats {
 }
 
 export default function EvidenceScreen() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<EvidenceTab>('membership');
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -167,11 +169,11 @@ export default function EvidenceScreen() {
         year: selectedYear,
         paymentMethod: 'CASH',
       });
-      Alert.alert('Success', `${member.memberName} marked as paid`);
+      Alert.alert(t('common.success'), `${member.memberName} ${t('evidence.markedAsPaid')}`);
       fetchMembershipEvidence();
     } catch (error) {
       console.error('Error marking as paid:', error);
-      Alert.alert('Error', 'Failed to mark as paid');
+      Alert.alert(t('common.error'), t('evidence.failedToMarkPaid'));
     }
   };
 
@@ -185,11 +187,11 @@ export default function EvidenceScreen() {
         lastCheckDate: new Date().toISOString(),
         expiryDate: expiryDate.toISOString(),
       });
-      Alert.alert('Success', `${member.memberName} medical updated`);
+      Alert.alert(t('common.success'), `${member.memberName} ${t('evidence.medicalUpdated')}`);
       fetchMedicalEvidence();
     } catch (error) {
       console.error('Error updating medical:', error);
-      Alert.alert('Error', 'Failed to update medical info');
+      Alert.alert(t('common.error'), t('evidence.failedToUpdateMedical'));
     }
   };
 
@@ -212,21 +214,21 @@ export default function EvidenceScreen() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'PAID':
-        return 'Paid';
+        return t('status.paid');
       case 'PENDING':
-        return 'Pending';
+        return t('status.pending');
       case 'OVERDUE':
-        return 'Overdue';
+        return t('status.overdue');
       case 'NOT_CREATED':
-        return 'Not Created';
+        return t('status.notCreated');
       case 'VALID':
-        return 'Valid';
+        return t('status.valid');
       case 'EXPIRING_SOON':
-        return 'Expiring Soon';
+        return t('status.expiring');
       case 'EXPIRED':
-        return 'Expired';
+        return t('status.expired');
       case 'NOT_SET':
-        return 'Not Set';
+        return t('status.notSet');
       default:
         return status;
     }
@@ -242,11 +244,11 @@ export default function EvidenceScreen() {
   };
 
   const getMonthName = (month: number) => {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+    const monthKeys = [
+      'january', 'february', 'march', 'april', 'may', 'june',
+      'july', 'august', 'september', 'october', 'november', 'december',
     ];
-    return months[month - 1];
+    return t(`dateTime.months.${monthKeys[month - 1]}`);
   };
 
   const renderMembershipItem = ({ item }: { item: MembershipEvidence }) => (
@@ -317,7 +319,7 @@ export default function EvidenceScreen() {
               <Text style={styles.groupName}>{item.group.name}</Text>
             )}
             <Text style={styles.dateText}>
-              Expires: {formatDate(item.medicalInfo.expiryDate)}
+              {t('medical.expiryDate')}: {formatDate(item.medicalInfo.expiryDate)}
             </Text>
           </View>
 
@@ -353,30 +355,30 @@ export default function EvidenceScreen() {
           <>
             <View style={[styles.statBox, { backgroundColor: Colors.success + '20' }]}>
               <Text style={[styles.statNumber, { color: Colors.success }]}>{stats.paid || 0}</Text>
-              <Text style={styles.statLabel}>Paid</Text>
+              <Text style={styles.statLabel}>{t('status.paid')}</Text>
             </View>
             <View style={[styles.statBox, { backgroundColor: Colors.warning + '20' }]}>
               <Text style={[styles.statNumber, { color: Colors.warning }]}>{stats.pending || 0}</Text>
-              <Text style={styles.statLabel}>Pending</Text>
+              <Text style={styles.statLabel}>{t('status.pending')}</Text>
             </View>
             <View style={[styles.statBox, { backgroundColor: Colors.error + '20' }]}>
               <Text style={[styles.statNumber, { color: Colors.error }]}>{stats.overdue || 0}</Text>
-              <Text style={styles.statLabel}>Overdue</Text>
+              <Text style={styles.statLabel}>{t('status.overdue')}</Text>
             </View>
           </>
         ) : (
           <>
             <View style={[styles.statBox, { backgroundColor: Colors.success + '20' }]}>
               <Text style={[styles.statNumber, { color: Colors.success }]}>{stats.valid || 0}</Text>
-              <Text style={styles.statLabel}>Valid</Text>
+              <Text style={styles.statLabel}>{t('status.valid')}</Text>
             </View>
             <View style={[styles.statBox, { backgroundColor: Colors.warning + '20' }]}>
               <Text style={[styles.statNumber, { color: Colors.warning }]}>{stats.expiringSoon || 0}</Text>
-              <Text style={styles.statLabel}>Expiring</Text>
+              <Text style={styles.statLabel}>{t('status.expiring')}</Text>
             </View>
             <View style={[styles.statBox, { backgroundColor: Colors.error + '20' }]}>
               <Text style={[styles.statNumber, { color: Colors.error }]}>{stats.expired || 0}</Text>
-              <Text style={styles.statLabel}>Expired</Text>
+              <Text style={styles.statLabel}>{t('status.expired')}</Text>
             </View>
           </>
         )}
@@ -388,7 +390,7 @@ export default function EvidenceScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading evidence...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -401,8 +403,8 @@ export default function EvidenceScreen() {
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as EvidenceTab)}
           buttons={[
-            { value: 'membership', label: 'Membership', icon: 'cash' },
-            { value: 'medical', label: 'Medical', icon: 'medical-bag' },
+            { value: 'membership', label: t('payments.title'), icon: 'cash' },
+            { value: 'medical', label: t('medical.title'), icon: 'medical-bag' },
           ]}
           style={styles.segmentedButtons}
         />
@@ -422,7 +424,7 @@ export default function EvidenceScreen() {
               style={styles.filterButton}
               contentStyle={styles.filterButtonContent}
             >
-              {selectedGroup ? selectedGroup.name : 'All Groups'}
+              {selectedGroup ? selectedGroup.name : t('groups.allGroups')}
             </Button>
           }
           contentStyle={styles.menuContent}
@@ -432,7 +434,7 @@ export default function EvidenceScreen() {
               setSelectedGroup(null);
               setMenuVisible(false);
             }}
-            title="All Groups"
+            title={t('groups.allGroups')}
           />
           {groups.map((group) => (
             <Menu.Item
@@ -505,11 +507,11 @@ export default function EvidenceScreen() {
               size={64}
               color={Colors.textSecondary}
             />
-            <Text style={styles.emptyText}>No members found</Text>
+            <Text style={styles.emptyText}>{t('empty.noMembers')}</Text>
             <Text style={styles.emptySubtext}>
               {selectedGroup
-                ? 'No members in this group'
-                : 'Add members to start tracking'}
+                ? t('evidence.noMembersInGroup')
+                : t('empty.noMembersDescription')}
             </Text>
           </View>
         }

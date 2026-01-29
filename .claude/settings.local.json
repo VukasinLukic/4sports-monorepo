@@ -35,7 +35,8 @@
       "Bash(npx ts-node:*)",
       "Bash(ls:*)",
       "Bash(npm ls:*)",
-      "Bash(npx expo install expo-clipboard)"
+      "Bash(npx expo install expo-clipboard)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []

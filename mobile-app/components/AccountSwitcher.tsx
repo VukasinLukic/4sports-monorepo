@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
+import { useLanguage } from '@/services/LanguageContext';
 import { StoredAccount } from '@/services/accountManager';
 import { User } from '@/types';
 
@@ -31,6 +32,7 @@ const navigateToRoleScreen = (userRole: string) => {
 
 export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: AccountSwitcherProps) {
   const { user, firebaseUser, getStoredAccounts, switchAccount, switchAccountPasswordless, hasStoredCredentials, removeStoredAccount } = useAuth();
+  const { t } = useLanguage();
   const [accounts, setAccounts] = useState<StoredAccount[]>([]);
   const [accountCredentials, setAccountCredentials] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -84,7 +86,7 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
         setShowAddAccount(true);
         setEmail(account.email);
         setPassword('');
-        setSwitchingError('Session expired. Please enter your password.');
+        setSwitchingError(t('profile.sessionExpired'));
       } finally {
         setIsLoading(false);
       }
@@ -106,7 +108,7 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
 
   const handleLoginSubmit = async () => {
     if (!email || !password) {
-      setSwitchingError('Please enter email and password');
+      setSwitchingError(t('validation.enterBothEmailPassword'));
       return;
     }
 
@@ -124,7 +126,7 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
       navigateToRoleScreen(userData.role);
     } catch (error: any) {
       console.error('Switch account error:', error);
-      setSwitchingError(error.message || 'Failed to switch account');
+      setSwitchingError(error.message || t('errors.loginFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -132,17 +134,17 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
 
   const handleRemoveAccount = async (account: StoredAccount) => {
     if (account.id === firebaseUser?.uid) {
-      Alert.alert('Cannot Remove', 'You cannot remove the currently active account');
+      Alert.alert(t('common.error'), t('profile.cannotRemoveActive'));
       return;
     }
 
     Alert.alert(
-      'Remove Account',
-      `Are you sure you want to remove ${account.email} from saved accounts?`,
+      t('profile.removeAccount'),
+      t('profile.removeAccountConfirm', { email: account.email }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('confirm.remove'),
           style: 'destructive',
           onPress: async () => {
             await removeStoredAccount(account.id);
@@ -189,7 +191,7 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>
-              {showAddAccount ? 'Login to Account' : 'Switch Account'}
+              {showAddAccount ? t('auth.loginToAccount') : t('profile.switchAccount')}
             </Text>
             <IconButton
               icon="close"
@@ -203,7 +205,7 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
           {isLoading && !showAddAccount && (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.loadingText}>Switching account...</Text>
+              <Text style={styles.loadingText}>{t('profile.switchingAccount')}</Text>
             </View>
           )}
 
@@ -216,7 +218,7 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
 
               <TextInput
                 style={styles.input}
-                placeholder="Email"
+                placeholder={t('auth.email')}
                 placeholderTextColor={Colors.textSecondary}
                 value={email}
                 onChangeText={setEmail}
@@ -227,7 +229,7 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
 
               <TextInput
                 style={styles.input}
-                placeholder="Password"
+                placeholder={t('auth.password')}
                 placeholderTextColor={Colors.textSecondary}
                 value={password}
                 onChangeText={setPassword}
@@ -242,7 +244,7 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
                   style={styles.cancelButton}
                   disabled={isLoading}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   mode="contained"
@@ -251,7 +253,7 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
                   loading={isLoading}
                   disabled={isLoading}
                 >
-                  Login
+                  {t('auth.login')}
                 </Button>
               </View>
             </View>
@@ -310,10 +312,8 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
                     color={Colors.primary}
                   />
                 </View>
-                <Text style={styles.addAccountText}>Add Another Account</Text>
+                <Text style={styles.addAccountText}>{t('profile.addAccount')}</Text>
               </TouchableOpacity>
-
-              <Text style={styles.hint}>Long press on an account to remove it</Text>
             </ScrollView>
           )}
         </View>

@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
 import { AppColors } from '@/constants/Colors';
 import { AuthProvider } from '@/services/AuthContext';
+import { LanguageProvider } from '@/services/LanguageContext';
 import NetworkStatus from '@/components/NetworkStatus';
 import { ToastProvider } from '@/components/Toast';
 
@@ -54,39 +55,41 @@ const theme = {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <PaperProvider theme={theme}>
-            <ToastProvider>
-              <View style={{ flex: 1, backgroundColor: AppColors.background }}>
-                <StatusBar style="light" backgroundColor={AppColors.background} />
-                <NetworkStatus />
-                <Stack
-                  screenOptions={{
-                    headerStyle: {
-                      backgroundColor: AppColors.background,
-                    },
-                    headerTintColor: AppColors.text,
-                    headerTitleStyle: {
-                      fontWeight: 'bold',
-                    },
-                    contentStyle: {
-                      backgroundColor: AppColors.background,
-                    },
-                  }}
-                >
-                  <Stack.Screen name="index" options={{ headerShown: false }} />
-                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(coach)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(parent)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(member)" options={{ headerShown: false }} />
-                  <Stack.Screen name="profile" options={{ headerShown: false }} />
-                </Stack>
-              </View>
-            </ToastProvider>
-          </PaperProvider>
-        </AuthProvider>
-      </QueryClientProvider>
+      <LanguageProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <PaperProvider theme={theme}>
+              <ToastProvider>
+                <View style={{ flex: 1, backgroundColor: AppColors.background }}>
+                  <StatusBar style="light" backgroundColor={AppColors.background} />
+                  <NetworkStatus />
+                  <Stack
+                    screenOptions={{
+                      headerStyle: {
+                        backgroundColor: AppColors.background,
+                      },
+                      headerTintColor: AppColors.text,
+                      headerTitleStyle: {
+                        fontWeight: 'bold',
+                      },
+                      contentStyle: {
+                        backgroundColor: AppColors.background,
+                      },
+                    }}
+                  >
+                    <Stack.Screen name="index" options={{ headerShown: false }} />
+                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(coach)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(parent)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(member)" options={{ headerShown: false }} />
+                    <Stack.Screen name="profile" options={{ headerShown: false }} />
+                  </Stack>
+                </View>
+              </ToastProvider>
+            </PaperProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

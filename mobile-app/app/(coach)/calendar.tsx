@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import EventCalendar from '@/components/EventCalendar';
 import api from '@/services/api';
 import { Event, EventType, Group } from '@/types';
@@ -12,6 +13,7 @@ import { Event, EventType, Group } from '@/types';
 type FilterType = 'all' | 'training' | 'competition';
 
 export default function CoachCalendar() {
+  const { t } = useLanguage();
   const [events, setEvents] = useState<Event[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -61,9 +63,9 @@ export default function CoachCalendar() {
   );
 
   const getSelectedGroupName = () => {
-    if (!selectedGroupId) return 'All Groups';
+    if (!selectedGroupId) return t('groups.allGroups');
     const group = groups.find(g => g._id === selectedGroupId);
-    return group?.name || 'All Groups';
+    return group?.name || t('groups.allGroups');
   };
 
   const onRefresh = () => {
@@ -143,7 +145,7 @@ export default function CoachCalendar() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading calendar...</Text>
+        <Text style={styles.loadingText}>{t('calendar.loadingCalendar')}</Text>
       </View>
     );
   }
@@ -190,7 +192,7 @@ export default function CoachCalendar() {
                 setSelectedGroupId(null);
                 setGroupMenuVisible(false);
               }}
-              title="All Groups"
+              title={t('groups.allGroups')}
               leadingIcon={selectedGroupId === null ? 'check' : undefined}
             />
             {groups.map(group => (
@@ -216,7 +218,7 @@ export default function CoachCalendar() {
             selectedColor={Colors.primary}
             onPress={() => setFilter('all')}
           >
-            All
+            {t('common.all')}
           </Chip>
           <Chip
             selected={filter === 'training'}
@@ -225,7 +227,7 @@ export default function CoachCalendar() {
             selectedColor={Colors.eventTraining}
             onPress={() => setFilter('training')}
           >
-            Training
+            {t('eventTypes.training')}
           </Chip>
           <Chip
             selected={filter === 'competition'}
@@ -234,15 +236,15 @@ export default function CoachCalendar() {
             selectedColor={Colors.eventCompetition}
             onPress={() => setFilter('competition')}
           >
-            Match
+            {t('eventTypes.match')}
           </Chip>
         </View>
 
         {/* Events List Section */}
         <Text style={styles.sectionTitle}>
           {selectedDate
-            ? `Events on ${new Date(selectedDate).toLocaleDateString()}`
-            : 'Upcoming Events'}
+            ? `${t('events.eventsOn')} ${new Date(selectedDate).toLocaleDateString()}`
+            : t('dashboard.upcomingEvents')}
         </Text>
 
         {sortedEvents.length === 0 ? (
@@ -250,9 +252,9 @@ export default function CoachCalendar() {
             <Card.Content style={styles.emptyContent}>
               <MaterialCommunityIcons name="calendar-blank-outline" size={48} color={Colors.textSecondary} />
               <Text style={styles.emptyText}>
-                {selectedDate ? 'No events on this day' : 'No upcoming events'}
+                {selectedDate ? t('empty.noEventsOnDay') : t('empty.noUpcomingEvents')}
               </Text>
-              <Text style={styles.emptySubtext}>Tap + to create a new event</Text>
+              <Text style={styles.emptySubtext}>{t('empty.tapToCreateEvent')}</Text>
             </Card.Content>
           </Card>
         ) : (

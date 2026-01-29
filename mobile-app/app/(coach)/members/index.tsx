@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 import { useMembers } from '@/hooks/useMembers';
 import MemberCard from '@/components/MemberCard';
 import { Member, PaymentStatus } from '@/types';
@@ -12,6 +13,7 @@ import { Member, PaymentStatus } from '@/types';
 type FilterType = 'all' | 'unpaid' | 'medical';
 
 export default function CoachMembers() {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -79,14 +81,14 @@ export default function CoachMembers() {
       <Card.Content style={styles.emptyContent}>
         <MaterialCommunityIcons name="account-group-outline" size={64} color={Colors.textSecondary} />
         <Text style={styles.emptyTitle}>
-          {searchQuery || activeFilter !== 'all' ? 'No Members Found' : 'No Members Yet'}
+          {searchQuery || activeFilter !== 'all' ? t('empty.noResults') : t('empty.noMembers')}
         </Text>
         <Text style={styles.emptyText}>
           {searchQuery
-            ? 'Try adjusting your search query'
+            ? t('empty.noResultsDescription')
             : activeFilter !== 'all'
-            ? 'No members match this filter'
-            : 'Members will appear here once parents register with your club\'s invite code'}
+            ? t('members.noMembersFilter')
+            : t('empty.noMembersDescription')}
         </Text>
       </Card.Content>
     </Card>
@@ -96,7 +98,7 @@ export default function CoachMembers() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading members...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -106,7 +108,7 @@ export default function CoachMembers() {
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Searchbar
-          placeholder="Search members..."
+          placeholder={t('members.searchMembers')}
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={styles.searchBar}
@@ -130,7 +132,7 @@ export default function CoachMembers() {
           textStyle={styles.filterChipText}
           selectedColor={Colors.primary}
         >
-          All ({stats.total})
+          {t('common.all')} ({stats.total})
         </Chip>
         <Chip
           selected={activeFilter === 'unpaid'}
@@ -139,7 +141,7 @@ export default function CoachMembers() {
           textStyle={styles.filterChipText}
           selectedColor={Colors.warning}
         >
-          Unpaid ({stats.unpaid})
+          {t('status.unpaid')} ({stats.unpaid})
         </Chip>
         <Chip
           selected={activeFilter === 'medical'}
@@ -148,7 +150,7 @@ export default function CoachMembers() {
           textStyle={styles.filterChipText}
           selectedColor={Colors.error}
         >
-          Medical Issues ({stats.medicalIssues})
+          {t('members.medicalIssues')} ({stats.medicalIssues})
         </Chip>
       </ScrollView>
 
@@ -158,19 +160,19 @@ export default function CoachMembers() {
           <Card style={styles.miniStatCard}>
             <Card.Content style={styles.miniStatContent}>
               <Text style={styles.miniStatNumber}>{stats.total}</Text>
-              <Text style={styles.miniStatLabel}>Total</Text>
+              <Text style={styles.miniStatLabel}>{t('dashboard.totalMembers')}</Text>
             </Card.Content>
           </Card>
           <Card style={[styles.miniStatCard, { backgroundColor: Colors.warning + '20' }]}>
             <Card.Content style={styles.miniStatContent}>
               <Text style={[styles.miniStatNumber, { color: Colors.warning }]}>{stats.unpaid}</Text>
-              <Text style={styles.miniStatLabel}>Unpaid</Text>
+              <Text style={styles.miniStatLabel}>{t('status.unpaid')}</Text>
             </Card.Content>
           </Card>
           <Card style={[styles.miniStatCard, { backgroundColor: Colors.error + '20' }]}>
             <Card.Content style={styles.miniStatContent}>
               <Text style={[styles.miniStatNumber, { color: Colors.error }]}>{stats.medicalIssues}</Text>
-              <Text style={styles.miniStatLabel}>Medical</Text>
+              <Text style={styles.miniStatLabel}>{t('medical.title')}</Text>
             </Card.Content>
           </Card>
         </View>

@@ -43,3 +43,7 @@ export {
   useWarningToast,
   useInfoToast,
 } from './Toast';
+
+// Account Management
+export { default as AccountSwitcher } from './AccountSwitcher';
+export { default as LanguagePicker, LanguageSelector } from './LanguagePicker';

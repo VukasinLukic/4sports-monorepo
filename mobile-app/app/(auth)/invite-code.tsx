@@ -3,6 +3,7 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 're
 import { Text, TextInput, Button, HelperText, Card } from 'react-native-paper';
 import { Link, router } from 'expo-router';
 import api, { getApiErrorMessage } from '@/services/api';
+import { useLanguage } from '@/services/LanguageContext';
 import { AppColors, Spacing, FontSize, BorderRadius } from '@/constants';
 
 interface InviteCodeValidation {
@@ -13,6 +14,7 @@ interface InviteCodeValidation {
 }
 
 export default function InviteCodeScreen() {
+  const { t } = useLanguage();
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,7 @@ export default function InviteCodeScreen() {
 
     // Validate input
     if (!inviteCode || inviteCodeError) {
-      setError('Please enter a valid invite code');
+      setError(t('validation.inviteCodeRequired'));
       return;
     }
 
@@ -50,7 +52,7 @@ export default function InviteCodeScreen() {
     } catch (error: any) {
       console.error('Invite code validation error:', error);
       const errorMessage = getApiErrorMessage(error);
-      setError(errorMessage || 'Invalid invite code');
+      setError(errorMessage || t('auth.invalidInviteCode'));
       setValidation({
         isValid: false,
       });
@@ -77,16 +79,16 @@ export default function InviteCodeScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.logo}>4SPORTS</Text>
-          <Text style={styles.subtitle}>Enter Invite Code</Text>
+          <Text style={styles.subtitle}>{t('auth.enterInviteCode')}</Text>
           <Text style={styles.description}>
-            You need an invite code from your club to register
+            {t('auth.inviteCodeDescription')}
           </Text>
         </View>
 
         <View style={styles.form}>
           {/* Invite Code Input */}
           <TextInput
-            label="Invite Code"
+            label={t('auth.inviteCode')}
             value={inviteCode}
             onChangeText={setInviteCode}
             mode="outlined"
@@ -100,7 +102,7 @@ export default function InviteCodeScreen() {
           />
           {inviteCodeError && (
             <HelperText type="error" visible={inviteCodeError}>
-              Invite code must be at least 3 characters
+              {t('validation.inviteCodeRequired')}
             </HelperText>
           )}
 
@@ -115,15 +117,15 @@ export default function InviteCodeScreen() {
           {validation && validation.isValid && (
             <Card style={styles.validCard}>
               <Card.Content>
-                <Text style={styles.validTitle}>✓ Valid Invite Code</Text>
+                <Text style={styles.validTitle}>✓ {t('common.success')}</Text>
                 {validation.clubName && (
-                  <Text style={styles.infoText}>Club: {validation.clubName}</Text>
+                  <Text style={styles.infoText}>{t('profile.club')}: {validation.clubName}</Text>
                 )}
                 {validation.groupName && (
-                  <Text style={styles.infoText}>Group: {validation.groupName}</Text>
+                  <Text style={styles.infoText}>{t('groups.group')}: {validation.groupName}</Text>
                 )}
                 {validation.role && (
-                  <Text style={styles.infoText}>Role: {validation.role}</Text>
+                  <Text style={styles.infoText}>{t('roles.' + validation.role.toLowerCase())}</Text>
                 )}
               </Card.Content>
             </Card>
@@ -133,9 +135,9 @@ export default function InviteCodeScreen() {
           {validation && !validation.isValid && (
             <Card style={styles.invalidCard}>
               <Card.Content>
-                <Text style={styles.invalidTitle}>✗ Invalid Invite Code</Text>
+                <Text style={styles.invalidTitle}>✗ {t('auth.invalidInviteCode')}</Text>
                 <Text style={styles.infoText}>
-                  Please check the code and try again
+                  {t('common.retry')}
                 </Text>
               </Card.Content>
             </Card>
@@ -152,7 +154,7 @@ export default function InviteCodeScreen() {
               contentStyle={styles.buttonContent}
               labelStyle={styles.buttonLabel}
             >
-              {loading ? 'Validating...' : 'Validate Code'}
+              {loading ? t('common.loading') : t('common.confirm')}
             </Button>
           )}
 
@@ -165,7 +167,7 @@ export default function InviteCodeScreen() {
               contentStyle={styles.buttonContent}
               labelStyle={styles.buttonLabel}
             >
-              Continue to Register
+              {t('auth.continueWithCode')}
             </Button>
           )}
 
@@ -182,15 +184,15 @@ export default function InviteCodeScreen() {
               contentStyle={styles.buttonContent}
               labelStyle={styles.outlineButtonLabel}
             >
-              Try Again
+              {t('common.retry')}
             </Button>
           )}
 
           {/* Login Link */}
           <View style={styles.linkContainer}>
-            <Text style={styles.linkText}>Already have an account? </Text>
+            <Text style={styles.linkText}>{t('auth.hasAccount')} </Text>
             <Link href="/(auth)/login" asChild>
-              <Text style={styles.link}>Login</Text>
+              <Text style={styles.link}>{t('auth.login')}</Text>
             </Link>
           </View>
         </View>

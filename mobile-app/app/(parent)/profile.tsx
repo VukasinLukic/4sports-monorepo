@@ -6,8 +6,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
+import { useLanguage } from '@/services/LanguageContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import AccountSwitcher from '@/components/AccountSwitcher';
+import LanguagePicker from '@/components/LanguagePicker';
 import api from '@/services/api';
 import { Member, PaymentStatus } from '@/types';
 
@@ -18,6 +20,7 @@ interface ClubInfo {
 
 export default function ParentProfile() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const { isRegistered, registerForNotifications, unregisterFromNotifications } = usePushNotifications();
 
   const [children, setChildren] = useState<Member[]>([]);
@@ -81,12 +84,12 @@ export default function ParentProfile() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('confirm.logoutTitle'),
+      t('auth.logoutConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Logout',
+          text: t('auth.logout'),
           style: 'destructive',
           onPress: async () => {
             await unregisterFromNotifications();
@@ -120,7 +123,7 @@ export default function ParentProfile() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -145,11 +148,11 @@ export default function ParentProfile() {
             label={getInitials(user?.fullName)}
             style={styles.avatar}
           />
-          <Text style={styles.userName}>{user?.fullName || 'Parent'}</Text>
+          <Text style={styles.userName}>{user?.fullName || t('roles.parent')}</Text>
           <Text style={styles.userEmail}>{user?.email || ''}</Text>
           <View style={styles.roleBadge}>
             <MaterialCommunityIcons name="account-child" size={16} color={Colors.secondary} />
-            <Text style={styles.roleText}>Parent</Text>
+            <Text style={styles.roleText}>{t('roles.parent')}</Text>
           </View>
         </Card.Content>
       </Card>
@@ -157,21 +160,21 @@ export default function ParentProfile() {
       {/* Children Summary */}
       <Card style={styles.infoCard}>
         <Card.Content>
-          <Text style={styles.sectionTitle}>My Children</Text>
+          <Text style={styles.sectionTitle}>{t('profile.myChildren')}</Text>
           <View style={styles.childSummary}>
             <View style={styles.childSummaryItem}>
               <Text style={styles.summaryNumber}>{children.length}</Text>
-              <Text style={styles.summaryLabel}>Children</Text>
+              <Text style={styles.summaryLabel}>{t('profile.children')}</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.childSummaryItem}>
               <Text style={[styles.summaryNumber, { color: Colors.success }]}>{paidCount}</Text>
-              <Text style={styles.summaryLabel}>Paid</Text>
+              <Text style={styles.summaryLabel}>{t('status.paid')}</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.childSummaryItem}>
               <Text style={[styles.summaryNumber, { color: Colors.success }]}>{medicalOkCount}</Text>
-              <Text style={styles.summaryLabel}>Medical OK</Text>
+              <Text style={styles.summaryLabel}>{t('status.valid')}</Text>
             </View>
           </View>
         </Card.Content>
@@ -180,17 +183,17 @@ export default function ParentProfile() {
       {/* Contact Info */}
       <Card style={styles.infoCard}>
         <Card.Content>
-          <Text style={styles.sectionTitle}>Contact Information</Text>
+          <Text style={styles.sectionTitle}>{t('profile.contactInfo')}</Text>
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="email-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>Email</Text>
+            <Text style={styles.infoLabel}>{t('auth.email')}</Text>
             <Text style={styles.infoValue} numberOfLines={1}>{user?.email || '--'}</Text>
           </View>
           <Divider style={styles.divider} />
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="phone-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>Phone</Text>
-            <Text style={styles.infoValue}>{user?.phoneNumber || 'Not set'}</Text>
+            <Text style={styles.infoLabel}>{t('auth.phoneNumber')}</Text>
+            <Text style={styles.infoValue}>{user?.phoneNumber || t('profile.notAssigned')}</Text>
           </View>
         </Card.Content>
       </Card>
@@ -198,11 +201,11 @@ export default function ParentProfile() {
       {/* Club Info */}
       <Card style={styles.infoCard}>
         <Card.Content>
-          <Text style={styles.sectionTitle}>Club Information</Text>
+          <Text style={styles.sectionTitle}>{t('profile.clubInfo')}</Text>
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="shield-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>Club</Text>
-            <Text style={styles.infoValue}>{clubInfo?.name || 'Not assigned'}</Text>
+            <Text style={styles.infoLabel}>{t('profile.club')}</Text>
+            <Text style={styles.infoValue}>{clubInfo?.name || t('profile.notAssigned')}</Text>
           </View>
         </Card.Content>
       </Card>
@@ -210,7 +213,7 @@ export default function ParentProfile() {
       {/* Settings Menu */}
       <Card style={styles.menuCard}>
         <List.Item
-          title="Edit Profile"
+          title={t('profile.editProfile')}
           left={props => <List.Icon {...props} icon="account-edit" color={Colors.text} />}
           right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
           titleStyle={styles.menuItemTitle}
@@ -218,8 +221,8 @@ export default function ParentProfile() {
         />
         <Divider />
         <List.Item
-          title="Switch Account"
-          description="Manage multiple accounts"
+          title={t('profile.switchAccount')}
+          description={t('profile.manageAccounts')}
           left={props => <List.Icon {...props} icon="account-switch" color={Colors.text} />}
           right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
           titleStyle={styles.menuItemTitle}
@@ -227,9 +230,14 @@ export default function ParentProfile() {
           onPress={() => setShowAccountSwitcher(true)}
         />
         <Divider />
+        <View style={styles.languagePickerContainer}>
+          <List.Icon icon="translate" color={Colors.text} />
+          <LanguagePicker />
+        </View>
+        <Divider />
         <List.Item
-          title="Push Notifications"
-          description={notificationsEnabled ? 'Enabled' : 'Disabled'}
+          title={t('profile.pushNotifications')}
+          description={notificationsEnabled ? t('status.active') : t('status.inactive')}
           left={props => <List.Icon {...props} icon="bell-outline" color={Colors.text} />}
           right={() => (
             <Switch
@@ -246,7 +254,7 @@ export default function ParentProfile() {
         />
         <Divider />
         <List.Item
-          title="Help & Support"
+          title={t('profile.helpSupport')}
           left={props => <List.Icon {...props} icon="help-circle-outline" color={Colors.text} />}
           right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
           titleStyle={styles.menuItemTitle}
@@ -262,7 +270,7 @@ export default function ParentProfile() {
         style={styles.logoutButton}
         textColor={Colors.error}
       >
-        Logout
+        {t('auth.logout')}
       </Button>
 
       {/* App Version */}
@@ -403,6 +411,12 @@ const styles = StyleSheet.create({
   menuItemDescription: {
     color: Colors.textSecondary,
     fontSize: FontSize.xs,
+  },
+  languagePickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: Spacing.md,
+    flex: 1,
   },
   logoutButton: {
     marginTop: Spacing.md,

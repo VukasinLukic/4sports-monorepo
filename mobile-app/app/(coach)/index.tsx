@@ -5,10 +5,12 @@ import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
+import { useLanguage } from '@/services/LanguageContext';
 import { useCoachDashboard } from '@/hooks/useDashboard';
 
 export default function CoachDashboard() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { data: dashboardStats, isLoading } = useCoachDashboard();
 
   const formatTime = (dateString: string) => {
@@ -23,9 +25,9 @@ export default function CoachDashboard() {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return 'Today';
+      return t('dateTime.today');
     } else if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Tomorrow';
+      return t('dateTime.tomorrow');
     } else {
       return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
     }
@@ -46,8 +48,8 @@ export default function CoachDashboard() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Welcome Section */}
       <View style={styles.welcomeSection}>
-        <Text style={styles.greeting}>Welcome back,</Text>
-        <Text style={styles.userName}>{user?.fullName || 'Coach'}</Text>
+        <Text style={styles.greeting}>{t('dashboard.welcomeBack')}</Text>
+        <Text style={styles.userName}>{user?.fullName || t('roles.coach')}</Text>
       </View>
 
       {/* Quick Stats */}
@@ -57,7 +59,7 @@ export default function CoachDashboard() {
             <Card.Content style={styles.statContent}>
               <MaterialCommunityIcons name="account-group" size={32} color={Colors.primary} />
               <Text style={styles.statNumber}>{isLoading ? '...' : dashboardStats?.totalMembers ?? 0}</Text>
-              <Text style={styles.statLabel}>Members</Text>
+              <Text style={styles.statLabel}>{t('navigation.members')}</Text>
             </Card.Content>
           </Card>
         </TouchableOpacity>
@@ -67,7 +69,7 @@ export default function CoachDashboard() {
             <Card.Content style={styles.statContent}>
               <MaterialCommunityIcons name="calendar-check" size={32} color={Colors.info} />
               <Text style={styles.statNumber}>{isLoading ? '...' : dashboardStats?.eventsToday ?? 0}</Text>
-              <Text style={styles.statLabel}>Events Today</Text>
+              <Text style={styles.statLabel}>{t('dashboard.eventsToday')}</Text>
             </Card.Content>
           </Card>
         </TouchableOpacity>
@@ -77,7 +79,7 @@ export default function CoachDashboard() {
             <Card.Content style={styles.statContent}>
               <MaterialCommunityIcons name="cash" size={32} color={Colors.warning} />
               <Text style={styles.statNumber}>{isLoading ? '...' : dashboardStats?.unpaidCount ?? 0}</Text>
-              <Text style={styles.statLabel}>Unpaid</Text>
+              <Text style={styles.statLabel}>{t('status.unpaid')}</Text>
             </Card.Content>
           </Card>
         </TouchableOpacity>
@@ -87,14 +89,14 @@ export default function CoachDashboard() {
             <Card.Content style={styles.statContent}>
               <MaterialCommunityIcons name="medical-bag" size={32} color={Colors.error} />
               <Text style={styles.statNumber}>{isLoading ? '...' : dashboardStats?.medicalDueCount ?? 0}</Text>
-              <Text style={styles.statLabel}>Medical Due</Text>
+              <Text style={styles.statLabel}>{t('dashboard.medicalDue')}</Text>
             </Card.Content>
           </Card>
         </TouchableOpacity>
       </View>
 
       {/* Quick Actions */}
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
+      <Text style={styles.sectionTitle}>{t('dashboard.quickActions')}</Text>
       <View style={styles.actionsGrid}>
         <Button
           mode="contained"
@@ -104,7 +106,7 @@ export default function CoachDashboard() {
           labelStyle={styles.actionButtonLabel}
           onPress={() => router.push('/(coach)/evidence')}
         >
-          Evidence
+          {t('navigation.evidence')}
         </Button>
 
         <Button
@@ -116,7 +118,7 @@ export default function CoachDashboard() {
           buttonColor={Colors.info}
           onPress={() => router.push('/(coach)/events/create')}
         >
-          New Event
+          {t('events.newEvent')}
         </Button>
 
         <Button
@@ -128,7 +130,7 @@ export default function CoachDashboard() {
           buttonColor={Colors.secondary}
           onPress={() => router.push('/(coach)/members')}
         >
-          Add Member
+          {t('members.addMember')}
         </Button>
 
         <Button
@@ -140,7 +142,7 @@ export default function CoachDashboard() {
           buttonColor={Colors.success}
           onPress={() => router.push('/(coach)/payments/record')}
         >
-          Payment
+          {t('payments.payment')}
         </Button>
 
         <Button
@@ -152,7 +154,7 @@ export default function CoachDashboard() {
           buttonColor={Colors.warning}
           onPress={() => router.push('/(coach)/groups')}
         >
-          Groups
+          {t('navigation.groups')}
         </Button>
 
         <Button
@@ -164,12 +166,12 @@ export default function CoachDashboard() {
           buttonColor="#6C5CE7"
           onPress={() => router.push('/(coach)/invites')}
         >
-          Invite Codes
+          {t('invites.title')}
         </Button>
       </View>
 
       {/* Upcoming Events */}
-      <Text style={styles.sectionTitle}>Upcoming Events</Text>
+      <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
       {isLoading ? (
         <Card style={styles.emptyCard}>
           <Card.Content style={styles.emptyContent}>
@@ -220,11 +222,11 @@ export default function CoachDashboard() {
                   <View style={styles.participantStats}>
                     <View style={styles.participantStat}>
                       <MaterialCommunityIcons name="check-circle" size={16} color={Colors.success} />
-                      <Text style={styles.participantStatText}>{event.confirmedCount} confirmed</Text>
+                      <Text style={styles.participantStatText}>{event.confirmedCount} {t('attendance.confirmed')}</Text>
                     </View>
                     <View style={styles.participantStat}>
                       <MaterialCommunityIcons name="clock-outline" size={16} color={Colors.warning} />
-                      <Text style={styles.participantStatText}>{event.pendingCount} pending</Text>
+                      <Text style={styles.participantStatText}>{event.pendingCount} {t('attendance.pending')}</Text>
                     </View>
                   </View>
                 </Card.Content>
@@ -236,20 +238,20 @@ export default function CoachDashboard() {
             onPress={() => router.push('/(coach)/calendar')}
             style={styles.viewAllButton}
           >
-            View All Events
+            {t('events.viewAllEvents')}
           </Button>
         </View>
       ) : (
         <Card style={styles.emptyCard}>
           <Card.Content style={styles.emptyContent}>
             <MaterialCommunityIcons name="calendar-blank" size={48} color={Colors.textSecondary} />
-            <Text style={styles.emptyText}>No upcoming events</Text>
+            <Text style={styles.emptyText}>{t('empty.noUpcomingEvents')}</Text>
             <Button
               mode="contained"
               onPress={() => router.push('/(coach)/events/create')}
               style={styles.createEventButton}
             >
-              Create Event
+              {t('events.createEvent')}
             </Button>
           </Card.Content>
         </Card>

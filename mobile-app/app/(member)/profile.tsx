@@ -6,8 +6,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
+import { useLanguage } from '@/services/LanguageContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import AccountSwitcher from '@/components/AccountSwitcher';
+import LanguagePicker from '@/components/LanguagePicker';
 import api from '@/services/api';
 import { Member } from '@/types';
 
@@ -18,6 +20,7 @@ interface ClubInfo {
 
 export default function MemberProfile() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const { isRegistered, registerForNotifications, unregisterFromNotifications } = usePushNotifications();
 
   const [member, setMember] = useState<Member | null>(null);
@@ -96,12 +99,12 @@ export default function MemberProfile() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('confirm.logoutTitle'),
+      t('auth.logoutConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Logout',
+          text: t('auth.logout'),
           style: 'destructive',
           onPress: async () => {
             await unregisterFromNotifications();
@@ -129,21 +132,21 @@ export default function MemberProfile() {
 
   // Get group name from member
   const getGroupName = () => {
-    if (!member?.clubs || member.clubs.length === 0) return 'Not assigned';
+    if (!member?.clubs || member.clubs.length === 0) return t('profile.notAssigned');
     const activeClub = member.clubs.find(c => c.status === 'ACTIVE');
-    if (!activeClub) return 'Not assigned';
+    if (!activeClub) return t('profile.notAssigned');
     const groupId = activeClub.groupId;
     if (typeof groupId === 'object' && groupId?.name) {
       return groupId.name;
     }
-    return 'Unknown';
+    return t('profile.notAssigned');
   };
 
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -172,7 +175,7 @@ export default function MemberProfile() {
           <Text style={styles.userEmail}>{user?.email || ''}</Text>
           <View style={styles.roleBadge}>
             <MaterialCommunityIcons name="account" size={16} color={Colors.primary} />
-            <Text style={styles.roleText}>Member</Text>
+            <Text style={styles.roleText}>{t('roles.member')}</Text>
           </View>
         </Card.Content>
       </Card>
@@ -180,10 +183,10 @@ export default function MemberProfile() {
       {/* Member Info */}
       <Card style={styles.infoCard}>
         <Card.Content>
-          <Text style={styles.sectionTitle}>Member Information</Text>
+          <Text style={styles.sectionTitle}>{t('members.memberDetails')}</Text>
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="account-group" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>Group</Text>
+            <Text style={styles.infoLabel}>{t('members.group')}</Text>
             <Text style={styles.infoValue}>{getGroupName()}</Text>
           </View>
           {member?.age && (
@@ -191,7 +194,7 @@ export default function MemberProfile() {
               <Divider style={styles.divider} />
               <View style={styles.infoRow}>
                 <MaterialCommunityIcons name="cake-variant" size={20} color={Colors.textSecondary} />
-                <Text style={styles.infoLabel}>Age</Text>
+                <Text style={styles.infoLabel}>{t('members.age')}</Text>
                 <Text style={styles.infoValue}>{member.age}</Text>
               </View>
             </>
@@ -201,7 +204,7 @@ export default function MemberProfile() {
               <Divider style={styles.divider} />
               <View style={styles.infoRow}>
                 <MaterialCommunityIcons name="human-male-female" size={20} color={Colors.textSecondary} />
-                <Text style={styles.infoLabel}>Gender</Text>
+                <Text style={styles.infoLabel}>{t('members.gender')}</Text>
                 <Text style={styles.infoValue}>{member.gender}</Text>
               </View>
             </>
@@ -212,17 +215,17 @@ export default function MemberProfile() {
       {/* Contact Info */}
       <Card style={styles.infoCard}>
         <Card.Content>
-          <Text style={styles.sectionTitle}>Contact Information</Text>
+          <Text style={styles.sectionTitle}>{t('profile.contactInfo')}</Text>
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="email-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>Email</Text>
+            <Text style={styles.infoLabel}>{t('auth.email')}</Text>
             <Text style={styles.infoValue} numberOfLines={1}>{user?.email || '--'}</Text>
           </View>
           <Divider style={styles.divider} />
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="phone-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>Phone</Text>
-            <Text style={styles.infoValue}>{user?.phoneNumber || 'Not set'}</Text>
+            <Text style={styles.infoLabel}>{t('auth.phoneNumber')}</Text>
+            <Text style={styles.infoValue}>{user?.phoneNumber || t('profile.notAssigned')}</Text>
           </View>
         </Card.Content>
       </Card>
@@ -230,11 +233,11 @@ export default function MemberProfile() {
       {/* Club Info */}
       <Card style={styles.infoCard}>
         <Card.Content>
-          <Text style={styles.sectionTitle}>Club Information</Text>
+          <Text style={styles.sectionTitle}>{t('profile.clubInfo')}</Text>
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="shield-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>Club</Text>
-            <Text style={styles.infoValue}>{clubInfo?.name || 'Not assigned'}</Text>
+            <Text style={styles.infoLabel}>{t('profile.club')}</Text>
+            <Text style={styles.infoValue}>{clubInfo?.name || t('profile.notAssigned')}</Text>
           </View>
         </Card.Content>
       </Card>
@@ -351,7 +354,7 @@ export default function MemberProfile() {
       {/* Settings Menu */}
       <Card style={styles.menuCard}>
         <List.Item
-          title="Edit Profile"
+          title={t('profile.editProfile')}
           left={props => <List.Icon {...props} icon="account-edit" color={Colors.text} />}
           right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
           titleStyle={styles.menuItemTitle}
@@ -359,8 +362,8 @@ export default function MemberProfile() {
         />
         <Divider />
         <List.Item
-          title="Switch Account"
-          description="Manage multiple accounts"
+          title={t('profile.switchAccount')}
+          description={t('profile.manageAccounts')}
           left={props => <List.Icon {...props} icon="account-switch" color={Colors.text} />}
           right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
           titleStyle={styles.menuItemTitle}
@@ -368,9 +371,14 @@ export default function MemberProfile() {
           onPress={() => setShowAccountSwitcher(true)}
         />
         <Divider />
+        <View style={styles.languagePickerContainer}>
+          <List.Icon icon="translate" color={Colors.text} />
+          <LanguagePicker />
+        </View>
+        <Divider />
         <List.Item
-          title="Push Notifications"
-          description={notificationsEnabled ? 'Enabled' : 'Disabled'}
+          title={t('profile.pushNotifications')}
+          description={notificationsEnabled ? t('status.active') : t('status.inactive')}
           left={props => <List.Icon {...props} icon="bell-outline" color={Colors.text} />}
           right={() => (
             <Switch
@@ -387,7 +395,7 @@ export default function MemberProfile() {
         />
         <Divider />
         <List.Item
-          title="Help & Support"
+          title={t('profile.helpSupport')}
           left={props => <List.Icon {...props} icon="help-circle-outline" color={Colors.text} />}
           right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
           titleStyle={styles.menuItemTitle}
@@ -403,7 +411,7 @@ export default function MemberProfile() {
         style={styles.logoutButton}
         textColor={Colors.error}
       >
-        Logout
+        {t('auth.logout')}
       </Button>
 
       {/* App Version */}
@@ -521,6 +529,12 @@ const styles = StyleSheet.create({
   menuItemDescription: {
     color: Colors.textSecondary,
     fontSize: FontSize.xs,
+  },
+  languagePickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: Spacing.md,
+    flex: 1,
   },
   logoutButton: {
     marginTop: Spacing.md,

@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { Spacing, FontSize } from '@/constants/Layout';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useLanguage } from '@/services/LanguageContext';
 
 interface NetworkStatusProps {
   showSyncButton?: boolean;
@@ -12,6 +13,7 @@ interface NetworkStatusProps {
 
 export default function NetworkStatus({ showSyncButton = true }: NetworkStatusProps) {
   const { isOnline, isSyncing, pendingSyncCount, syncNow } = useNetworkStatus();
+  const { t } = useLanguage();
   const slideAnim = useRef(new Animated.Value(-60)).current;
 
   useEffect(() => {
@@ -44,10 +46,10 @@ export default function NetworkStatus({ showSyncButton = true }: NetworkStatusPr
         />
         <Text style={styles.text}>
           {!isOnline
-            ? 'You are offline'
+            ? t('empty.offline')
             : isSyncing
-            ? 'Syncing data...'
-            : `${pendingSyncCount} item${pendingSyncCount > 1 ? 's' : ''} pending sync`}
+            ? t('common.loading')
+            : `${pendingSyncCount} pending`}
         </Text>
 
         {isOnline && pendingSyncCount > 0 && showSyncButton && (
@@ -59,7 +61,7 @@ export default function NetworkStatus({ showSyncButton = true }: NetworkStatusPr
             {isSyncing ? (
               <ActivityIndicator size="small" color={Colors.text} />
             ) : (
-              <Text style={styles.syncText}>Sync Now</Text>
+              <Text style={styles.syncText}>{t('common.refresh')}</Text>
             )}
           </TouchableOpacity>
         )}
@@ -71,6 +73,7 @@ export default function NetworkStatus({ showSyncButton = true }: NetworkStatusPr
 // Compact version for inline use
 export function NetworkStatusBadge() {
   const { isOnline, pendingSyncCount } = useNetworkStatus();
+  const { t } = useLanguage();
 
   if (isOnline && pendingSyncCount === 0) {
     return null;
@@ -89,7 +92,7 @@ export function NetworkStatusBadge() {
         color={Colors.text}
       />
       <Text style={styles.badgeText}>
-        {!isOnline ? 'Offline' : `${pendingSyncCount} pending`}
+        {!isOnline ? t('empty.offline') : `${pendingSyncCount} pending`}
       </Text>
     </View>
   );

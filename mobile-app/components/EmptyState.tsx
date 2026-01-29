@@ -3,6 +3,7 @@ import { Text, Button, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { Spacing, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -78,12 +79,13 @@ export default function EmptyState({
 
 // Preset empty states for common scenarios
 export function NoMembersEmpty({ onAction }: { onAction?: () => void }) {
+  const { t } = useLanguage();
   return (
     <EmptyState
       icon="account-group-outline"
-      title="No Members Yet"
-      message="Members will appear here once parents register with your club's invite code"
-      actionLabel={onAction ? 'Generate Invite Code' : undefined}
+      title={t('empty.noMembers')}
+      message={t('empty.noMembersDescription')}
+      actionLabel={onAction ? t('invites.generateCode') : undefined}
       onAction={onAction}
       variant="card"
     />
@@ -91,12 +93,13 @@ export function NoMembersEmpty({ onAction }: { onAction?: () => void }) {
 }
 
 export function NoEventsEmpty({ onAction }: { onAction?: () => void }) {
+  const { t } = useLanguage();
   return (
     <EmptyState
       icon="calendar-blank-outline"
-      title="No Events Scheduled"
-      message="Create your first event to get started"
-      actionLabel={onAction ? 'Create Event' : undefined}
+      title={t('empty.noEvents')}
+      message={t('empty.noEventsDescription')}
+      actionLabel={onAction ? t('events.createEvent') : undefined}
       onAction={onAction}
       variant="card"
     />
@@ -104,12 +107,13 @@ export function NoEventsEmpty({ onAction }: { onAction?: () => void }) {
 }
 
 export function NoPostsEmpty({ onAction }: { onAction?: () => void }) {
+  const { t } = useLanguage();
   return (
     <EmptyState
       icon="newspaper-variant-outline"
-      title="No Posts Yet"
-      message="Share news and updates with your club members"
-      actionLabel={onAction ? 'Create Post' : undefined}
+      title={t('empty.noNews')}
+      message={t('empty.noNewsDescription')}
+      actionLabel={onAction ? t('news.createPost') : undefined}
       onAction={onAction}
       variant="card"
     />
@@ -117,23 +121,25 @@ export function NoPostsEmpty({ onAction }: { onAction?: () => void }) {
 }
 
 export function NoChildrenEmpty() {
+  const { t } = useLanguage();
   return (
     <EmptyState
       icon="account-child-outline"
-      title="No Children Registered"
-      message="Your children will appear here once they are registered with a club"
+      title={t('empty.noChildren')}
+      message={t('empty.noChildrenDescription')}
       variant="card"
     />
   );
 }
 
 export function NoResultsEmpty({ onClear }: { onClear?: () => void }) {
+  const { t } = useLanguage();
   return (
     <EmptyState
       icon="magnify"
-      title="No Results Found"
-      message="Try adjusting your search or filter criteria"
-      actionLabel={onClear ? 'Clear Filters' : undefined}
+      title={t('empty.noResults')}
+      message={t('empty.noResultsDescription')}
+      actionLabel={onClear ? t('common.filter') : undefined}
       onAction={onClear}
       variant="card"
     />
@@ -141,12 +147,13 @@ export function NoResultsEmpty({ onClear }: { onClear?: () => void }) {
 }
 
 export function ErrorState({ message, onRetry }: { message?: string; onRetry?: () => void }) {
+  const { t } = useLanguage();
   return (
     <EmptyState
       icon="alert-circle-outline"
-      title="Something Went Wrong"
-      message={message || 'An error occurred while loading data'}
-      actionLabel={onRetry ? 'Try Again' : undefined}
+      title={t('common.error')}
+      message={message || t('errors.loadingFailed')}
+      actionLabel={onRetry ? t('common.retry') : undefined}
       onAction={onRetry}
       variant="card"
     />
@@ -154,12 +161,13 @@ export function ErrorState({ message, onRetry }: { message?: string; onRetry?: (
 }
 
 export function OfflineEmpty({ onRetry }: { onRetry?: () => void }) {
+  const { t } = useLanguage();
   return (
     <EmptyState
       icon="wifi-off"
-      title="You're Offline"
-      message="Check your internet connection and try again"
-      actionLabel={onRetry ? 'Retry' : undefined}
+      title={t('empty.offline')}
+      message={t('empty.offlineDescription')}
+      actionLabel={onRetry ? t('common.retry') : undefined}
       onAction={onRetry}
       variant="card"
     />
