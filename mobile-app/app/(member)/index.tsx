@@ -1,20 +1,20 @@
 import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Card, Avatar, ActivityIndicator } from 'react-native-paper';
+import { Text, Card, Avatar, ActivityIndicator, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
 import api from '@/services/api';
-import { PaymentStatus, Member } from '@/types';
+import { PaymentStatus, Member, Event, EventType } from '@/types';
 
 export default function MemberHome() {
   const { user } = useAuth();
   const [member, setMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -22,12 +22,12 @@ export default function MemberHome() {
       const memberResponse = await api.get('/members/me');
       setMember(memberResponse.data.data);
 
-      // Fetch upcoming events count
+      // Fetch upcoming events
       try {
-        const eventsResponse = await api.get('/events/upcoming', { params: { limit: 7 } });
-        setUpcomingEventsCount(eventsResponse.data.data?.length || 0);
+        const eventsResponse = await api.get('/events/upcoming', { params: { limit: 5 } });
+        setUpcomingEvents(eventsResponse.data.data || []);
       } catch {
-        setUpcomingEventsCount(0);
+        setUpcomingEvents([]);
       }
     } catch (error) {
       console.error('Error fetching member data:', error);
@@ -164,8 +164,8 @@ export default function MemberHome() {
         <Card.Content style={styles.infoContent}>
           <View style={styles.infoItem}>
             <MaterialCommunityIcons name="calendar-today" size={24} color={Colors.info} />
-            <Text style={styles.infoNumber}>{upcomingEventsCount}</Text>
-            <Text style={styles.infoLabel}>Events This Week</Text>
+            <Text style={styles.infoNumber}>{upcomingEvents.length}</Text>
+            <Text style={styles.infoLabel}>Upcoming Events</Text>
           </View>
         </Card.Content>
       </Card>
@@ -194,30 +194,73 @@ export default function MemberHome() {
 
         <TouchableOpacity
           style={styles.quickAction}
-          onPress={() => router.push('/(member)/events')}
+          onPress={() => router.push('/(member)/scan')}
         >
           <View style={[styles.quickActionIcon, { backgroundColor: Colors.primary + '20' }]}>
-            <MaterialCommunityIcons name="calendar" size={24} color={Colors.primary} />
+            <MaterialCommunityIcons name="qrcode-scan" size={24} color={Colors.primary} />
           </View>
-          <Text style={styles.quickActionText}>Events</Text>
+          <Text style={styles.quickActionText}>Check In</Text>
         </TouchableOpacity>
       </View>
 
       {/* Upcoming Events Preview */}
-      <Text style={styles.sectionTitle}>Upcoming Events</Text>
-      <Card style={styles.eventPreviewCard}>
-        <Card.Content>
-          <View style={styles.eventPreviewHeader}>
-            <MaterialCommunityIcons name="calendar-clock" size={20} color={Colors.info} />
-            <Text style={styles.eventPreviewTitle}>Next Training</Text>
-          </View>
-          <Text style={styles.noEventsText}>
-            {upcomingEventsCount > 0
-              ? `${upcomingEventsCount} event(s) scheduled`
-              : 'No upcoming events'}
-          </Text>
-        </Card.Content>
-      </Card>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Upcoming Events</Text>
+        <TouchableOpacity onPress={() => router.push('/(member)/calendar')}>
+          <Text style={styles.seeAllText}>See all</Text>
+        </TouchableOpacity>
+      </View>
+
+      {upcomingEvents.length === 0 ? (
+        <Card style={styles.eventPreviewCard}>
+          <Card.Content style={styles.emptyContent}>
+            <MaterialCommunityIcons name="calendar-blank" size={32} color={Colors.textSecondary} />
+            <Text style={styles.noEventsText}>No upcoming events</Text>
+          </Card.Content>
+        </Card>
+      ) : (
+        upcomingEvents.slice(0, 3).map((event) => {
+          const eventDate = new Date(event.startTime);
+          const isToday = eventDate.toDateString() === new Date().toDateString();
+          const eventTypeColor = event.type === EventType.TRAINING ? Colors.primary :
+                                event.type === EventType.MATCH ? Colors.success : Colors.info;
+
+          return (
+            <Card key={event._id} style={[styles.eventCard, isToday && styles.todayEventCard]}>
+              <Card.Content style={styles.eventCardContent}>
+                <View style={styles.eventDateBox}>
+                  <Text style={styles.eventDay}>{eventDate.getDate()}</Text>
+                  <Text style={styles.eventMonth}>
+                    {eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.eventInfo}>
+                  <View style={styles.eventTitleRow}>
+                    <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                    {isToday && (
+                      <Chip style={styles.todayChip} textStyle={styles.todayChipText}>Today</Chip>
+                    )}
+                  </View>
+                  <View style={styles.eventMeta}>
+                    <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
+                    <Text style={styles.eventMetaText}>
+                      {eventDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                    <View style={[styles.eventTypeDot, { backgroundColor: eventTypeColor }]} />
+                    <Text style={[styles.eventTypeText, { color: eventTypeColor }]}>{event.type}</Text>
+                  </View>
+                  {event.location && (
+                    <View style={styles.eventMeta}>
+                      <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
+                      <Text style={styles.eventMetaText} numberOfLines={1}>{event.location}</Text>
+                    </View>
+                  )}
+                </View>
+              </Card.Content>
+            </Card>
+          );
+        })
+      )}
 
       {/* Notifications Preview */}
       <Text style={styles.sectionTitle}>Recent Notifications</Text>
@@ -355,31 +398,111 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: '500',
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.sm,
+  },
+  seeAllText: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   eventPreviewCard: {
     backgroundColor: Colors.surface,
     marginBottom: Spacing.md,
   },
-  eventPreviewHeader: {
-    flexDirection: 'row',
+  emptyContent: {
     alignItems: 'center',
+    paddingVertical: Spacing.lg,
     gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  eventPreviewTitle: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.text,
   },
   noEventsText: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
+  },
+  eventCard: {
+    backgroundColor: Colors.surface,
+    marginBottom: Spacing.sm,
+  },
+  todayEventCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+  },
+  eventCardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  eventDateBox: {
+    alignItems: 'center',
+    backgroundColor: Colors.primary + '15',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    marginRight: Spacing.md,
+    minWidth: 50,
+  },
+  eventDay: {
+    fontSize: FontSize.xl,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  eventMonth: {
+    fontSize: FontSize.xs,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  eventInfo: {
+    flex: 1,
+  },
+  eventTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+  },
+  eventTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  todayChip: {
+    backgroundColor: Colors.primary + '20',
+    height: 22,
+  },
+  todayChipText: {
+    fontSize: 10,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  eventMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: 2,
+  },
+  eventMetaText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+  },
+  eventTypeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginLeft: Spacing.sm,
+  },
+  eventTypeText: {
+    fontSize: FontSize.xs,
+    fontWeight: '500',
   },
   notificationCard: {
     backgroundColor: Colors.surface,

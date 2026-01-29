@@ -105,6 +105,11 @@ export interface Member {
     lastCheckDate?: string;
     expiryDate?: string;
   };
+  bodyMetrics?: {
+    height?: number;
+    weight?: number;
+    updatedAt?: string;
+  };
   emergencyContact?: {
     name: string;
     relationship: string;

@@ -32,35 +32,33 @@ export default function MemberLayout() {
         }}
       />
       <Tabs.Screen
-        name="events"
+        name="calendar"
         options={{
-          title: 'Events',
+          title: 'Calendar',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar" size={size} color={color} />
+            <MaterialCommunityIcons name="calendar-month" size={size} color={color} />
           ),
-          headerTitle: 'Events',
+          headerTitle: 'Calendar',
         }}
       />
       <Tabs.Screen
-        name="payments"
+        name="scan"
         options={{
-          title: 'Payments',
+          title: 'Check In',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cash" size={size} color={color} />
+            <MaterialCommunityIcons name="qrcode-scan" size={size} color={color} />
           ),
-          headerTitle: 'My Payments',
-          href: null, // Hidden from tab bar, accessible via navigation
+          headerTitle: 'Scan QR Code',
         }}
       />
       <Tabs.Screen
-        name="attendance"
+        name="news"
         options={{
-          title: 'Attendance',
+          title: 'News',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar-check" size={size} color={color} />
+            <MaterialCommunityIcons name="newspaper-variant" size={size} color={color} />
           ),
-          headerTitle: 'My Attendance',
-          href: null, // Hidden from tab bar, accessible via navigation
+          headerTitle: 'News Feed',
         }}
       />
       <Tabs.Screen
@@ -71,6 +69,40 @@ export default function MemberLayout() {
             <MaterialCommunityIcons name="account" size={size} color={color} />
           ),
           headerTitle: 'My Profile',
+        }}
+      />
+      {/* Hidden screens - accessible via navigation */}
+      <Tabs.Screen
+        name="events"
+        options={{
+          title: 'Events',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="calendar" size={size} color={color} />
+          ),
+          headerTitle: 'Events',
+          href: null, // Hidden from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="payments"
+        options={{
+          title: 'Payments',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cash" size={size} color={color} />
+          ),
+          headerTitle: 'My Payments',
+          href: null, // Hidden from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="attendance"
+        options={{
+          title: 'Attendance',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="calendar-check" size={size} color={color} />
+          ),
+          headerTitle: 'My Attendance',
+          href: null, // Hidden from tab bar
         }}
       />
     </Tabs>

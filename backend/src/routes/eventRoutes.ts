@@ -10,6 +10,8 @@ import {
   confirmAttendance,
   qrCheckin,
   getEventByQrCode,
+  getUpcomingEvents,
+  getMyEvents,
 } from '../controllers/eventController';
 import { protect, restrictTo } from '../middleware/authMiddleware';
 
@@ -20,6 +22,8 @@ router.use(protect);
 // Events CRUD
 router.post('/', restrictTo(['OWNER', 'COACH']), createEvent);
 router.get('/', getClubEvents); // With optional ?groupId=&status=&from=&to= filters
+router.get('/upcoming', getUpcomingEvents); // Upcoming events (all roles)
+router.get('/me', restrictTo(['MEMBER']), getMyEvents); // Events for member's group
 router.get('/group/:groupId', getGroupEvents);
 router.get('/qr/:qrCode', getEventByQrCode);
 router.get('/:id', getEvent);

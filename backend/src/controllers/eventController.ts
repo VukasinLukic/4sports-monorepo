@@ -314,6 +314,106 @@ export const qrCheckin = async (req: Request, res: Response) => {
 };
 
 /**
+ * Get Upcoming Events (for all roles)
+ * @route GET /api/v1/events/upcoming
+ * @access Private
+ */
+export const getUpcomingEvents = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+
+    const clubId = req.user.clubId;
+    if (!clubId) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
+
+    const { limit = 30 } = req.query;
+    const now = new Date();
+
+    // For MEMBER role, filter by their group
+    let groupFilter = {};
+    if (req.user.role === 'MEMBER') {
+      const member = await Member.findByUser(req.user._id);
+      if (member && member.clubs && member.clubs.length > 0) {
+        const activeClub = member.clubs.find(c => c.status === 'ACTIVE');
+        if (activeClub?.groupId) {
+          groupFilter = { groupId: activeClub.groupId };
+        }
+      }
+    }
+
+    const events = await Event.find({
+      clubId,
+      ...groupFilter,
+      startTime: { $gte: now },
+      status: { $ne: 'CANCELLED' },
+    })
+      .populate('groupId', 'name color')
+      .sort({ startTime: 1 })
+      .limit(Number(limit));
+
+    return res.status(200).json({ success: true, data: events });
+  } catch (error: any) {
+    console.error('❌ Get Upcoming Events Error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch upcoming events' } });
+  }
+};
+
+/**
+ * Get My Events (for MEMBER role - events for their group)
+ * @route GET /api/v1/events/me
+ * @access Private (MEMBER)
+ */
+export const getMyEvents = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+
+    const clubId = req.user.clubId;
+    if (!clubId) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
+
+    // Find member's group
+    const member = await Member.findByUser(req.user._id);
+    if (!member) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member profile not found' } });
+    }
+
+    const activeClub = member.clubs?.find(c => c.status === 'ACTIVE');
+    if (!activeClub?.groupId) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    const { from, to, limit = 50 } = req.query;
+
+    const query: any = {
+      clubId,
+      groupId: activeClub.groupId,
+      status: { $ne: 'CANCELLED' },
+    };
+
+    if (from || to) {
+      query.startTime = {};
+      if (from) query.startTime.$gte = new Date(from as string);
+      if (to) query.startTime.$lte = new Date(to as string);
+    }
+
+    const events = await Event.find(query)
+      .populate('groupId', 'name color')
+      .populate('createdBy', 'fullName')
+      .sort({ startTime: 1 })
+      .limit(Number(limit));
+
+    // Map to include date field for calendar compatibility
+    const eventsWithDate = events.map(event => ({
+      ...event.toObject(),
+      date: event.startTime,
+    }));
+
+    return res.status(200).json({ success: true, data: eventsWithDate });
+  } catch (error: any) {
+    console.error('❌ Get My Events Error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch events' } });
+  }
+};
+
+/**
  * Get Event by QR Code
  * @route GET /api/v1/events/qr/:qrCode
  * @access Private

@@ -32,6 +32,11 @@ export interface IMember extends Document {
     lastCheckDate?: Date;
     expiryDate?: Date;
   };
+  bodyMetrics?: {
+    height?: number; // in cm
+    weight?: number; // in kg
+    updatedAt?: Date;
+  };
   emergencyContact?: {
     name: string;
     relationship: string;
@@ -158,6 +163,23 @@ const memberSchema = new Schema<IMember, IMemberModel>(
       conditions: String,
       lastCheckDate: Date,
       expiryDate: Date,
+    },
+
+    bodyMetrics: {
+      height: {
+        type: Number,
+        min: [50, 'Height must be at least 50cm'],
+        max: [300, 'Height cannot exceed 300cm'],
+      },
+      weight: {
+        type: Number,
+        min: [10, 'Weight must be at least 10kg'],
+        max: [500, 'Weight cannot exceed 500kg'],
+      },
+      updatedAt: {
+        type: Date,
+        default: Date.now,
+      },
     },
 
     emergencyContact: {

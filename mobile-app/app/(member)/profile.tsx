@@ -228,6 +228,115 @@ export default function MemberProfile() {
         </Card.Content>
       </Card>
 
+      {/* Body Metrics */}
+      <Card style={styles.infoCard}>
+        <Card.Content>
+          <Text style={styles.sectionTitle}>Body Metrics</Text>
+          <View style={styles.metricsRow}>
+            <View style={styles.metricItem}>
+              <MaterialCommunityIcons name="human-male-height" size={28} color={Colors.primary} />
+              <Text style={styles.metricValue}>
+                {member?.bodyMetrics?.height || member?.height || '--'}
+              </Text>
+              <Text style={styles.metricLabel}>Height (cm)</Text>
+            </View>
+            <View style={styles.metricDivider} />
+            <View style={styles.metricItem}>
+              <MaterialCommunityIcons name="weight-kilogram" size={28} color={Colors.primary} />
+              <Text style={styles.metricValue}>
+                {member?.bodyMetrics?.weight || member?.weight || '--'}
+              </Text>
+              <Text style={styles.metricLabel}>Weight (kg)</Text>
+            </View>
+          </View>
+          {(member?.bodyMetrics?.height && member?.bodyMetrics?.weight) && (
+            <View style={styles.bmiContainer}>
+              <Text style={styles.bmiLabel}>BMI</Text>
+              <Text style={styles.bmiValue}>
+                {(member.bodyMetrics.weight / Math.pow(member.bodyMetrics.height / 100, 2)).toFixed(1)}
+              </Text>
+            </View>
+          )}
+        </Card.Content>
+      </Card>
+
+      {/* Medical Info */}
+      {member?.medicalInfo && (
+        <Card style={styles.infoCard}>
+          <Card.Content>
+            <Text style={styles.sectionTitle}>Medical Information</Text>
+            {member.medicalInfo.bloodType && (
+              <>
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="water" size={20} color={Colors.error} />
+                  <Text style={styles.infoLabel}>Blood Type</Text>
+                  <Text style={styles.infoValue}>{member.medicalInfo.bloodType}</Text>
+                </View>
+                <Divider style={styles.divider} />
+              </>
+            )}
+            {member.medicalInfo.allergies && (
+              <>
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={20} color={Colors.warning} />
+                  <Text style={styles.infoLabel}>Allergies</Text>
+                  <Text style={styles.infoValue} numberOfLines={2}>{member.medicalInfo.allergies}</Text>
+                </View>
+                <Divider style={styles.divider} />
+              </>
+            )}
+            {member.medicalInfo.conditions && (
+              <>
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="medical-bag" size={20} color={Colors.info} />
+                  <Text style={styles.infoLabel}>Conditions</Text>
+                  <Text style={styles.infoValue} numberOfLines={2}>{member.medicalInfo.conditions}</Text>
+                </View>
+                <Divider style={styles.divider} />
+              </>
+            )}
+            {member.medicalInfo.expiryDate && (
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="calendar-clock" size={20} color={Colors.textSecondary} />
+                <Text style={styles.infoLabel}>Valid Until</Text>
+                <Text style={styles.infoValue}>
+                  {new Date(member.medicalInfo.expiryDate).toLocaleDateString()}
+                </Text>
+              </View>
+            )}
+            {!member.medicalInfo.bloodType && !member.medicalInfo.allergies && !member.medicalInfo.conditions && !member.medicalInfo.expiryDate && (
+              <Text style={styles.noDataText}>No medical information on file</Text>
+            )}
+          </Card.Content>
+        </Card>
+      )}
+
+      {/* Emergency Contact */}
+      {member?.emergencyContact && (
+        <Card style={styles.infoCard}>
+          <Card.Content>
+            <Text style={styles.sectionTitle}>Emergency Contact</Text>
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="account-alert" size={20} color={Colors.error} />
+              <Text style={styles.infoLabel}>Name</Text>
+              <Text style={styles.infoValue}>{member.emergencyContact.name}</Text>
+            </View>
+            <Divider style={styles.divider} />
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="account-group" size={20} color={Colors.textSecondary} />
+              <Text style={styles.infoLabel}>Relationship</Text>
+              <Text style={styles.infoValue}>{member.emergencyContact.relationship}</Text>
+            </View>
+            <Divider style={styles.divider} />
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="phone" size={20} color={Colors.success} />
+              <Text style={styles.infoLabel}>Phone</Text>
+              <Text style={styles.infoValue}>{member.emergencyContact.phoneNumber}</Text>
+            </View>
+          </Card.Content>
+        </Card>
+      )}
+
       {/* Settings Menu */}
       <Card style={styles.menuCard}>
         <List.Item
@@ -411,5 +520,58 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.lg,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  metricItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  metricValue: {
+    fontSize: FontSize.xxl,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginTop: Spacing.xs,
+  },
+  metricLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
+  metricDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: Colors.border,
+  },
+  bmiContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.primary + '10',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  bmiLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+  },
+  bmiValue: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  noDataText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: Spacing.md,
+    fontStyle: 'italic',
   },
 });

@@ -50,7 +50,7 @@ export const getClubPosts = async (req: Request, res: Response) => {
     let visibilityFilter: string[] = [];
     if (req.user.role === 'OWNER' || req.user.role === 'COACH') {
       visibilityFilter = ['PUBLIC', 'MEMBERS_ONLY', 'PARENTS_ONLY', 'COACHES_ONLY'];
-    } else if (req.user.role === 'PARENT') {
+    } else if (req.user.role === 'PARENT' || req.user.role === 'MEMBER') {
       visibilityFilter = ['PUBLIC', 'MEMBERS_ONLY', 'PARENTS_ONLY'];
     }
 
