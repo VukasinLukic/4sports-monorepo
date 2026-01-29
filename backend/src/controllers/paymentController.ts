@@ -73,6 +73,27 @@ export const getMemberPayments = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get own payments (for MEMBER role users)
+ */
+export const getMyPayments = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+
+    // Find member linked to this user
+    const member = await Member.findOne({ userId: req.user._id });
+    if (!member) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member profile not found' } });
+    }
+
+    const payments = await Payment.findByMember(member._id);
+    return res.status(200).json({ success: true, data: payments });
+  } catch (error: any) {
+    console.error('❌ Get My Payments Error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch payments' } });
+  }
+};
+
 export const markPaymentPaid = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });

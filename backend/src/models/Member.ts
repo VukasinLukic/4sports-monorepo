@@ -18,9 +18,10 @@ export interface IClubMembership {
 export interface IMember extends Document {
   _id: mongoose.Types.ObjectId;
   fullName: string;
-  dateOfBirth: Date;
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
-  parentId: mongoose.Types.ObjectId;
+  dateOfBirth?: Date;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  parentId?: mongoose.Types.ObjectId; // For child members
+  userId?: mongoose.Types.ObjectId;   // For self-registered members (MEMBER role)
   clubs: IClubMembership[];
   profileImage?: string;
   medicalInfo?: {
@@ -56,6 +57,7 @@ export interface IMember extends Document {
  */
 export interface IMemberModel extends Model<IMember> {
   findByParent(parentId: mongoose.Types.ObjectId): Promise<IMember[]>;
+  findByUser(userId: mongoose.Types.ObjectId): Promise<IMember | null>;
   findByClub(clubId: mongoose.Types.ObjectId): Promise<IMember[]>;
   findByGroup(groupId: mongoose.Types.ObjectId): Promise<IMember[]>;
 }
@@ -76,10 +78,11 @@ const memberSchema = new Schema<IMember, IMemberModel>(
 
     dateOfBirth: {
       type: Date,
-      required: [true, 'Date of birth is required'],
+      required: false, // Optional for self-registered members
       validate: {
         validator: function (value: Date) {
-          // Must be in the past
+          // Must be in the past (if provided)
+          if (!value) return true;
           return value < new Date();
         },
         message: 'Date of birth must be in the past',
@@ -92,13 +95,21 @@ const memberSchema = new Schema<IMember, IMemberModel>(
         values: ['MALE', 'FEMALE', 'OTHER'],
         message: 'Gender must be MALE, FEMALE, or OTHER',
       },
-      required: [true, 'Gender is required'],
+      required: false, // Optional for self-registered members
     },
 
+    // For child members: parentId is the parent's User ID
+    // For self-registered members: userId links to their own User account
     parentId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Parent ID is required'],
+      required: false, // Optional - either parentId or userId should be set
+    },
+
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: false, // Set for self-registered members (MEMBER role)
     },
 
     clubs: {
@@ -181,6 +192,7 @@ const memberSchema = new Schema<IMember, IMemberModel>(
 
 // PERFORMANCE: Fast lookups
 memberSchema.index({ parentId: 1 });
+memberSchema.index({ userId: 1 }); // For self-registered members
 memberSchema.index({ 'clubs.clubId': 1, 'clubs.status': 1 });
 memberSchema.index({ 'clubs.groupId': 1, 'clubs.status': 1 });
 memberSchema.index({ fullName: 1 });
@@ -194,6 +206,8 @@ memberSchema.index({ fullName: 1 });
  * @description Calculates member's current age
  */
 memberSchema.virtual('age').get(function () {
+  if (!this.dateOfBirth) return null;
+
   const today = new Date();
   const birthDate = new Date(this.dateOfBirth);
   let age = today.getFullYear() - birthDate.getFullYear();
@@ -315,6 +329,18 @@ memberSchema.statics.findByParent = async function (
     .populate('clubs.clubId', 'name')
     .populate('clubs.groupId', 'name ageGroup')
     .sort({ fullName: 1 });
+};
+
+/**
+ * Find member by user ID
+ * @description Returns member document for self-registered member
+ */
+memberSchema.statics.findByUser = async function (
+  userId: mongoose.Types.ObjectId
+): Promise<IMember | null> {
+  return this.findOne({ userId })
+    .populate('clubs.clubId', 'name')
+    .populate('clubs.groupId', 'name ageGroup');
 };
 
 /**

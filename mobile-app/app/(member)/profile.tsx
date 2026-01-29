@@ -9,19 +9,19 @@ import { useAuth } from '@/services/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import AccountSwitcher from '@/components/AccountSwitcher';
 import api from '@/services/api';
+import { Member } from '@/types';
 
 interface ClubInfo {
   _id: string;
   name: string;
-  memberCount?: number;
 }
 
-export default function CoachProfile() {
+export default function MemberProfile() {
   const { user, logout } = useAuth();
   const { isRegistered, registerForNotifications, unregisterFromNotifications } = usePushNotifications();
 
+  const [member, setMember] = useState<Member | null>(null);
   const [clubInfo, setClubInfo] = useState<ClubInfo | null>(null);
-  const [memberCount, setMemberCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(isRegistered);
@@ -29,22 +29,23 @@ export default function CoachProfile() {
 
   const fetchData = useCallback(async () => {
     try {
-      // Fetch club info
-      if (user?.clubId) {
-        try {
-          const clubResponse = await api.get(`/clubs/${user.clubId}`);
-          setClubInfo(clubResponse.data.data);
-        } catch {
-          // Club info might not be available
-        }
-      }
+      // Fetch member profile
+      const memberResponse = await api.get('/members/me');
+      const memberData = memberResponse.data.data;
+      setMember(memberData);
 
-      // Fetch member count
-      try {
-        const membersResponse = await api.get('/members');
-        setMemberCount(membersResponse.data.data?.length || 0);
-      } catch {
-        setMemberCount(0);
+      // Get club info from member
+      if (memberData?.clubs && memberData.clubs.length > 0) {
+        const activeClub = memberData.clubs.find((c: any) => c.status === 'ACTIVE');
+        if (activeClub?.clubId) {
+          const clubId = typeof activeClub.clubId === 'object' ? activeClub.clubId._id : activeClub.clubId;
+          try {
+            const clubResponse = await api.get(`/clubs/${clubId}`);
+            setClubInfo(clubResponse.data.data);
+          } catch {
+            // Club info might not be available
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching profile data:', error);
@@ -52,7 +53,7 @@ export default function CoachProfile() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user?.clubId]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -106,13 +107,25 @@ export default function CoachProfile() {
   };
 
   const getInitials = (name?: string) => {
-    if (!name) return 'CO';
+    if (!name) return 'ME';
     return name
       .split(' ')
       .map(n => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Get group name from member
+  const getGroupName = () => {
+    if (!member?.clubs || member.clubs.length === 0) return 'Not assigned';
+    const activeClub = member.clubs.find(c => c.status === 'ACTIVE');
+    if (!activeClub) return 'Not assigned';
+    const groupId = activeClub.groupId;
+    if (typeof groupId === 'object' && groupId?.name) {
+      return groupId.name;
+    }
+    return 'Unknown';
   };
 
   if (isLoading) {
@@ -141,33 +154,47 @@ export default function CoachProfile() {
         <Card.Content style={styles.profileContent}>
           <Avatar.Text
             size={80}
-            label={getInitials(user?.fullName)}
+            label={getInitials(member?.fullName || user?.fullName)}
             style={styles.avatar}
           />
-          <Text style={styles.userName}>{user?.fullName || 'Coach'}</Text>
+          <Text style={styles.userName}>{member?.fullName || user?.fullName || 'Member'}</Text>
           <Text style={styles.userEmail}>{user?.email || ''}</Text>
           <View style={styles.roleBadge}>
-            <MaterialCommunityIcons name="whistle" size={16} color={Colors.primary} />
-            <Text style={styles.roleText}>{user?.role || 'Coach'}</Text>
+            <MaterialCommunityIcons name="account" size={16} color={Colors.primary} />
+            <Text style={styles.roleText}>Member</Text>
           </View>
         </Card.Content>
       </Card>
 
-      {/* Club Info */}
+      {/* Member Info */}
       <Card style={styles.infoCard}>
         <Card.Content>
-          <Text style={styles.sectionTitle}>Club Information</Text>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="shield-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>Club Name</Text>
-            <Text style={styles.infoValue}>{clubInfo?.name || 'Not assigned'}</Text>
-          </View>
-          <Divider style={styles.divider} />
+          <Text style={styles.sectionTitle}>Member Information</Text>
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="account-group" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>Total Members</Text>
-            <Text style={styles.infoValue}>{memberCount}</Text>
+            <Text style={styles.infoLabel}>Group</Text>
+            <Text style={styles.infoValue}>{getGroupName()}</Text>
           </View>
+          {member?.age && (
+            <>
+              <Divider style={styles.divider} />
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="cake-variant" size={20} color={Colors.textSecondary} />
+                <Text style={styles.infoLabel}>Age</Text>
+                <Text style={styles.infoValue}>{member.age}</Text>
+              </View>
+            </>
+          )}
+          {member?.gender && (
+            <>
+              <Divider style={styles.divider} />
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="human-male-female" size={20} color={Colors.textSecondary} />
+                <Text style={styles.infoLabel}>Gender</Text>
+                <Text style={styles.infoValue}>{member.gender}</Text>
+              </View>
+            </>
+          )}
         </Card.Content>
       </Card>
 
@@ -189,6 +216,18 @@ export default function CoachProfile() {
         </Card.Content>
       </Card>
 
+      {/* Club Info */}
+      <Card style={styles.infoCard}>
+        <Card.Content>
+          <Text style={styles.sectionTitle}>Club Information</Text>
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="shield-outline" size={20} color={Colors.textSecondary} />
+            <Text style={styles.infoLabel}>Club</Text>
+            <Text style={styles.infoValue}>{clubInfo?.name || 'Not assigned'}</Text>
+          </View>
+        </Card.Content>
+      </Card>
+
       {/* Settings Menu */}
       <Card style={styles.menuCard}>
         <List.Item
@@ -197,16 +236,6 @@ export default function CoachProfile() {
           right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
           titleStyle={styles.menuItemTitle}
           onPress={() => router.push('/profile/edit')}
-        />
-        <Divider />
-        <List.Item
-          title="Invite Codes"
-          description="Generate codes for members"
-          left={props => <List.Icon {...props} icon="qrcode" color={Colors.text} />}
-          right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
-          titleStyle={styles.menuItemTitle}
-          descriptionStyle={styles.menuItemDescription}
-          onPress={() => router.push('/(coach)/invites')}
         />
         <Divider />
         <List.Item

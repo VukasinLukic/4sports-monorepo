@@ -80,11 +80,25 @@ export default function ParentLayout() {
           ),
         }}
       />
-      {/* Hide folder routes from tab bar */}
+      {/* Hide folder routes and secondary screens from tab bar */}
       <Tabs.Screen
         name="member"
         options={{
           href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="payments"
+        options={{
+          href: null,
+          headerTitle: 'Payment History',
+        }}
+      />
+      <Tabs.Screen
+        name="attendance"
+        options={{
+          href: null,
+          headerTitle: 'Attendance History',
         }}
       />
     </Tabs>

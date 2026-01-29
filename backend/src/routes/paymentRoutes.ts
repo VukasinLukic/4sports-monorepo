@@ -1,9 +1,10 @@
 import express from 'express';
-import { protect } from '../middleware/authMiddleware';
+import { protect, restrictTo } from '../middleware/authMiddleware';
 import {
   createPayment,
   getClubPayments,
   getMemberPayments,
+  getMyPayments,
   markPaymentPaid,
 } from '../controllers/paymentController';
 
@@ -22,6 +23,13 @@ router.post('/', protect, createPayment);
  * @access  Protected (OWNER, COACH)
  */
 router.get('/club', protect, getClubPayments);
+
+/**
+ * @route   GET /api/payments/me
+ * @desc    Get own payments (for MEMBER role)
+ * @access  Protected (MEMBER)
+ */
+router.get('/me', protect, restrictTo(['MEMBER']), getMyPayments);
 
 /**
  * @route   GET /api/payments/member/:memberId

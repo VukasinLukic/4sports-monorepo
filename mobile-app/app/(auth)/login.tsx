@@ -45,6 +45,8 @@ export default function LoginScreen() {
 
       if (userRole === 'COACH' || userRole === 'OWNER') {
         router.replace('/(coach)');
+      } else if (userRole === 'MEMBER') {
+        router.replace('/(member)');
       } else if (userRole === 'PARENT') {
         router.replace('/(parent)');
       } else {

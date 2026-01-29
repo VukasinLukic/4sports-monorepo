@@ -60,6 +60,9 @@ export default function SplashScreen() {
       } else if (userRole === 'PARENT') {
         console.log('Navigating to parent screens');
         router.replace('/(parent)');
+      } else if (userRole === 'MEMBER') {
+        console.log('Navigating to member screens');
+        router.replace('/(member)');
       } else {
         // Unknown role, go to login
         console.log('Unknown role:', userRole, '- navigating to login');

@@ -7,6 +7,7 @@ import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import AccountSwitcher from '@/components/AccountSwitcher';
 import api from '@/services/api';
 import { Member, PaymentStatus } from '@/types';
 
@@ -24,6 +25,7 @@ export default function ParentProfile() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(isRegistered);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -216,6 +218,16 @@ export default function ParentProfile() {
         />
         <Divider />
         <List.Item
+          title="Switch Account"
+          description="Manage multiple accounts"
+          left={props => <List.Icon {...props} icon="account-switch" color={Colors.text} />}
+          right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
+          titleStyle={styles.menuItemTitle}
+          descriptionStyle={styles.menuItemDescription}
+          onPress={() => setShowAccountSwitcher(true)}
+        />
+        <Divider />
+        <List.Item
           title="Push Notifications"
           description={notificationsEnabled ? 'Enabled' : 'Disabled'}
           left={props => <List.Icon {...props} icon="bell-outline" color={Colors.text} />}
@@ -255,6 +267,16 @@ export default function ParentProfile() {
 
       {/* App Version */}
       <Text style={styles.versionText}>4Sports v1.0.0</Text>
+
+      {/* Account Switcher Modal */}
+      <AccountSwitcher
+        visible={showAccountSwitcher}
+        onClose={() => setShowAccountSwitcher(false)}
+        onAccountSwitch={() => {
+          // Navigate to appropriate screen based on role
+          router.replace('/');
+        }}
+      />
     </ScrollView>
   );
 }

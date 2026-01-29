@@ -12,6 +12,7 @@ interface InviteInfo {
   clubName: string;
   groupName?: string;
   role: string;
+  type?: string; // Original invite type from backend
 }
 
 export default function RegisterScreen() {
@@ -109,12 +110,16 @@ export default function RegisterScreen() {
 
     try {
       // Role is determined by the invite code type on the backend
-      const determinedRole = inviteInfo?.role === 'COACH' ? UserRole.COACH : UserRole.PARENT;
+      // COACH type -> COACH role, MEMBER type -> MEMBER role
+      const inviteType = inviteInfo?.type || inviteInfo?.role;
+      const determinedRole = inviteType === 'COACH' ? UserRole.COACH : UserRole.MEMBER;
       await register(email, password, fullName, phoneNumber, determinedRole, inviteCode);
       // Navigate directly based on role to avoid race conditions
       console.log('Registration successful, navigating based on role:', determinedRole);
       if (determinedRole === UserRole.COACH || determinedRole === UserRole.OWNER) {
         router.replace('/(coach)');
+      } else if (determinedRole === UserRole.MEMBER) {
+        router.replace('/(member)');
       } else {
         router.replace('/(parent)');
       }

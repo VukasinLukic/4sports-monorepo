@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { getAuth } from '../config/firebase';
 import User from '../models/User';
 import Club from '../models/Club';
+import Member from '../models/Member';
 import InviteCode from '../models/InviteCode';
 import { validateInviteCode } from './inviteController';
 
@@ -107,8 +108,8 @@ export const register = async (
 
       // Derive role from invite type
       // COACH invite type → COACH role
-      // MEMBER invite type → PARENT role
-      role = invite.type === 'COACH' ? 'COACH' : 'PARENT';
+      // MEMBER invite type → MEMBER role (self-registered member)
+      role = invite.type === 'COACH' ? 'COACH' : 'MEMBER';
 
       // Get club info
       const club = await Club.findById(invite.clubId);
@@ -124,8 +125,8 @@ export const register = async (
 
       clubName = club.name;
 
-      // Check if club has space for new members (PARENT only)
-      if (role === 'PARENT') {
+      // Check if club has space for new members (MEMBER only)
+      if (role === 'MEMBER') {
         if (!club.canAddMembers(1)) {
           return res.status(400).json({
             success: false,
@@ -189,7 +190,30 @@ export const register = async (
     }
 
     // ========================================
-    // 7. INCREMENT INVITE CODE USAGE (if COACH/PARENT)
+    // 6.5 CREATE MEMBER ENTITY (if MEMBER)
+    // ========================================
+    let memberId = null;
+    if (role === 'MEMBER' && clubId && groupId) {
+      const newMember = await Member.create({
+        fullName,
+        userId: newUser._id, // Link to user account
+        clubs: [
+          {
+            clubId,
+            groupId,
+            joinedAt: new Date(),
+            status: 'ACTIVE',
+          },
+        ],
+      });
+      memberId = newMember._id;
+
+      // Increment club member count
+      await Club.findByIdAndUpdate(clubId, { $inc: { currentMembers: 1 } });
+    }
+
+    // ========================================
+    // 7. INCREMENT INVITE CODE USAGE (if COACH/MEMBER)
     // ========================================
     if (role !== 'OWNER' && inviteCode) {
       const validation = await validateInviteCode(inviteCode);
@@ -215,7 +239,8 @@ export const register = async (
           createdAt: newUser.createdAt,
         },
         clubName, // Club name for display
-        groupId, // Group ID for PARENT to add children to
+        groupId, // Group ID for reference
+        memberId, // Member ID for MEMBER role users
         token: firebaseToken, // Return same Firebase token
       },
       message: 'User registered successfully',

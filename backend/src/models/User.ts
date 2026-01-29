@@ -11,7 +11,7 @@ export interface IUser extends Document {
   fullName: string;
   phoneNumber?: string;
   profileImage?: string;
-  role: 'OWNER' | 'COACH' | 'PARENT';
+  role: 'OWNER' | 'COACH' | 'PARENT' | 'MEMBER';
   clubId: mongoose.Types.ObjectId;
   pushToken?: string;
   createdAt: Date;
@@ -86,7 +86,7 @@ const userSchema = new Schema<IUser, IUserModel>(
       type: String,
       required: [true, 'Role is required'],
       enum: {
-        values: ['OWNER', 'COACH', 'PARENT'],
+        values: ['OWNER', 'COACH', 'PARENT', 'MEMBER'],
         message: '{VALUE} is not a valid role',
       },
     },
@@ -161,6 +161,7 @@ userSchema.methods.hasPermission = function (requiredRole: string): boolean {
     OWNER: 3,
     COACH: 2,
     PARENT: 1,
+    MEMBER: 1, // Same level as PARENT
   };
 
   return (

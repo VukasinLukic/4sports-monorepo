@@ -4,6 +4,13 @@ import { auth } from './firebase';
 import { loginWithEmail, registerWithEmail, logout as logoutUser } from './auth';
 import api from './api';
 import { User, UserRole } from '@/types';
+import {
+  StoredAccount,
+  getStoredAccounts,
+  addOrUpdateAccount,
+  removeAccount,
+  setCurrentAccountId,
+} from './accountManager';
 
 interface AuthContextType {
   user: User | null;
@@ -21,7 +28,11 @@ interface AuthContextType {
     inviteCode: string
   ) => Promise<void>;
   logout: () => Promise<void>;
+  logoutFromCurrentOnly: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  getStoredAccounts: () => Promise<StoredAccount[]>;
+  switchAccount: (email: string, password: string) => Promise<User>;
+  removeStoredAccount: (id: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -135,6 +146,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setError(null);
         setLoading(false);
         setIsInitialized(true);
+
+        // Save account to storage for account switching
+        await addOrUpdateAccount({
+          id: userCredential.user.uid,
+          email: userData.email,
+          fullName: userData.fullName,
+          role: userData.role,
+          profileImage: userData.profilePicture,
+          lastUsed: Date.now(),
+        });
+        await setCurrentAccountId(userCredential.user.uid);
+
         return userData;
       } else {
         throw new Error('User profile not found in backend');
@@ -225,6 +248,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
       setIsInitialized(true);
 
+      // Save account to storage for account switching
+      await addOrUpdateAccount({
+        id: userCredential.user.uid,
+        email: userData.email,
+        fullName: userData.fullName,
+        role: userData.role,
+        profileImage: userData.profilePicture,
+        lastUsed: Date.now(),
+      });
+      await setCurrentAccountId(userCredential.user.uid);
+
     } catch (error: any) {
       console.error('Registration error:', error);
       setError(error.message || 'Registration failed');
@@ -261,6 +295,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [fetchUserDetails]);
 
+  // Logout from current account only (keep in stored accounts)
+  const logoutFromCurrentOnly = useCallback(async (): Promise<void> => {
+    try {
+      await logoutUser();
+      setUser(null);
+      setFirebaseUser(null);
+      setError(null);
+      console.log('Logout from current account successful');
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      setUser(null);
+      setFirebaseUser(null);
+      throw error;
+    }
+  }, []);
+
+  // Get all stored accounts
+  const getStoredAccountsList = useCallback(async (): Promise<StoredAccount[]> => {
+    return await getStoredAccounts();
+  }, []);
+
+  // Switch to another account
+  const switchAccount = useCallback(async (email: string, password: string): Promise<User> => {
+    // First logout from current account
+    await logoutFromCurrentOnly();
+
+    // Then login with new credentials
+    return await login(email, password);
+  }, [logoutFromCurrentOnly, login]);
+
+  // Remove a stored account
+  const removeStoredAccount = useCallback(async (id: string): Promise<void> => {
+    await removeAccount(id);
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo<AuthContextType>(() => ({
     user,
@@ -271,8 +340,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
+    logoutFromCurrentOnly,
     refreshUser,
-  }), [user, firebaseUser, loading, error, isInitialized, login, register, logout, refreshUser]);
+    getStoredAccounts: getStoredAccountsList,
+    switchAccount,
+    removeStoredAccount,
+  }), [user, firebaseUser, loading, error, isInitialized, login, register, logout, logoutFromCurrentOnly, refreshUser, getStoredAccountsList, switchAccount, removeStoredAccount]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

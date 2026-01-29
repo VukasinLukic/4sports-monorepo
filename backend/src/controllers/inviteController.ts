@@ -372,7 +372,8 @@ export const validateInviteCodePublic = async (req: Request, res: Response) => {
     }
 
     // Map invite type to user role
-    const role = inviteCode.type === 'COACH' ? 'COACH' : 'PARENT';
+    // COACH type -> COACH role, MEMBER type -> MEMBER role
+    const role = inviteCode.type === 'COACH' ? 'COACH' : 'MEMBER';
 
     // Return club/group info for registration display
     return res.status(200).json({

@@ -40,13 +40,17 @@ export const eventReminderJob = cron.schedule('0 * * * *', async () => {
       const members = await Member.find({
         'clubs.clubId': event.clubId,
         'clubs.groups': event.groupId,
-      }).select('parentId');
+      }).select('parentId userId');
 
       // Create notification for each member
       for (const member of members) {
+        // Use userId for self-registered members, parentId for children
+        const recipientId = member.userId || member.parentId;
+        if (!recipientId) continue;
+
         await Notification.createNotification({
           clubId: event.clubId,
-          recipientId: member.parentId,
+          recipientId,
           type: 'EVENT_REMINDER',
           title: `Upcoming Event: ${event.title}`,
           message: `Reminder: ${event.title} starts tomorrow at ${event.startTime.toLocaleTimeString()}. Location: ${event.location || 'TBD'}`,
@@ -90,13 +94,15 @@ export const paymentReminderJob = cron.schedule('0 9 * * *', async () => {
     for (const payment of overduePayments) {
       const member = payment.memberId as any;
 
-      if (!member || !member.parentId) {
+      // Use userId for self-registered members, parentId for children
+      const recipientId = member?.userId || member?.parentId;
+      if (!member || !recipientId) {
         continue;
       }
 
       await Notification.createNotification({
         clubId: payment.clubId,
-        recipientId: member.parentId,
+        recipientId,
         type: 'PAYMENT_DUE',
         title: 'Payment Overdue',
         message: `Your payment for ${payment.description} is overdue. Amount: ${payment.amount} ${payment.currency}. Due date was ${payment.dueDate.toLocaleDateString()}.`,
@@ -141,7 +147,9 @@ export const medicalCheckExpiryJob = cron.schedule('0 8 * * *', async () => {
     for (const check of expiringChecks) {
       const member = check.memberId as any;
 
-      if (!member || !member.parentId) {
+      // Use userId for self-registered members, parentId for children
+      const recipientId = member?.userId || member?.parentId;
+      if (!member || !recipientId) {
         continue;
       }
 
@@ -156,7 +164,7 @@ export const medicalCheckExpiryJob = cron.schedule('0 8 * * *', async () => {
 
       await Notification.createNotification({
         clubId: clubId,
-        recipientId: member.parentId,
+        recipientId,
         type: 'MEDICAL_EXPIRY',
         title: 'Medical Certificate Expiring Soon',
         message: `Your medical certificate will expire in ${daysUntilExpiry} days (${check.validUntil.toLocaleDateString()}). Please renew it before it expires.`,

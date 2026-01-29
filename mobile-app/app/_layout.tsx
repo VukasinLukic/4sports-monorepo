@@ -79,6 +79,7 @@ export default function RootLayout() {
                   <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                   <Stack.Screen name="(coach)" options={{ headerShown: false }} />
                   <Stack.Screen name="(parent)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(member)" options={{ headerShown: false }} />
                   <Stack.Screen name="profile" options={{ headerShown: false }} />
                 </Stack>
               </View>

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Attendance from '../models/Attendance';
 import Event from '../models/Event';
+import Member from '../models/Member';
 
 export const markAttendance = async (req: Request, res: Response) => {
   try {
@@ -57,6 +58,29 @@ export const getMemberAttendance = async (req: Request, res: Response) => {
     return res.status(200).json({ success: true, data: { attendance, attendanceRate: rate } });
   } catch (error: any) {
     console.error('❌ Get Member Attendance Error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch attendance' } });
+  }
+};
+
+/**
+ * Get own attendance (for MEMBER role users)
+ */
+export const getMyAttendance = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+
+    // Find member linked to this user
+    const member = await Member.findOne({ userId: req.user._id });
+    if (!member) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member profile not found' } });
+    }
+
+    const attendance = await Attendance.findByMember(member._id);
+    const rate = await Attendance.getAttendanceRate(member._id);
+
+    return res.status(200).json({ success: true, data: { attendance, attendanceRate: rate } });
+  } catch (error: any) {
+    console.error('❌ Get My Attendance Error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch attendance' } });
   }
 };

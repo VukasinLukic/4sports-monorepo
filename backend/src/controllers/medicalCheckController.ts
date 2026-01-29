@@ -23,8 +23,11 @@ export const createMedicalCheck = async (req: Request, res: Response) => {
     const member = await Member.findById(memberId);
     if (!member) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found' } });
 
-    // Check if user has access (parent or club staff)
-    if (req.user.role === 'PARENT' && member.parentId.toString() !== req.user._id.toString()) {
+    // Check if user has access (parent, member, or club staff)
+    if (req.user.role === 'PARENT' && (!member.parentId || member.parentId.toString() !== req.user._id.toString())) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
+    }
+    if (req.user.role === 'MEMBER' && (!member.userId || member.userId.toString() !== req.user._id.toString())) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
     }
 
@@ -63,7 +66,10 @@ export const getMemberMedicalChecks = async (req: Request, res: Response) => {
     if (!member) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found' } });
 
     // Check access
-    if (req.user.role === 'PARENT' && member.parentId.toString() !== req.user._id.toString()) {
+    if (req.user.role === 'PARENT' && (!member.parentId || member.parentId.toString() !== req.user._id.toString())) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
+    }
+    if (req.user.role === 'MEMBER' && (!member.userId || member.userId.toString() !== req.user._id.toString())) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
     }
 

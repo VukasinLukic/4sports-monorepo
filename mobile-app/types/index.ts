@@ -3,6 +3,7 @@ export enum UserRole {
   OWNER = 'OWNER',
   COACH = 'COACH',
   PARENT = 'PARENT',
+  MEMBER = 'MEMBER',
 }
 
 // Event Types
@@ -70,16 +71,25 @@ export interface Group {
 // Member Interface
 export interface Member {
   _id: string;
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
   fullName: string;
-  dateOfBirth: string;
-  age: number;
-  clubId: string;
-  groupId: string;
-  parentId: string;
-  qrCode: string;
+  dateOfBirth?: string; // Optional for self-registered members
+  age?: number | null;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  clubId?: string;
+  groupId?: string | { _id: string; name: string; ageGroup?: string; color?: string };
+  parentId?: string; // For child members
+  userId?: string;   // For self-registered members (MEMBER role)
+  clubs?: Array<{
+    clubId: string | { _id: string; name: string };
+    groupId: string | { _id: string; name: string; ageGroup?: string; color?: string };
+    status: 'ACTIVE' | 'INACTIVE';
+    joinedAt: string;
+  }>;
+  qrCode?: string;
   profilePicture?: string;
+  profileImage?: string;
   height?: number;
   weight?: number;
   position?: string;
@@ -87,6 +97,19 @@ export interface Member {
   medicalCheckStatus: 'VALID' | 'EXPIRED' | 'EXPIRING_SOON';
   medicalCheckExpiryDate?: string;
   lastPaymentDate?: string;
+  medicalInfo?: {
+    bloodType?: string;
+    allergies?: string;
+    medications?: string;
+    conditions?: string;
+    lastCheckDate?: string;
+    expiryDate?: string;
+  };
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phoneNumber: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -242,7 +265,7 @@ export interface InviteCode {
     name: string;
     ageGroup?: string;
   };
-  type: 'COACH' | 'MEMBER'; // COACH → COACH role, MEMBER → PARENT role
+  type: 'COACH' | 'MEMBER'; // COACH → COACH role, MEMBER → MEMBER role
   maxUses: number;
   usedCount: number;
   isActive: boolean;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { Text, Card, Avatar, ActivityIndicator } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,20 +7,20 @@ import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
 import api from '@/services/api';
-import { Member, PaymentStatus } from '@/types';
+import { PaymentStatus, Member } from '@/types';
 
-export default function ParentHome() {
+export default function MemberHome() {
   const { user } = useAuth();
-  const [children, setChildren] = useState<Member[]>([]);
+  const [member, setMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
 
   const fetchData = useCallback(async () => {
     try {
-      // Fetch parent's children
-      const childrenResponse = await api.get('/members/my-children');
-      setChildren(childrenResponse.data.data || []);
+      // Fetch member's own profile
+      const memberResponse = await api.get('/members/me');
+      setMember(memberResponse.data.data);
 
       // Fetch upcoming events count
       try {
@@ -30,17 +30,13 @@ export default function ParentHome() {
         setUpcomingEventsCount(0);
       }
     } catch (error) {
-      console.error('Error fetching parent data:', error);
-      setChildren([]);
+      console.error('Error fetching member data:', error);
+      setMember(null);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   useFocusEffect(
     useCallback(() => {
@@ -79,8 +75,14 @@ export default function ParentHome() {
     }
   };
 
-  const navigateToMember = (memberId: string) => {
-    router.push(`/(parent)/member/${memberId}`);
+  const getInitials = (name?: string) => {
+    if (!name) return '??';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   if (isLoading) {
@@ -91,6 +93,21 @@ export default function ParentHome() {
       </View>
     );
   }
+
+  const paymentInfo = member ? getPaymentStatusInfo(member.paymentStatus) : null;
+  const medicalInfo = member ? getMedicalStatusInfo(member.medicalCheckStatus) : null;
+
+  // Get group name from member
+  const getGroupName = () => {
+    if (!member?.clubs || member.clubs.length === 0) return 'Not assigned';
+    const activeClub = member.clubs.find(c => c.status === 'ACTIVE');
+    if (!activeClub) return 'Not assigned';
+    const groupId = activeClub.groupId;
+    if (typeof groupId === 'object' && groupId?.name) {
+      return groupId.name;
+    }
+    return 'Unknown';
+  };
 
   return (
     <ScrollView
@@ -107,18 +124,44 @@ export default function ParentHome() {
       {/* Welcome Section */}
       <View style={styles.welcomeSection}>
         <Text style={styles.greeting}>Welcome back,</Text>
-        <Text style={styles.userName}>{user?.fullName || 'Parent'}</Text>
+        <Text style={styles.userName}>{user?.fullName || member?.fullName || 'Member'}</Text>
       </View>
+
+      {/* Profile Card */}
+      {member && (
+        <Card style={styles.profileCard}>
+          <Card.Content style={styles.profileContent}>
+            <Avatar.Text
+              size={70}
+              label={getInitials(member.fullName)}
+              style={styles.avatar}
+            />
+            <View style={styles.profileInfo}>
+              <Text style={styles.memberName}>{member.fullName}</Text>
+              <Text style={styles.memberGroup}>{getGroupName()}</Text>
+              {member.age && <Text style={styles.memberAge}>Age: {member.age}</Text>}
+              <View style={styles.badgeRow}>
+                {paymentInfo && (
+                  <View style={[styles.badge, { backgroundColor: paymentInfo.color + '20' }]}>
+                    <MaterialCommunityIcons name={paymentInfo.icon} size={12} color={paymentInfo.color} />
+                    <Text style={[styles.badgeText, { color: paymentInfo.color }]}>{paymentInfo.label}</Text>
+                  </View>
+                )}
+                {medicalInfo && (
+                  <View style={[styles.badge, { backgroundColor: medicalInfo.color + '20' }]}>
+                    <MaterialCommunityIcons name="medical-bag" size={12} color={medicalInfo.color} />
+                    <Text style={[styles.badgeText, { color: medicalInfo.color }]}>{medicalInfo.label}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </Card.Content>
+        </Card>
+      )}
 
       {/* Quick Info Card */}
       <Card style={styles.infoCard}>
         <Card.Content style={styles.infoContent}>
-          <View style={styles.infoItem}>
-            <MaterialCommunityIcons name="account-child" size={24} color={Colors.primary} />
-            <Text style={styles.infoNumber}>{children.length}</Text>
-            <Text style={styles.infoLabel}>Children</Text>
-          </View>
-          <View style={styles.infoDivider} />
           <View style={styles.infoItem}>
             <MaterialCommunityIcons name="calendar-today" size={24} color={Colors.info} />
             <Text style={styles.infoNumber}>{upcomingEventsCount}</Text>
@@ -131,7 +174,7 @@ export default function ParentHome() {
       <View style={styles.quickActionsRow}>
         <TouchableOpacity
           style={styles.quickAction}
-          onPress={() => router.push('/(parent)/payments')}
+          onPress={() => router.push('/(member)/payments')}
         >
           <View style={[styles.quickActionIcon, { backgroundColor: Colors.success + '20' }]}>
             <MaterialCommunityIcons name="cash-multiple" size={24} color={Colors.success} />
@@ -141,7 +184,7 @@ export default function ParentHome() {
 
         <TouchableOpacity
           style={styles.quickAction}
-          onPress={() => router.push('/(parent)/attendance')}
+          onPress={() => router.push('/(member)/attendance')}
         >
           <View style={[styles.quickActionIcon, { backgroundColor: Colors.info + '20' }]}>
             <MaterialCommunityIcons name="calendar-check" size={24} color={Colors.info} />
@@ -151,70 +194,14 @@ export default function ParentHome() {
 
         <TouchableOpacity
           style={styles.quickAction}
-          onPress={() => router.push('/(parent)/scan')}
+          onPress={() => router.push('/(member)/events')}
         >
           <View style={[styles.quickActionIcon, { backgroundColor: Colors.primary + '20' }]}>
-            <MaterialCommunityIcons name="qrcode-scan" size={24} color={Colors.primary} />
+            <MaterialCommunityIcons name="calendar" size={24} color={Colors.primary} />
           </View>
-          <Text style={styles.quickActionText}>Check In</Text>
+          <Text style={styles.quickActionText}>Events</Text>
         </TouchableOpacity>
       </View>
-
-      {/* My Children Section */}
-      <Text style={styles.sectionTitle}>My Children</Text>
-
-      {children.length === 0 ? (
-        <Card style={styles.emptyCard}>
-          <Card.Content style={styles.emptyContent}>
-            <MaterialCommunityIcons name="account-child-circle" size={64} color={Colors.textSecondary} />
-            <Text style={styles.emptyTitle}>No Children Added</Text>
-            <Text style={styles.emptyText}>
-              Your children will appear here once they are registered by your club's coach
-            </Text>
-          </Card.Content>
-        </Card>
-      ) : (
-        children.map((child) => {
-          const paymentInfo = getPaymentStatusInfo(child.paymentStatus);
-          const medicalInfo = getMedicalStatusInfo(child.medicalCheckStatus);
-
-          return (
-            <TouchableOpacity
-              key={child._id}
-              onPress={() => navigateToMember(child._id)}
-              activeOpacity={0.7}
-            >
-              <Card style={styles.childCard}>
-                <Card.Content style={styles.childContent}>
-                  <Avatar.Text
-                    size={60}
-                    label={child.fullName?.split(' ').map(n => n[0]).join('').slice(0, 2) || '??'}
-                    style={styles.childAvatar}
-                  />
-                  <View style={styles.childInfo}>
-                    <Text style={styles.childName}>{child.fullName}</Text>
-                    <Text style={styles.childMeta}>Age: {child.age}</Text>
-                    <View style={styles.badgeRow}>
-                      <View style={[styles.badge, { backgroundColor: paymentInfo.color + '20' }]}>
-                        <MaterialCommunityIcons name={paymentInfo.icon} size={12} color={paymentInfo.color} />
-                        <Text style={[styles.badgeText, { color: paymentInfo.color }]}>{paymentInfo.label}</Text>
-                      </View>
-                      <View style={[styles.badge, { backgroundColor: medicalInfo.color + '20' }]}>
-                        <MaterialCommunityIcons name="medical-bag" size={12} color={medicalInfo.color} />
-                        <Text style={[styles.badgeText, { color: medicalInfo.color }]}>{medicalInfo.label}</Text>
-                      </View>
-                    </View>
-                  </View>
-                  <View style={styles.qrButton}>
-                    <MaterialCommunityIcons name="qrcode" size={32} color={Colors.primary} />
-                    <Text style={styles.qrText}>QR</Text>
-                  </View>
-                </Card.Content>
-              </Card>
-            </TouchableOpacity>
-          );
-        })
-      )}
 
       {/* Upcoming Events Preview */}
       <Text style={styles.sectionTitle}>Upcoming Events</Text>
@@ -276,13 +263,60 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.text,
   },
+  profileCard: {
+    backgroundColor: Colors.surface,
+    marginBottom: Spacing.lg,
+  },
+  profileContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    backgroundColor: Colors.primary,
+  },
+  profileInfo: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  memberName: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  memberGroup: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  memberAge: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+    gap: 4,
+  },
+  badgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: '500',
+  },
   infoCard: {
     backgroundColor: Colors.surface,
     marginBottom: Spacing.lg,
   },
   infoContent: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: Spacing.md,
   },
@@ -298,11 +332,6 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
-  },
-  infoDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: Colors.border,
   },
   quickActionsRow: {
     flexDirection: 'row',
@@ -332,81 +361,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: Spacing.md,
     marginTop: Spacing.sm,
-  },
-  emptyCard: {
-    backgroundColor: Colors.surface,
-    marginBottom: Spacing.md,
-  },
-  emptyContent: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-  },
-  emptyTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
-    color: Colors.text,
-    marginTop: Spacing.md,
-  },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
-  },
-  childCard: {
-    backgroundColor: Colors.surface,
-    marginBottom: Spacing.md,
-  },
-  childContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  childAvatar: {
-    backgroundColor: Colors.primary,
-  },
-  childInfo: {
-    flex: 1,
-    marginLeft: Spacing.md,
-  },
-  childName: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  childMeta: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    marginTop: Spacing.sm,
-    gap: Spacing.xs,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-    gap: 4,
-  },
-  badgeText: {
-    fontSize: FontSize.xs,
-    fontWeight: '500',
-  },
-  qrButton: {
-    alignItems: 'center',
-    padding: Spacing.sm,
-    backgroundColor: Colors.primary + '10',
-    borderRadius: BorderRadius.md,
-  },
-  qrText: {
-    fontSize: FontSize.xs,
-    color: Colors.primary,
-    fontWeight: '600',
-    marginTop: 2,
   },
   eventPreviewCard: {
     backgroundColor: Colors.surface,
