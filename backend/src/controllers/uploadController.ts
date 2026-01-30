@@ -39,7 +39,7 @@ export const uploadProfilePicture = async (req: Request, res: Response) => {
       });
     }
 
-    // Upload to Firebase Storage
+    // Upload to Cloudinary
     const fileUrl = await uploadFile(req.file.buffer, req.file.originalname, 'profiles', req.file.mimetype);
 
     // Update user profile picture
@@ -142,7 +142,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
       });
     }
 
-    // Upload to Firebase Storage
+    // Upload to Cloudinary
     const fileUrl = await uploadFile(req.file.buffer, req.file.originalname, 'documents', req.file.mimetype);
 
     return res.status(200).json({

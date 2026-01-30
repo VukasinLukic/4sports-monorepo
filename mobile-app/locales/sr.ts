@@ -471,6 +471,7 @@ export default {
     deactivate: 'Deaktiviraj',
     generateDescription: 'Generišite pozivni kod koji novi članovi mogu koristiti za registraciju u vašem klubu.',
     shareInviteDescription: 'Podelite ovaj kod sa novim članovima da bi se pridružili vašem klubu.',
+    existingCodes: "Postojeći pozivni kodovi",
   },
 
   // Medical

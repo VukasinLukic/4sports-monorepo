@@ -1,75 +1,86 @@
-import { storage } from '../config/firebase';
+import cloudinary from '../config/cloudinary';
 import { randomUUID } from 'crypto';
 
 /**
- * Upload a file to Firebase Storage
+ * Upload a file to Cloudinary
  * @param file - File buffer
  * @param fileName - Original file name
  * @param folder - Storage folder (e.g., 'profiles', 'posts', 'documents')
- * @param contentType - MIME type
+ * @param _contentType - MIME type (unused - Cloudinary auto-detects)
  * @returns Public URL of the uploaded file
  */
 export const uploadFile = async (
   file: Buffer,
   fileName: string,
   folder: string,
-  contentType: string
+  _contentType: string
 ): Promise<string> => {
   try {
-    const bucket = storage.bucket();
-    const uniqueFileName = `${folder}/${randomUUID()}-${fileName}`;
-    const fileUpload = bucket.file(uniqueFileName);
+    // Create a unique public_id for the file
+    const publicId = `${folder}/${randomUUID()}-${fileName.replace(/\.[^/.]+$/, '')}`;
 
-    await fileUpload.save(file, {
-      metadata: {
-        contentType,
-      },
-      public: true,
+    // Upload to Cloudinary
+    const result = await new Promise<any>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          public_id: publicId,
+          folder: folder,
+          resource_type: 'auto', // Automatically detect resource type
+          overwrite: false,
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+
+      // Write buffer to stream
+      uploadStream.end(file);
     });
 
-    // Generate public URL
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${uniqueFileName}`;
-    return publicUrl;
+    // Return secure URL
+    return result.secure_url;
   } catch (error: any) {
-    console.error('❌ Firebase Upload Error:', error);
+    console.error('❌ Cloudinary Upload Error:', error);
     throw new Error('File upload failed');
   }
 };
 
 /**
- * Delete a file from Firebase Storage
+ * Delete a file from Cloudinary
  * @param fileUrl - Public URL of the file
  */
 export const deleteFile = async (fileUrl: string): Promise<void> => {
   try {
-    const bucket = storage.bucket();
-    const fileName = extractFileNameFromUrl(fileUrl, bucket.name);
+    const publicId = extractPublicIdFromUrl(fileUrl);
 
-    if (!fileName) {
+    if (!publicId) {
       throw new Error('Invalid file URL');
     }
 
-    const file = bucket.file(fileName);
-    await file.delete();
+    // Determine resource type from URL
+    const resourceType = fileUrl.includes('/image/') ? 'image' :
+                        fileUrl.includes('/video/') ? 'video' :
+                        fileUrl.includes('/raw/') ? 'raw' : 'image';
+
+    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
   } catch (error: any) {
-    console.error('❌ Firebase Delete Error:', error);
+    console.error('❌ Cloudinary Delete Error:', error);
     throw new Error('File deletion failed');
   }
 };
 
 /**
- * Extract file name from Firebase Storage URL
+ * Extract public_id from Cloudinary URL
  * @param url - Public URL of the file
- * @param bucketName - Firebase Storage bucket name
- * @returns File name in storage
+ * @returns Public ID in Cloudinary
  */
-const extractFileNameFromUrl = (url: string, bucketName: string): string | null => {
+const extractPublicIdFromUrl = (url: string): string | null => {
   try {
-    const prefix = `https://storage.googleapis.com/${bucketName}/`;
-    if (url.startsWith(prefix)) {
-      return url.replace(prefix, '');
-    }
-    return null;
+    // Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/v{version}/{public_id}.{format}
+    const regex = /\/upload\/(?:v\d+\/)?(.+)\.[^.]+$/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
   } catch (error) {
     return null;
   }

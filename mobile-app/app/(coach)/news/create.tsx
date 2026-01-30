@@ -8,7 +8,6 @@ import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
-import { Group } from '@/types';
 
 interface SelectedImage {
   uri: string;
@@ -18,27 +17,10 @@ interface SelectedImage {
 
 export default function CreatePostScreen() {
   const { t } = useLanguage();
+  const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
-
-  useEffect(() => {
-    fetchGroups();
-  }, []);
-
-  const fetchGroups = async () => {
-    try {
-      const response = await api.get('/groups');
-      setGroups(response.data.data || []);
-    } catch (error) {
-      console.error('Error fetching groups:', error);
-    } finally {
-      setIsLoadingGroups(false);
-    }
-  };
 
   const pickImages = async () => {
     try {
@@ -54,15 +36,15 @@ export default function CreatePostScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
-        quality: 0.8,
+        quality: 0.7, // Reduce quality to ensure smaller file sizes
         selectionLimit: 5,
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        const newImages: SelectedImage[] = result.assets.map(asset => ({
+        const newImages: SelectedImage[] = result.assets.map((asset, index) => ({
           uri: asset.uri,
           type: asset.mimeType || 'image/jpeg',
-          name: asset.fileName || `image_${Date.now()}.jpg`,
+          name: asset.fileName || `image_${Date.now()}_${index}.jpg`,
         }));
 
         // Limit to 5 images total
@@ -80,6 +62,14 @@ export default function CreatePostScreen() {
   };
 
   const validateForm = (): boolean => {
+    if (!title.trim()) {
+      Alert.alert(t('common.error'), 'Please enter a title for your post.');
+      return false;
+    }
+    if (title.trim().length > 200) {
+      Alert.alert(t('common.error'), 'Title must be less than 200 characters.');
+      return false;
+    }
     if (!content.trim()) {
       Alert.alert(t('common.error'), t('validation.enterContent') || 'Please enter some content for your post.');
       return false;
@@ -88,37 +78,53 @@ export default function CreatePostScreen() {
       Alert.alert(t('common.error'), t('validation.contentMinLength') || 'Post content must be at least 3 characters.');
       return false;
     }
+    if (content.trim().length > 5000) {
+      Alert.alert(t('common.error'), 'Content must be less than 5000 characters.');
+      return false;
+    }
     return true;
   };
 
   const uploadImages = async (): Promise<string[]> => {
     if (selectedImages.length === 0) return [];
 
-    const uploadedUrls: string[] = [];
+    try {
+      const formData = new FormData();
 
-    for (const image of selectedImages) {
-      try {
-        const formData = new FormData();
-        formData.append('file', {
+      // Append all images with correct React Native format
+      selectedImages.forEach((image) => {
+        // React Native FormData expects this specific format
+        const imageFile = {
           uri: image.uri,
           name: image.name,
           type: image.type,
-        } as any);
+        };
 
-        const response = await api.post('/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        // @ts-ignore - React Native FormData typing
+        formData.append('images', imageFile);
+      });
 
-        if (response.data.data?.url) {
-          uploadedUrls.push(response.data.data.url);
-        }
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        // Continue with other images
+      console.log('Uploading images:', selectedImages.length);
+
+      const response = await api.post('/upload/post-images', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('Upload response:', response.data);
+
+      if (response.data.data?.urls) {
+        return response.data.data.urls;
       }
-    }
 
-    return uploadedUrls;
+      return [];
+    } catch (error: any) {
+      console.error('Error uploading images:', error);
+      console.error('Error response:', error.response?.data);
+      Alert.alert(t('common.error'), 'Failed to upload images. Post will be created without images.');
+      return [];
+    }
   };
 
   const handleSubmit = async () => {
@@ -126,27 +132,41 @@ export default function CreatePostScreen() {
 
     setIsLoading(true);
     try {
-      // Upload images first
-      let mediaUrls: string[] = [];
+      // Upload images first if any are selected
+      let imageUrls: string[] = [];
       if (selectedImages.length > 0) {
-        mediaUrls = await uploadImages();
+        console.log('Attempting to upload images...');
+        try {
+          imageUrls = await uploadImages();
+          console.log('Images uploaded successfully:', imageUrls);
+        } catch (uploadError) {
+          console.error('Image upload failed, continuing without images:', uploadError);
+          // Continue without images instead of failing the entire post
+        }
       }
 
-      // Create post
-      await api.post('/posts', {
+      console.log('Creating post...');
+      // Create post with correct API structure
+      const postData = {
+        title: title.trim(),
         content: content.trim(),
-        groupId: selectedGroupId || undefined,
-        mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
-      });
+        images: imageUrls,
+        visibility: 'MEMBERS_ONLY',
+        type: 'NEWS',
+      };
+
+      console.log('Post data:', postData);
+      await api.post('/posts', postData);
 
       Alert.alert(t('common.success'), t('news.postSuccess') || 'Post created successfully!', [
         { text: t('common.ok'), onPress: () => router.back() },
       ]);
     } catch (error: any) {
       console.error('Error creating post:', error);
+      console.error('Error details:', error.response?.data);
       Alert.alert(
         t('common.error'),
-        error.response?.data?.message || t('news.postFailed') || 'Failed to create post. Please try again.'
+        error.response?.data?.error?.message || error.response?.data?.message || t('news.postFailed') || 'Failed to create post. Please try again.'
       );
     } finally {
       setIsLoading(false);
@@ -155,38 +175,23 @@ export default function CreatePostScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Group Selection */}
-      <Text style={styles.label}>{t('news.postToGroup')} ({t('common.optional')})</Text>
-      {isLoadingGroups ? (
-        <ActivityIndicator size="small" color={Colors.primary} />
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.groupScroll}>
-          <View style={styles.groupContainer}>
-            <Chip
-              selected={selectedGroupId === null}
-              onPress={() => setSelectedGroupId(null)}
-              style={styles.groupChip}
-              selectedColor={Colors.primary}
-            >
-              {t('news.allMembers')}
-            </Chip>
-            {groups.map(group => (
-              <Chip
-                key={group._id}
-                selected={selectedGroupId === group._id}
-                onPress={() => setSelectedGroupId(group._id)}
-                style={styles.groupChip}
-                selectedColor={Colors.primary}
-              >
-                {group.name}
-              </Chip>
-            ))}
-          </View>
-        </ScrollView>
-      )}
+      {/* Title */}
+      <Text style={styles.label}>{t('news.postTitle')} *</Text>
+      <TextInput
+        value={title}
+        onChangeText={setTitle}
+        placeholder="Enter post title..."
+        mode="outlined"
+        maxLength={200}
+        style={styles.input}
+        outlineColor={Colors.border}
+        activeOutlineColor={Colors.primary}
+        textColor={Colors.text}
+        placeholderTextColor={Colors.textSecondary}
+      />
 
       {/* Content */}
-      <Text style={styles.label}>{t('news.whatsOnYourMind')} *</Text>
+      <Text style={styles.label}>{t('news.postContent')} *</Text>
       <TextInput
         value={content}
         onChangeText={setContent}
@@ -194,6 +199,7 @@ export default function CreatePostScreen() {
         mode="outlined"
         multiline
         numberOfLines={6}
+        maxLength={5000}
         style={[styles.input, styles.textArea]}
         outlineColor={Colors.border}
         activeOutlineColor={Colors.primary}
@@ -240,9 +246,7 @@ export default function CreatePostScreen() {
         <Card.Content style={styles.infoContent}>
           <MaterialCommunityIcons name="information" size={20} color={Colors.info} />
           <Text style={styles.infoText}>
-            {selectedGroupId
-              ? t('news.visibleToGroup')
-              : t('news.visibleToAll')}
+            {t('news.visibleToAll')}
           </Text>
         </Card.Content>
       </Card>
@@ -252,7 +256,7 @@ export default function CreatePostScreen() {
         mode="contained"
         onPress={handleSubmit}
         loading={isLoading}
-        disabled={isLoading || !content.trim()}
+        disabled={isLoading || !title.trim() || !content.trim()}
         style={styles.submitButton}
         icon="send"
         buttonColor={Colors.primary}

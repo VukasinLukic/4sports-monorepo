@@ -387,14 +387,9 @@ export const getCurrentUser = async (
     }
 
     // ========================================
-    // 2. FETCH USER WITH POPULATED DATA
+    // 2. FETCH USER DATA
     // ========================================
-    const user = await User.findById(req.user._id)
-      .populate(
-        'clubId',
-        'name subscriptionPlan memberLimit currentMembers address phoneNumber email'
-      )
-      .select('-__v');
+    const user = await User.findById(req.user._id).select('-__v').lean();
 
     if (!user) {
       return res.status(404).json({
@@ -406,12 +401,26 @@ export const getCurrentUser = async (
       });
     }
 
+    // Convert MongoDB ObjectId to string for frontend
+    const userData = {
+      ...user,
+      _id: user._id.toString(),
+      clubId: user.clubId ? user.clubId.toString() : undefined,
+    };
+
+    console.log('📤 Returning user data:', {
+      _id: userData._id,
+      email: userData.email,
+      clubId: userData.clubId,
+      clubIdType: typeof userData.clubId
+    });
+
     // ========================================
     // 3. RETURN SUCCESS RESPONSE
     // ========================================
     return res.status(200).json({
       success: true,
-      data: user,
+      data: userData,
     });
   } catch (error: any) {
     console.error('❌ Get Current User Error:', error);

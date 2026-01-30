@@ -63,7 +63,7 @@ export default function PostCard({
   };
 
   const handleNextImage = () => {
-    if (post.mediaUrls && currentImageIndex < post.mediaUrls.length - 1) {
+    if (post.images && currentImageIndex < post.images.length - 1) {
       setCurrentImageIndex(prev => prev + 1);
     }
   };
@@ -74,7 +74,7 @@ export default function PostCard({
     }
   };
 
-  const hasMultipleImages = post.mediaUrls && post.mediaUrls.length > 1;
+  const hasMultipleImages = post.images && post.images.length > 1;
 
   return (
     <Card style={styles.card} onPress={() => onPress?.(post)}>
@@ -92,14 +92,17 @@ export default function PostCard({
           </View>
         </View>
 
+        {/* Title */}
+        {post.title && <Text style={styles.postTitle}>{post.title}</Text>}
+
         {/* Content */}
         <Text style={styles.postContent}>{post.content}</Text>
 
         {/* Media */}
-        {post.mediaUrls && post.mediaUrls.length > 0 && (
+        {post.images && post.images.length > 0 && (
           <View style={styles.mediaContainer}>
             <Image
-              source={{ uri: post.mediaUrls[currentImageIndex] }}
+              source={{ uri: post.images[currentImageIndex] }}
               style={styles.media}
               resizeMode="cover"
             />
@@ -115,7 +118,7 @@ export default function PostCard({
                     <MaterialCommunityIcons name="chevron-left" size={24} color={Colors.text} />
                   </TouchableOpacity>
                 )}
-                {currentImageIndex < post.mediaUrls.length - 1 && (
+                {currentImageIndex < post.images.length - 1 && (
                   <TouchableOpacity
                     style={[styles.imageNavButton, styles.imageNavRight]}
                     onPress={handleNextImage}
@@ -126,7 +129,7 @@ export default function PostCard({
 
                 {/* Image Indicators */}
                 <View style={styles.imageIndicators}>
-                  {post.mediaUrls.map((_, index) => (
+                  {post.images.map((_, index) => (
                     <View
                       key={index}
                       style={[
@@ -213,6 +216,13 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  postTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.xs,
   },
   postContent: {
     fontSize: FontSize.md,

@@ -227,10 +227,14 @@ export interface MedicalCheck {
 export interface Post {
   _id: string;
   clubId: string;
-  groupId?: string;
   authorId: string;
+  title: string;
   content: string;
-  mediaUrls: string[];
+  images: string[];
+  visibility: 'PUBLIC' | 'MEMBERS_ONLY' | 'PARENTS_ONLY' | 'COACHES_ONLY';
+  type: 'ANNOUNCEMENT' | 'NEWS' | 'EVENT' | 'ACHIEVEMENT' | 'OTHER';
+  tags?: string[];
+  isPinned?: boolean;
   likesCount: number;
   commentsCount: number;
   createdAt: string;

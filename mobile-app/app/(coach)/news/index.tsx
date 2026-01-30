@@ -8,7 +8,7 @@ import { Spacing, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import PostCard from '@/components/PostCard';
 import api from '@/services/api';
-import { Post, Group } from '@/types';
+import { Post } from '@/types';
 
 interface PostWithAuthor extends Post {
   author?: {
@@ -21,31 +21,13 @@ interface PostWithAuthor extends Post {
 export default function CoachNewsFeed() {
   const { t } = useLanguage();
   const [posts, setPosts] = useState<PostWithAuthor[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      // Fetch posts
-      const params: Record<string, string> = {};
-      if (selectedGroupId) {
-        params.groupId = selectedGroupId;
-      }
-
-      const postsResponse = await api.get('/posts', { params });
+      const postsResponse = await api.get('/posts');
       setPosts(postsResponse.data.data || []);
-
-      // Fetch groups for filter
-      if (groups.length === 0) {
-        try {
-          const groupsResponse = await api.get('/groups');
-          setGroups(groupsResponse.data.data || []);
-        } catch {
-          // Groups might not be available
-        }
-      }
     } catch (error) {
       console.error('Error fetching news feed:', error);
       setPosts([]);
@@ -53,7 +35,7 @@ export default function CoachNewsFeed() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [selectedGroupId, groups.length]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -108,29 +90,6 @@ export default function CoachNewsFeed() {
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.title}>{t('news.title') || 'News Feed'}</Text>
-
-      {/* Group Filter */}
-      {groups.length > 0 && (
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={[{ _id: null, name: t('groups.allGroups') || 'All Groups' }, ...groups]}
-          keyExtractor={(item) => item._id || 'all'}
-          style={styles.filterList}
-          contentContainerStyle={styles.filterContainer}
-          renderItem={({ item }) => (
-            <Chip
-              selected={selectedGroupId === item._id}
-              onPress={() => setSelectedGroupId(item._id)}
-              style={styles.filterChip}
-              textStyle={styles.filterChipText}
-              selectedColor={Colors.primary}
-            >
-              {item.name}
-            </Chip>
-          )}
-        />
-      )}
     </View>
   );
 

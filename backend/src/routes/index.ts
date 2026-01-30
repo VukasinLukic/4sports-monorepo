@@ -15,6 +15,7 @@ import dashboardRoutes from './dashboardRoutes';
 import coachRoutes from './coachRoutes';
 import settingsRoutes from './settingsRoutes';
 import evidenceRoutes from './evidenceRoutes';
+import clubRoutes from './clubRoutes';
 
 /**
  * Main Router
@@ -40,11 +41,11 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/coaches', coachRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/evidence', evidenceRoutes);
+router.use('/clubs', clubRoutes);
 
 /**
  * Future Routes (Phase 3+)
  */
-// router.use('/clubs', clubRoutes);
 // router.use('/users', userRoutes);
 // router.use('/invites', inviteRoutes);
 // router.use('/groups', groupRoutes);

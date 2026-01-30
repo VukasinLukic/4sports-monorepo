@@ -7,7 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { connectDB } from './config/db';
-import { initializeFirebase } from './config/firebase';
+import './config/cloudinary'; // Initialize Cloudinary
 import { startScheduler } from './services/schedulerService';
 import routes from './routes';
 
@@ -98,8 +98,7 @@ const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
 
-    // Initialize Firebase Admin SDK
-    initializeFirebase();
+    // Cloudinary is initialized on import
 
     // Start scheduled jobs
     startScheduler();

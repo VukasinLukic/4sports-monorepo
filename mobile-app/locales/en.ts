@@ -468,6 +468,7 @@ export default {
     deactivate: 'Deactivate',
     generateDescription: 'Generate an invite code that new members can use to register for your club.',
     shareInviteDescription: 'Share this code with new members to join your club.',
+    existingCodes: "Existing Invite Codes",
   },
 
   // Medical
