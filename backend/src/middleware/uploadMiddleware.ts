@@ -55,3 +55,9 @@ export const uploadProfilePicture = upload.single('profilePicture');
  * Max count: 5 images
  */
 export const uploadPostImages = upload.array('images', 5);
+
+/**
+ * Chat images upload middleware
+ * Field name: 'file' (single image)
+ */
+export const uploadChatImage = upload.single('file');

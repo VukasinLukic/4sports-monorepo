@@ -3,12 +3,14 @@ import { protect } from '../middleware/authMiddleware';
 import {
   uploadProfilePicture as uploadProfilePictureController,
   uploadPostImages as uploadPostImagesController,
+  uploadChatImage as uploadChatImageController,
   uploadDocument,
   deleteUploadedFile,
 } from '../controllers/uploadController';
 import {
   uploadProfilePicture as uploadProfilePictureMiddleware,
   uploadPostImages as uploadPostImagesMiddleware,
+  uploadChatImage as uploadChatImageMiddleware,
   uploadSingle,
 } from '../middleware/uploadMiddleware';
 
@@ -33,6 +35,14 @@ router.post('/profile-picture', protect, uploadProfilePictureMiddleware, uploadP
  * @body    FormData with 'images' files (max 5)
  */
 router.post('/post-images', protect, uploadPostImagesMiddleware, uploadPostImagesController);
+
+/**
+ * @route   POST /api/upload/chat-images
+ * @desc    Upload a single image for chat
+ * @access  Protected (All authenticated users)
+ * @body    FormData with 'file'
+ */
+router.post('/chat-images', protect, uploadChatImageMiddleware, uploadChatImageController);
 
 /**
  * @route   POST /api/upload/document

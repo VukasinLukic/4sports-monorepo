@@ -39,7 +39,8 @@
       "Bash(wc:*)",
       "Bash(timeout:*)",
       "Bash(netstat:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(del \"c:\\\\Users\\\\Nemanja\\\\Desktop\\\\4sports-monorepo\\\\mobile-app\\\\config\\\\firebase.ts\")"
     ],
     "deny": [],
     "ask": []

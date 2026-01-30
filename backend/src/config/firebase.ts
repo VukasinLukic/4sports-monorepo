@@ -63,6 +63,28 @@ export const getStorage = () => {
 };
 
 /**
+ * Get Firebase Firestore instance
+ * @returns Firebase Firestore instance
+ */
+export const getFirestore = () => {
+  if (admin.apps.length === 0) {
+    throw new Error('Firebase Admin not initialized');
+  }
+  return admin.firestore();
+};
+
+/**
+ * Get Firebase Cloud Messaging instance
+ * @returns Firebase Cloud Messaging instance
+ */
+export const getMessaging = () => {
+  if (admin.apps.length === 0) {
+    throw new Error('Firebase Admin not initialized');
+  }
+  return admin.messaging();
+};
+
+/**
  * Export storage getter (for compatibility)
  */
 let storageInstance: any = null;
