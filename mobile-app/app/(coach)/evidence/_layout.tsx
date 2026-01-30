@@ -5,18 +5,11 @@ export default function EvidenceLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.background },
-        headerTintColor: Colors.text,
-        headerTitleStyle: { fontWeight: '600' },
+        headerShown: false,
         contentStyle: { backgroundColor: Colors.background },
       }}
     >
-      <Stack.Screen
-        name="index"
-        options={{
-          title: 'Evidence',
-        }}
-      />
+      <Stack.Screen name="index" />
     </Stack>
   );
 }

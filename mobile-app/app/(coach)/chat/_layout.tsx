@@ -29,7 +29,7 @@ export default function ChatLayout() {
       <Stack.Screen
         name="new"
         options={{
-          title: 'New Conversation',
+          title: 'Nova poruka',
           presentation: 'modal',
         }}
       />

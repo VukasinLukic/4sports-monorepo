@@ -14,19 +14,19 @@ export default function GroupsLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Groups',
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="[id]"
         options={{
-          title: 'Group Details',
+          title: 'Detalji grupe',
         }}
       />
       <Stack.Screen
         name="form"
         options={{
-          title: 'Group',
+          title: 'Grupa',
           presentation: 'modal',
         }}
       />
