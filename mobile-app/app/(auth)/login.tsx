@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Image,
+} from 'react-native';
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import { Link, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/services/AuthContext';
 import { useLanguage } from '@/services/LanguageContext';
 import { getAuthErrorMessage } from '@/services/auth';
-import { UserRole } from '@/types';
 import { AppColors, Spacing, FontSize, BorderRadius } from '@/constants';
 
 export default function LoginScreen() {
-  const { login, loading, user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { login, loading } = useAuth();
   const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,7 +49,6 @@ export default function LoginScreen() {
 
     try {
       const loggedInUser = await login(email, password);
-      // Navigate directly based on role to avoid race conditions
       const userRole = loggedInUser.role?.toUpperCase();
       console.log('Login successful, navigating based on role:', userRole);
 
@@ -52,12 +59,12 @@ export default function LoginScreen() {
       } else if (userRole === 'PARENT') {
         router.replace('/(parent)');
       } else {
-        // Fallback to home which will figure it out
         router.replace('/');
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      const errorMessage = error.message || getAuthErrorMessage(error.code || 'unknown');
+      const errorMessage =
+        error.message || getAuthErrorMessage(error.code || 'unknown');
       setError(errorMessage);
     }
   };
@@ -68,12 +75,20 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + Spacing.xl },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <Text style={styles.logo}>4SPORTS</Text>
-          <Text style={styles.subtitle}>{t('auth.welcomeBack')}</Text>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/Logo 4sports.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoText}>4sports</Text>
         </View>
 
         <View style={styles.form}>
@@ -92,7 +107,12 @@ export default function LoginScreen() {
             style={styles.input}
             outlineColor={AppColors.border}
             activeOutlineColor={AppColors.primary}
-            theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
+            theme={{
+              colors: {
+                text: AppColors.text,
+                placeholder: AppColors.textSecondary,
+              },
+            }}
           />
           {emailError && (
             <HelperText type="error" visible={emailError}>
@@ -115,7 +135,12 @@ export default function LoginScreen() {
             style={styles.input}
             outlineColor={AppColors.border}
             activeOutlineColor={AppColors.primary}
-            theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
+            theme={{
+              colors: {
+                text: AppColors.text,
+                placeholder: AppColors.textSecondary,
+              },
+            }}
             right={
               <TextInput.Icon
                 icon={showPassword ? 'eye-off' : 'eye'}
@@ -153,7 +178,7 @@ export default function LoginScreen() {
           {/* Register Link */}
           <View style={styles.linkContainer}>
             <Text style={styles.linkText}>{t('auth.noAccount')} </Text>
-            <Link href="/(auth)/register" asChild>
+            <Link href="/(auth)/invite-code" asChild>
               <Text style={styles.link}>{t('auth.register')}</Text>
             </Link>
           </View>
@@ -173,20 +198,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Spacing.lg,
   },
-  header: {
+  logoContainer: {
     alignItems: 'center',
     marginBottom: Spacing.xxl,
   },
   logo: {
-    fontSize: FontSize.xxxl * 1.5,
-    fontWeight: 'bold',
-    color: AppColors.primary,
-    letterSpacing: 2,
-    marginBottom: Spacing.sm,
+    width: 240,
+    height: 120,
   },
-  subtitle: {
-    fontSize: FontSize.lg,
-    color: AppColors.textSecondary,
+  logoText: {
+    fontSize: FontSize.xxl,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: Spacing.sm,
+    letterSpacing: 1,
   },
   form: {
     width: '100%',
@@ -224,7 +249,7 @@ const styles = StyleSheet.create({
   linkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: Spacing.lg,
+    marginTop: Spacing.xl,
   },
   linkText: {
     color: AppColors.textSecondary,

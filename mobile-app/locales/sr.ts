@@ -142,9 +142,11 @@ export default {
     completed: 'Završeno',
     paid: 'Plaćeno',
     unpaid: 'Neplaćeno',
+    notPaid: 'Nije plaćeno',
     partial: 'Delimično',
     overdue: 'Dospelo',
     valid: 'Važeći',
+    invalid: 'Nije važeći',
     expired: 'Istekao',
     expiring: 'Ističe uskoro',
     present: 'Prisutan',
@@ -640,6 +642,25 @@ export default {
     medicalUpdated: 'lekarski ažuriran',
     failedToUpdateMedical: 'Ažuriranje lekarskog nije uspelo',
     noMembersInGroup: 'Nema članova u ovoj grupi',
+  },
+
+  // Reminders
+  reminders: {
+    paymentSent: 'Podsetnik za uplatu je poslat',
+    medicalSent: 'Podsetnik za lekarski je poslat',
+    failedToSend: 'Slanje podsetnika nije uspelo',
+    sentTo: 'Podsetnik poslat',
+    members: 'članova',
+    confirmTitle: 'Potvrda',
+    confirmAllMessage: 'Da li želite da pošaljete podsetnike svim članovima koji nisu platili/uradili lekarski?',
+    remindAllGroups: 'Podseti sve grupe',
+  },
+
+  // Time
+  time: {
+    today: 'Danas',
+    yesterday: 'Juče',
+    daysAgo: 'dana',
   },
 
   // Confirmation dialogs

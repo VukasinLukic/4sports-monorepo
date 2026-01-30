@@ -1,33 +1,38 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Text, TextInput, Button, HelperText, Card } from 'react-native-paper';
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Image,
+} from 'react-native';
+import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import { Link, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { getApiErrorMessage } from '@/services/api';
 import { useLanguage } from '@/services/LanguageContext';
+import { LanguageSelector } from '@/components/LanguagePicker';
 import { AppColors, Spacing, FontSize, BorderRadius } from '@/constants';
 
-interface InviteCodeValidation {
-  isValid: boolean;
-  clubName?: string;
+interface InviteValidation {
+  clubName: string;
+  clubLogo?: string;
   groupName?: string;
-  role?: string;
+  role: string;
 }
 
 export default function InviteCodeScreen() {
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validation, setValidation] = useState<InviteCodeValidation | null>(null);
 
-  const inviteCodeError = inviteCode && inviteCode.trim().length < 3;
-
-  const handleValidate = async () => {
+  const handleContinue = async () => {
     setError(null);
-    setValidation(null);
 
-    // Validate input
-    if (!inviteCode || inviteCodeError) {
+    if (!inviteCode || inviteCode.trim().length < 3) {
       setError(t('validation.inviteCodeRequired'));
       return;
     }
@@ -35,37 +40,28 @@ export default function InviteCodeScreen() {
     try {
       setLoading(true);
 
-      // Call backend API to validate invite code
+      // Validate invite code
       const response = await api.get(`/invites/validate/${inviteCode.trim()}`);
+      const data = response.data.data;
 
-      console.log('Invite code validation response:', response.data);
-
-      // Set validation result
-      setValidation({
-        isValid: true,
-        clubName: response.data.data.clubName,
-        groupName: response.data.data.groupName,
-        role: response.data.data.role,
+      // Navigate to register with invite data
+      router.push({
+        pathname: '/(auth)/register',
+        params: {
+          inviteCode: inviteCode.trim(),
+          clubName: data.clubName || data.club?.name,
+          clubLogo: data.clubLogo || data.club?.logo || '',
+          groupName: data.groupName || data.group?.name || '',
+          role: data.role,
+        },
       });
-
-      setLoading(false);
     } catch (error: any) {
       console.error('Invite code validation error:', error);
       const errorMessage = getApiErrorMessage(error);
       setError(errorMessage || t('auth.invalidInviteCode'));
-      setValidation({
-        isValid: false,
-      });
+    } finally {
       setLoading(false);
     }
-  };
-
-  const handleContinue = () => {
-    // Navigate to register screen with invite code pre-filled
-    router.push({
-      pathname: '/(auth)/register',
-      params: { inviteCode: inviteCode.trim() },
-    });
   };
 
   return (
@@ -74,17 +70,23 @@ export default function InviteCodeScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <Text style={styles.logo}>4SPORTS</Text>
-          <Text style={styles.subtitle}>{t('auth.enterInviteCode')}</Text>
-          <Text style={styles.description}>
-            {t('auth.inviteCodeDescription')}
-          </Text>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/Logo 4sports.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoText}>4sports</Text>
         </View>
 
+        {/* Form */}
         <View style={styles.form}>
           {/* Invite Code Input */}
           <TextInput
@@ -93,18 +95,18 @@ export default function InviteCodeScreen() {
             onChangeText={setInviteCode}
             mode="outlined"
             autoCapitalize="characters"
-            error={!!inviteCodeError}
+            autoFocus
             disabled={loading}
             style={styles.input}
             outlineColor={AppColors.border}
             activeOutlineColor={AppColors.primary}
-            theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
+            theme={{
+              colors: {
+                text: AppColors.text,
+                placeholder: AppColors.textSecondary,
+              },
+            }}
           />
-          {inviteCodeError && (
-            <HelperText type="error" visible={inviteCodeError}>
-              {t('validation.inviteCodeRequired')}
-            </HelperText>
-          )}
 
           {/* Error Message */}
           {error && (
@@ -113,80 +115,18 @@ export default function InviteCodeScreen() {
             </View>
           )}
 
-          {/* Validation Result - Valid */}
-          {validation && validation.isValid && (
-            <Card style={styles.validCard}>
-              <Card.Content>
-                <Text style={styles.validTitle}>✓ {t('common.success')}</Text>
-                {validation.clubName && (
-                  <Text style={styles.infoText}>{t('profile.club')}: {validation.clubName}</Text>
-                )}
-                {validation.groupName && (
-                  <Text style={styles.infoText}>{t('groups.group')}: {validation.groupName}</Text>
-                )}
-                {validation.role && (
-                  <Text style={styles.infoText}>{t('roles.' + validation.role.toLowerCase())}</Text>
-                )}
-              </Card.Content>
-            </Card>
-          )}
-
-          {/* Validation Result - Invalid */}
-          {validation && !validation.isValid && (
-            <Card style={styles.invalidCard}>
-              <Card.Content>
-                <Text style={styles.invalidTitle}>✗ {t('auth.invalidInviteCode')}</Text>
-                <Text style={styles.infoText}>
-                  {t('common.retry')}
-                </Text>
-              </Card.Content>
-            </Card>
-          )}
-
-          {/* Validate Button */}
-          {!validation && (
-            <Button
-              mode="contained"
-              onPress={handleValidate}
-              loading={loading}
-              disabled={loading || !!inviteCodeError || !inviteCode}
-              style={styles.button}
-              contentStyle={styles.buttonContent}
-              labelStyle={styles.buttonLabel}
-            >
-              {loading ? t('common.loading') : t('common.confirm')}
-            </Button>
-          )}
-
           {/* Continue Button */}
-          {validation && validation.isValid && (
-            <Button
-              mode="contained"
-              onPress={handleContinue}
-              style={styles.button}
-              contentStyle={styles.buttonContent}
-              labelStyle={styles.buttonLabel}
-            >
-              {t('auth.continueWithCode')}
-            </Button>
-          )}
-
-          {/* Try Again Button */}
-          {validation && !validation.isValid && (
-            <Button
-              mode="outlined"
-              onPress={() => {
-                setValidation(null);
-                setError(null);
-                setInviteCode('');
-              }}
-              style={styles.outlineButton}
-              contentStyle={styles.buttonContent}
-              labelStyle={styles.outlineButtonLabel}
-            >
-              {t('common.retry')}
-            </Button>
-          )}
+          <Button
+            mode="contained"
+            onPress={handleContinue}
+            loading={loading}
+            disabled={loading || !inviteCode.trim()}
+            style={styles.button}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+          >
+            {loading ? t('common.loading') : t('common.continue')}
+          </Button>
 
           {/* Login Link */}
           <View style={styles.linkContainer}>
@@ -195,6 +135,11 @@ export default function InviteCodeScreen() {
               <Text style={styles.link}>{t('auth.login')}</Text>
             </Link>
           </View>
+        </View>
+
+        {/* Language Selector at bottom */}
+        <View style={styles.languageContainer}>
+          <LanguageSelector />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -211,26 +156,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Spacing.lg,
   },
-  header: {
+  logoContainer: {
     alignItems: 'center',
     marginBottom: Spacing.xxl,
   },
   logo: {
-    fontSize: FontSize.xxxl * 1.5,
+    width: 240,
+    height: 120,
+  },
+  logoText: {
+    fontSize: FontSize.xxl,
     fontWeight: 'bold',
-    color: AppColors.primary,
-    letterSpacing: 2,
-    marginBottom: Spacing.sm,
-  },
-  subtitle: {
-    fontSize: FontSize.lg,
-    color: AppColors.text,
-    marginBottom: Spacing.sm,
-  },
-  description: {
-    fontSize: FontSize.sm,
-    color: AppColors.textSecondary,
-    textAlign: 'center',
+    color: '#FFFFFF',
+    marginTop: Spacing.sm,
+    letterSpacing: 1,
   },
   form: {
     width: '100%',
@@ -253,43 +192,9 @@ const styles = StyleSheet.create({
     color: AppColors.error,
     fontSize: FontSize.sm,
   },
-  validCard: {
-    backgroundColor: AppColors.success + '20',
-    marginVertical: Spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: AppColors.success,
-  },
-  validTitle: {
-    color: AppColors.success,
-    fontSize: FontSize.lg,
-    fontWeight: 'bold',
-    marginBottom: Spacing.sm,
-  },
-  invalidCard: {
-    backgroundColor: AppColors.error + '20',
-    marginVertical: Spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: AppColors.error,
-  },
-  invalidTitle: {
-    color: AppColors.error,
-    fontSize: FontSize.lg,
-    fontWeight: 'bold',
-    marginBottom: Spacing.sm,
-  },
-  infoText: {
-    color: AppColors.text,
-    fontSize: FontSize.md,
-    marginTop: Spacing.xs,
-  },
   button: {
     marginTop: Spacing.lg,
     backgroundColor: AppColors.primary,
-    borderRadius: BorderRadius.sm,
-  },
-  outlineButton: {
-    marginTop: Spacing.lg,
-    borderColor: AppColors.primary,
     borderRadius: BorderRadius.sm,
   },
   buttonContent: {
@@ -299,15 +204,10 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: 'bold',
   },
-  outlineButtonLabel: {
-    fontSize: FontSize.md,
-    fontWeight: 'bold',
-    color: AppColors.primary,
-  },
   linkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: Spacing.lg,
+    marginTop: Spacing.xl,
   },
   linkText: {
     color: AppColors.textSecondary,
@@ -317,5 +217,9 @@ const styles = StyleSheet.create({
     color: AppColors.primary,
     fontSize: FontSize.md,
     fontWeight: 'bold',
+  },
+  languageContainer: {
+    alignItems: 'center',
+    marginTop: Spacing.xxl,
   },
 });

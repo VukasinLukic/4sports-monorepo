@@ -139,9 +139,11 @@ export default {
     completed: 'Completed',
     paid: 'Paid',
     unpaid: 'Unpaid',
+    notPaid: 'Not Paid',
     partial: 'Partial',
     overdue: 'Overdue',
     valid: 'Valid',
+    invalid: 'Invalid',
     expired: 'Expired',
     expiring: 'Expiring Soon',
     present: 'Present',
@@ -637,6 +639,25 @@ export default {
     medicalUpdated: 'medical updated',
     failedToUpdateMedical: 'Failed to update medical info',
     noMembersInGroup: 'No members in this group',
+  },
+
+  // Reminders
+  reminders: {
+    paymentSent: 'Payment reminder sent',
+    medicalSent: 'Medical reminder sent',
+    failedToSend: 'Failed to send reminder',
+    sentTo: 'Reminder sent to',
+    members: 'members',
+    confirmTitle: 'Confirm',
+    confirmAllMessage: 'Do you want to send reminders to all members who have not paid/completed medical?',
+    remindAllGroups: 'Remind All Groups',
+  },
+
+  // Time
+  time: {
+    today: 'Today',
+    yesterday: 'Yesterday',
+    daysAgo: 'days ago',
   },
 
   // Confirmation dialogs

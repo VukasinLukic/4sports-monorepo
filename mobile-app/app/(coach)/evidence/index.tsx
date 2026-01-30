@@ -2,20 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
-  FlatList,
+  ScrollView,
   RefreshControl,
   TouchableOpacity,
   Alert,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import {
   Text,
-  Card,
+  Searchbar,
   ActivityIndicator,
-  Chip,
   Avatar,
-  Button,
-  Menu,
-  SegmentedButtons,
+  Checkbox,
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -23,135 +23,112 @@ import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
-import { Group } from '@/types';
+import { Group, Member } from '@/types';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type EvidenceTab = 'membership' | 'medical';
 
-interface MembershipEvidence {
-  memberId: string;
-  memberName: string;
-  profileImage?: string;
-  group?: {
-    _id: string;
-    name: string;
-    color?: string;
-  };
-  period: {
-    month: number;
-    year: number;
-  };
-  status: 'PAID' | 'PENDING' | 'OVERDUE' | 'NOT_CREATED';
-  payment?: {
-    _id: string;
-    amount: number;
-    dueDate: string;
-    paidDate?: string;
-    status: string;
-  };
+interface GroupWithMembers extends Group {
+  members: MemberWithStatus[];
+  paidCount: number;
+  totalCount: number;
 }
 
-interface MedicalEvidence {
-  memberId: string;
-  memberName: string;
-  profileImage?: string;
-  group?: {
-    _id: string;
-    name: string;
-    color?: string;
-  };
-  medicalInfo: {
-    lastCheckDate?: string;
-    expiryDate?: string;
-    bloodType?: string;
-  };
-  status: 'VALID' | 'EXPIRING_SOON' | 'EXPIRED' | 'NOT_SET';
-}
-
-interface EvidenceStats {
-  total: number;
-  paid?: number;
-  pending?: number;
-  overdue?: number;
-  notCreated?: number;
-  valid?: number;
-  expiringSoon?: number;
-  expired?: number;
-  notSet?: number;
+interface MemberWithStatus extends Member {
+  isPaid: boolean;
+  isValidMedical: boolean;
+  lastActive?: string;
 }
 
 export default function EvidenceScreen() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<EvidenceTab>('membership');
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [menuVisible, setMenuVisible] = useState(false);
-
-  // Membership state
-  const [membershipEvidence, setMembershipEvidence] = useState<MembershipEvidence[]>([]);
-  const [membershipStats, setMembershipStats] = useState<EvidenceStats | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showMonthFilter, setShowMonthFilter] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  // Medical state
-  const [medicalEvidence, setMedicalEvidence] = useState<MedicalEvidence[]>([]);
-  const [medicalStats, setMedicalStats] = useState<EvidenceStats | null>(null);
-
+  const [groupsWithMembers, setGroupsWithMembers] = useState<GroupWithMembers[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
 
-  const fetchGroups = useCallback(async () => {
-    try {
-      const response = await api.get('/groups');
-      setGroups(response.data.data || []);
-    } catch (error) {
-      console.error('Error fetching groups:', error);
-    }
-  }, []);
-
-  const fetchMembershipEvidence = useCallback(async () => {
-    try {
-      const params: any = {
-        month: selectedMonth,
-        year: selectedYear,
-      };
-      if (selectedGroup) {
-        params.groupId = selectedGroup._id;
-      }
-
-      const response = await api.get('/evidence/membership', { params });
-      setMembershipEvidence(response.data.data.evidence || []);
-      setMembershipStats(response.data.data.stats || null);
-    } catch (error) {
-      console.error('Error fetching membership evidence:', error);
-    }
-  }, [selectedGroup, selectedMonth, selectedYear]);
-
-  const fetchMedicalEvidence = useCallback(async () => {
-    try {
-      const params: any = {};
-      if (selectedGroup) {
-        params.groupId = selectedGroup._id;
-      }
-
-      const response = await api.get('/evidence/medical', { params });
-      setMedicalEvidence(response.data.data.evidence || []);
-      setMedicalStats(response.data.data.stats || null);
-    } catch (error) {
-      console.error('Error fetching medical evidence:', error);
-    }
-  }, [selectedGroup]);
+  // Overall stats
+  const totalPaid = groupsWithMembers.reduce((sum, g) => sum + g.paidCount, 0);
+  const totalMembers = groupsWithMembers.reduce((sum, g) => sum + g.totalCount, 0);
+  const progressPercent = totalMembers > 0 ? (totalPaid / totalMembers) * 100 : 0;
 
   const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    await fetchGroups();
-    if (activeTab === 'membership') {
-      await fetchMembershipEvidence();
-    } else {
-      await fetchMedicalEvidence();
+    try {
+      // Fetch groups
+      const groupsResponse = await api.get('/groups');
+      const groups: Group[] = groupsResponse.data.data || [];
+
+      // Fetch members for each group with payment/medical status
+      const groupsWithData: GroupWithMembers[] = await Promise.all(
+        groups.map(async (group) => {
+          try {
+            // Fetch members of the group
+            const membersResponse = await api.get(`/members?groupId=${group._id}`);
+            const members: Member[] = membersResponse.data.data || [];
+
+            // Fetch evidence for this group
+            const evidenceParams = activeTab === 'membership'
+              ? { groupId: group._id, month: selectedMonth, year: selectedYear }
+              : { groupId: group._id };
+
+            const evidenceResponse = await api.get(
+              `/evidence/${activeTab === 'membership' ? 'membership' : 'medical'}`,
+              { params: evidenceParams }
+            );
+            const evidenceData = evidenceResponse.data.data.evidence || [];
+
+            // Map members with their status
+            const membersWithStatus: MemberWithStatus[] = members.map((member) => {
+              const evidence = evidenceData.find((e: any) => e.memberId === member._id);
+              return {
+                ...member,
+                isPaid: evidence?.status === 'PAID',
+                isValidMedical: evidence?.status === 'VALID',
+                lastActive: member.updatedAt,
+              };
+            });
+
+            const paidCount = activeTab === 'membership'
+              ? membersWithStatus.filter(m => m.isPaid).length
+              : membersWithStatus.filter(m => m.isValidMedical).length;
+
+            return {
+              ...group,
+              members: membersWithStatus,
+              paidCount,
+              totalCount: members.length,
+            };
+          } catch (error) {
+            console.error(`Error fetching data for group ${group._id}:`, error);
+            return {
+              ...group,
+              members: [],
+              paidCount: 0,
+              totalCount: 0,
+            };
+          }
+        })
+      );
+
+      setGroupsWithMembers(groupsWithData);
+    } catch (error) {
+      console.error('Error fetching evidence data:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
-    setIsLoading(false);
-    setIsRefreshing(false);
-  }, [activeTab, fetchGroups, fetchMembershipEvidence, fetchMedicalEvidence]);
+  }, [activeTab, selectedMonth, selectedYear]);
 
   useEffect(() => {
     fetchData();
@@ -162,85 +139,151 @@ export default function EvidenceScreen() {
     fetchData();
   };
 
-  const handleMarkAsPaid = async (member: MembershipEvidence) => {
-    try {
-      await api.post(`/evidence/membership/${member.memberId}`, {
-        month: selectedMonth,
-        year: selectedYear,
-        paymentMethod: 'CASH',
-      });
-      Alert.alert(t('common.success'), `${member.memberName} ${t('evidence.markedAsPaid')}`);
-      fetchMembershipEvidence();
-    } catch (error) {
-      console.error('Error marking as paid:', error);
-      Alert.alert(t('common.error'), t('evidence.failedToMarkPaid'));
-    }
-  };
-
-  const handleUpdateMedical = async (member: MedicalEvidence) => {
-    // Calculate expiry date 1 year from now
-    const expiryDate = new Date();
-    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-
-    try {
-      await api.post(`/evidence/medical/${member.memberId}`, {
-        lastCheckDate: new Date().toISOString(),
-        expiryDate: expiryDate.toISOString(),
-      });
-      Alert.alert(t('common.success'), `${member.memberName} ${t('evidence.medicalUpdated')}`);
-      fetchMedicalEvidence();
-    } catch (error) {
-      console.error('Error updating medical:', error);
-      Alert.alert(t('common.error'), t('evidence.failedToUpdateMedical'));
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PAID':
-      case 'VALID':
-        return Colors.success;
-      case 'PENDING':
-      case 'EXPIRING_SOON':
-        return Colors.warning;
-      case 'OVERDUE':
-      case 'EXPIRED':
-        return Colors.error;
-      default:
-        return Colors.textSecondary;
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'PAID':
-        return t('status.paid');
-      case 'PENDING':
-        return t('status.pending');
-      case 'OVERDUE':
-        return t('status.overdue');
-      case 'NOT_CREATED':
-        return t('status.notCreated');
-      case 'VALID':
-        return t('status.valid');
-      case 'EXPIRING_SOON':
-        return t('status.expiring');
-      case 'EXPIRED':
-        return t('status.expired');
-      case 'NOT_SET':
-        return t('status.notSet');
-      default:
-        return status;
-    }
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('sr-RS', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+  const toggleGroupExpanded = (groupId: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
     });
+  };
+
+  const handleMarkMember = async (member: MemberWithStatus) => {
+    const actionKey = `mark-${member._id}`;
+    if (loadingActions.has(actionKey)) return;
+
+    setLoadingActions(prev => new Set(prev).add(actionKey));
+
+    try {
+      if (activeTab === 'membership') {
+        await api.post(`/evidence/membership/${member._id}`, {
+          month: selectedMonth,
+          year: selectedYear,
+          paymentMethod: 'CASH',
+        });
+      } else {
+        const expiryDate = new Date();
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        await api.post(`/evidence/medical/${member._id}`, {
+          lastCheckDate: new Date().toISOString(),
+          expiryDate: expiryDate.toISOString(),
+        });
+      }
+      fetchData();
+    } catch (error) {
+      console.error('Error marking member:', error);
+      Alert.alert(t('common.error'), t('evidence.failedToMarkPaid'));
+    } finally {
+      setLoadingActions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(actionKey);
+        return newSet;
+      });
+    }
+  };
+
+  const handleRemindMember = async (member: MemberWithStatus) => {
+    const actionKey = `remind-${member._id}`;
+    if (loadingActions.has(actionKey)) return;
+
+    setLoadingActions(prev => new Set(prev).add(actionKey));
+
+    try {
+      const endpoint = activeTab === 'membership'
+        ? `/reminders/payment/member/${member._id}`
+        : `/reminders/medical/member/${member._id}`;
+
+      await api.post(endpoint);
+      Alert.alert(
+        t('common.success'),
+        activeTab === 'membership'
+          ? t('reminders.paymentSent')
+          : t('reminders.medicalSent')
+      );
+    } catch (error) {
+      console.error('Error sending reminder:', error);
+      Alert.alert(t('common.error'), t('reminders.failedToSend'));
+    } finally {
+      setLoadingActions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(actionKey);
+        return newSet;
+      });
+    }
+  };
+
+  const handleRemindGroup = async (group: GroupWithMembers) => {
+    const actionKey = `remind-group-${group._id}`;
+    if (loadingActions.has(actionKey)) return;
+
+    setLoadingActions(prev => new Set(prev).add(actionKey));
+
+    try {
+      const endpoint = activeTab === 'membership'
+        ? `/reminders/payment/group/${group._id}`
+        : `/reminders/medical/group/${group._id}`;
+
+      const response = await api.post(endpoint);
+      const count = response.data.data?.remindersCount || 0;
+
+      Alert.alert(
+        t('common.success'),
+        `${t('reminders.sentTo')} ${count} ${t('reminders.members')}`
+      );
+    } catch (error) {
+      console.error('Error sending group reminder:', error);
+      Alert.alert(t('common.error'), t('reminders.failedToSend'));
+    } finally {
+      setLoadingActions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(actionKey);
+        return newSet;
+      });
+    }
+  };
+
+  const handleRemindAll = async () => {
+    Alert.alert(
+      t('reminders.confirmTitle'),
+      t('reminders.confirmAllMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.confirm'),
+          onPress: async () => {
+            const actionKey = 'remind-all';
+            setLoadingActions(prev => new Set(prev).add(actionKey));
+
+            try {
+              const endpoint = activeTab === 'membership'
+                ? '/reminders/payment/all'
+                : '/reminders/medical/all';
+
+              const response = await api.post(endpoint);
+              const count = response.data.data?.remindersCount || 0;
+
+              Alert.alert(
+                t('common.success'),
+                `${t('reminders.sentTo')} ${count} ${t('reminders.members')}`
+              );
+            } catch (error) {
+              console.error('Error sending all reminders:', error);
+              Alert.alert(t('common.error'), t('reminders.failedToSend'));
+            } finally {
+              setLoadingActions(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(actionKey);
+                return newSet;
+              });
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getMonthName = (month: number) => {
@@ -251,136 +294,222 @@ export default function EvidenceScreen() {
     return t(`dateTime.months.${monthKeys[month - 1]}`);
   };
 
-  const renderMembershipItem = ({ item }: { item: MembershipEvidence }) => (
-    <Card style={styles.itemCard}>
-      <Card.Content style={styles.itemContent}>
-        <View style={styles.itemRow}>
-          {item.profileImage ? (
-            <Avatar.Image size={48} source={{ uri: item.profileImage }} />
-          ) : (
-            <Avatar.Text
-              size={48}
-              label={item.memberName.charAt(0).toUpperCase()}
-              style={{ backgroundColor: item.group?.color || Colors.primary }}
-            />
-          )}
+  const formatLastActive = (dateString?: string) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
-          <View style={styles.itemInfo}>
-            <Text style={styles.memberName}>{item.memberName}</Text>
-            {item.group && (
-              <Text style={styles.groupName}>{item.group.name}</Text>
-            )}
-            {item.payment && (
-              <Text style={styles.amountText}>
-                {item.payment.amount > 0 ? `${item.payment.amount} RSD` : '-'}
-              </Text>
-            )}
-          </View>
+    if (diffDays === 0) return t('time.today');
+    if (diffDays === 1) return t('time.yesterday');
+    if (diffDays < 7) return `${diffDays} ${t('time.daysAgo')}`;
+    return date.toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit' });
+  };
 
-          <View style={styles.itemActions}>
-            <Chip
-              mode="flat"
-              style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + '30' }]}
-              textStyle={[styles.statusChipText, { color: getStatusColor(item.status) }]}
-            >
-              {getStatusLabel(item.status)}
-            </Chip>
-            {item.status !== 'PAID' && (
-              <IconButton
-                icon="check-circle"
-                iconColor={Colors.success}
-                size={24}
-                onPress={() => handleMarkAsPaid(item)}
-              />
-            )}
-          </View>
-        </View>
-      </Card.Content>
-    </Card>
+  // Filter groups by search query
+  const filteredGroups = groupsWithMembers.filter(group =>
+    group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    group.members.some(m => m.fullName.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const renderMedicalItem = ({ item }: { item: MedicalEvidence }) => (
-    <Card style={styles.itemCard}>
-      <Card.Content style={styles.itemContent}>
-        <View style={styles.itemRow}>
-          {item.profileImage ? (
-            <Avatar.Image size={48} source={{ uri: item.profileImage }} />
-          ) : (
-            <Avatar.Text
-              size={48}
-              label={item.memberName.charAt(0).toUpperCase()}
-              style={{ backgroundColor: item.group?.color || Colors.primary }}
-            />
-          )}
+  const renderMonthFilter = () => {
+    if (!showMonthFilter || activeTab !== 'membership') return null;
 
-          <View style={styles.itemInfo}>
-            <Text style={styles.memberName}>{item.memberName}</Text>
-            {item.group && (
-              <Text style={styles.groupName}>{item.group.name}</Text>
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    return (
+      <View style={styles.monthFilterContainer}>
+        <View style={styles.yearSelector}>
+          <TouchableOpacity onPress={() => setSelectedYear(y => y - 1)}>
+            <MaterialCommunityIcons name="chevron-left" size={24} color={Colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.yearText}>{selectedYear}</Text>
+          <TouchableOpacity onPress={() => setSelectedYear(y => y + 1)}>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.text} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.monthsGrid}>
+          {months.map(month => (
+            <TouchableOpacity
+              key={month}
+              style={[
+                styles.monthButton,
+                selectedMonth === month && styles.monthButtonSelected,
+              ]}
+              onPress={() => {
+                setSelectedMonth(month);
+                setShowMonthFilter(false);
+              }}
+            >
+              <Text style={[
+                styles.monthButtonText,
+                selectedMonth === month && styles.monthButtonTextSelected,
+              ]}>
+                {getMonthName(month).substring(0, 3)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const renderMemberCard = (member: MemberWithStatus, isChecked: boolean) => {
+    const isLoading = loadingActions.has(`mark-${member._id}`) || loadingActions.has(`remind-${member._id}`);
+
+    return (
+      <View
+        key={member._id}
+        style={[
+          styles.memberCard,
+          isChecked ? styles.memberCardPaid : styles.memberCardUnpaid,
+        ]}
+      >
+        {/* Member Avatar */}
+        {member.profileImage || member.profilePicture ? (
+          <Avatar.Image
+            size={40}
+            source={{ uri: member.profileImage || member.profilePicture }}
+          />
+        ) : (
+          <Avatar.Text
+            size={40}
+            label={member.fullName.charAt(0).toUpperCase()}
+            style={{ backgroundColor: Colors.primary }}
+          />
+        )}
+
+        {/* Member Info */}
+        <View style={styles.memberInfo}>
+          <Text style={styles.memberName}>{member.fullName}</Text>
+          <Text style={[
+            styles.memberStatus,
+            isChecked ? styles.memberStatusPaid : styles.memberStatusUnpaid,
+          ]}>
+            {isChecked
+              ? (activeTab === 'membership' ? t('status.paid') : t('status.valid'))
+              : (activeTab === 'membership' ? t('status.notPaid') : t('status.invalid'))
+            }
+          </Text>
+          <Text style={styles.memberLastActive}>
+            {formatLastActive(member.lastActive)}
+          </Text>
+        </View>
+
+        {/* Actions */}
+        <View style={styles.memberActions}>
+          {!isChecked && (
+            <TouchableOpacity
+              style={styles.reminderButton}
+              onPress={() => handleRemindMember(member)}
+              disabled={isLoading}
+            >
+              <MaterialCommunityIcons
+                name="bell-ring"
+                size={22}
+                color={Colors.error}
+              />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => !isChecked && handleMarkMember(member)}
+            disabled={isChecked || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <View style={[
+                styles.checkbox,
+                isChecked && styles.checkboxChecked,
+              ]}>
+                {isChecked && (
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={18}
+                    color="#fff"
+                  />
+                )}
+              </View>
             )}
-            <Text style={styles.dateText}>
-              {t('medical.expiryDate')}: {formatDate(item.medicalInfo.expiryDate)}
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  const renderGroupCard = (group: GroupWithMembers) => {
+    const isExpanded = expandedGroups.has(group._id);
+    const unpaidCount = group.totalCount - group.paidCount;
+    const isRemindingGroup = loadingActions.has(`remind-group-${group._id}`);
+
+    return (
+      <View key={group._id} style={styles.groupCardContainer}>
+        {/* Group Header */}
+        <TouchableOpacity
+          style={styles.groupCard}
+          onPress={() => toggleGroupExpanded(group._id)}
+          activeOpacity={0.7}
+        >
+          {/* Color indicator */}
+          <View style={[styles.groupColorBar, { backgroundColor: group.color || Colors.primary }]} />
+
+          {/* Group Info */}
+          <View style={styles.groupInfo}>
+            <Text style={styles.groupName}>{group.name}</Text>
+          </View>
+
+          {/* Member Count */}
+          <View style={styles.groupStats}>
+            <Text style={styles.groupMemberCount}>
+              {group.paidCount}/{group.totalCount}
             </Text>
           </View>
 
-          <View style={styles.itemActions}>
-            <Chip
-              mode="flat"
-              style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + '30' }]}
-              textStyle={[styles.statusChipText, { color: getStatusColor(item.status) }]}
+          {/* Reminder Bell */}
+          {unpaidCount > 0 && (
+            <TouchableOpacity
+              style={styles.groupReminderButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleRemindGroup(group);
+              }}
+              disabled={isRemindingGroup}
             >
-              {getStatusLabel(item.status)}
-            </Chip>
-            {item.status !== 'VALID' && (
-              <IconButton
-                icon="medical-bag"
-                iconColor={Colors.success}
-                size={24}
-                onPress={() => handleUpdateMedical(item)}
-              />
+              {isRemindingGroup ? (
+                <ActivityIndicator size="small" color={Colors.warning} />
+              ) : (
+                <MaterialCommunityIcons
+                  name="bell-ring-outline"
+                  size={22}
+                  color={Colors.warning}
+                />
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* Expand Icon */}
+          <MaterialCommunityIcons
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={24}
+            color={Colors.textSecondary}
+          />
+        </TouchableOpacity>
+
+        {/* Expanded Members List */}
+        {isExpanded && (
+          <View style={styles.membersContainer}>
+            {group.members.length === 0 ? (
+              <Text style={styles.noMembersText}>{t('empty.noMembers')}</Text>
+            ) : (
+              group.members.map(member =>
+                renderMemberCard(
+                  member,
+                  activeTab === 'membership' ? member.isPaid : member.isValidMedical
+                )
+              )
             )}
           </View>
-        </View>
-      </Card.Content>
-    </Card>
-  );
-
-  const renderStats = () => {
-    const stats = activeTab === 'membership' ? membershipStats : medicalStats;
-    if (!stats) return null;
-
-    return (
-      <View style={styles.statsContainer}>
-        {activeTab === 'membership' ? (
-          <>
-            <View style={[styles.statBox, { backgroundColor: Colors.success + '20' }]}>
-              <Text style={[styles.statNumber, { color: Colors.success }]}>{stats.paid || 0}</Text>
-              <Text style={styles.statLabel}>{t('status.paid')}</Text>
-            </View>
-            <View style={[styles.statBox, { backgroundColor: Colors.warning + '20' }]}>
-              <Text style={[styles.statNumber, { color: Colors.warning }]}>{stats.pending || 0}</Text>
-              <Text style={styles.statLabel}>{t('status.pending')}</Text>
-            </View>
-            <View style={[styles.statBox, { backgroundColor: Colors.error + '20' }]}>
-              <Text style={[styles.statNumber, { color: Colors.error }]}>{stats.overdue || 0}</Text>
-              <Text style={styles.statLabel}>{t('status.overdue')}</Text>
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={[styles.statBox, { backgroundColor: Colors.success + '20' }]}>
-              <Text style={[styles.statNumber, { color: Colors.success }]}>{stats.valid || 0}</Text>
-              <Text style={styles.statLabel}>{t('status.valid')}</Text>
-            </View>
-            <View style={[styles.statBox, { backgroundColor: Colors.warning + '20' }]}>
-              <Text style={[styles.statNumber, { color: Colors.warning }]}>{stats.expiringSoon || 0}</Text>
-              <Text style={styles.statLabel}>{t('status.expiring')}</Text>
-            </View>
-            <View style={[styles.statBox, { backgroundColor: Colors.error + '20' }]}>
-              <Text style={[styles.statNumber, { color: Colors.error }]}>{stats.expired || 0}</Text>
-              <Text style={styles.statLabel}>{t('status.expired')}</Text>
-            </View>
-          </>
         )}
       </View>
     );
@@ -397,102 +526,84 @@ export default function EvidenceScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Tab Switcher */}
-      <View style={styles.tabContainer}>
-        <SegmentedButtons
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value as EvidenceTab)}
-          buttons={[
-            { value: 'membership', label: t('payments.title'), icon: 'cash' },
-            { value: 'medical', label: t('medical.title'), icon: 'medical-bag' },
-          ]}
-          style={styles.segmentedButtons}
+      {/* Search Bar with Filter */}
+      <View style={styles.searchContainer}>
+        <Searchbar
+          placeholder={t('common.search')}
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={styles.searchBar}
+          inputStyle={styles.searchInput}
+          iconColor={Colors.textSecondary}
         />
-      </View>
-
-      {/* Filters */}
-      <View style={styles.filtersContainer}>
-        {/* Group Filter */}
-        <Menu
-          visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
-          anchor={
-            <Button
-              mode="outlined"
-              onPress={() => setMenuVisible(true)}
-              icon="filter-variant"
-              style={styles.filterButton}
-              contentStyle={styles.filterButtonContent}
-            >
-              {selectedGroup ? selectedGroup.name : t('groups.allGroups')}
-            </Button>
-          }
-          contentStyle={styles.menuContent}
-        >
-          <Menu.Item
-            onPress={() => {
-              setSelectedGroup(null);
-              setMenuVisible(false);
-            }}
-            title={t('groups.allGroups')}
-          />
-          {groups.map((group) => (
-            <Menu.Item
-              key={group._id}
-              onPress={() => {
-                setSelectedGroup(group);
-                setMenuVisible(false);
-              }}
-              title={group.name}
-            />
-          ))}
-        </Menu>
-
-        {/* Month/Year Filter (only for membership) */}
         {activeTab === 'membership' && (
-          <View style={styles.periodFilter}>
-            <TouchableOpacity
-              onPress={() => {
-                if (selectedMonth === 1) {
-                  setSelectedMonth(12);
-                  setSelectedYear(selectedYear - 1);
-                } else {
-                  setSelectedMonth(selectedMonth - 1);
-                }
-              }}
-              style={styles.periodArrow}
-            >
-              <MaterialCommunityIcons name="chevron-left" size={24} color={Colors.text} />
-            </TouchableOpacity>
-            <Text style={styles.periodText}>
-              {getMonthName(selectedMonth)} {selectedYear}
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                if (selectedMonth === 12) {
-                  setSelectedMonth(1);
-                  setSelectedYear(selectedYear + 1);
-                } else {
-                  setSelectedMonth(selectedMonth + 1);
-                }
-              }}
-              style={styles.periodArrow}
-            >
-              <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.text} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[styles.filterButton, showMonthFilter && styles.filterButtonActive]}
+            onPress={() => setShowMonthFilter(!showMonthFilter)}
+          >
+            <MaterialCommunityIcons
+              name="calendar-month"
+              size={24}
+              color={showMonthFilter ? Colors.primary : Colors.textSecondary}
+            />
+          </TouchableOpacity>
         )}
       </View>
 
-      {/* Stats */}
-      {renderStats()}
+      {/* Month Filter Dropdown */}
+      {renderMonthFilter()}
 
-      {/* List */}
-      <FlatList
-        data={activeTab === 'membership' ? membershipEvidence : medicalEvidence}
-        renderItem={activeTab === 'membership' ? renderMembershipItem : renderMedicalItem}
-        keyExtractor={(item) => item.memberId}
-        contentContainerStyle={styles.listContent}
+      {/* Toggle Buttons */}
+      <View style={styles.toggleContainer}>
+        <TouchableOpacity
+          style={[
+            styles.toggleButton,
+            activeTab === 'membership' && styles.toggleButtonActive,
+          ]}
+          onPress={() => setActiveTab('membership')}
+        >
+          <Text style={[
+            styles.toggleText,
+            activeTab === 'membership' && styles.toggleTextActive,
+          ]}>
+            {t('payments.title')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.toggleButton,
+            activeTab === 'medical' && styles.toggleButtonActive,
+          ]}
+          onPress={() => setActiveTab('medical')}
+        >
+          <Text style={[
+            styles.toggleText,
+            activeTab === 'medical' && styles.toggleTextActive,
+          ]}>
+            {t('medical.title')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Progress Bar */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBarBackground}>
+          <View
+            style={[
+              styles.progressBarFill,
+              { width: `${progressPercent}%` },
+            ]}
+          />
+        </View>
+        <Text style={styles.progressText}>
+          {totalPaid}/{totalMembers} {activeTab === 'membership' ? t('status.paid').toLowerCase() : t('status.valid').toLowerCase()}
+        </Text>
+      </View>
+
+      {/* Groups List */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -500,22 +611,36 @@ export default function EvidenceScreen() {
             colors={[Colors.primary]}
           />
         }
-        ListEmptyComponent={
+      >
+        {filteredGroups.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons
-              name={activeTab === 'membership' ? 'cash-remove' : 'medical-bag'}
+              name="folder-open-outline"
               size={64}
               color={Colors.textSecondary}
             />
-            <Text style={styles.emptyText}>{t('empty.noMembers')}</Text>
-            <Text style={styles.emptySubtext}>
-              {selectedGroup
-                ? t('evidence.noMembersInGroup')
-                : t('empty.noMembersDescription')}
-            </Text>
+            <Text style={styles.emptyText}>{t('empty.noGroups')}</Text>
           </View>
-        }
-      />
+        ) : (
+          filteredGroups.map(group => renderGroupCard(group))
+        )}
+      </ScrollView>
+
+      {/* Remind All Button */}
+      <TouchableOpacity
+        style={styles.remindAllButton}
+        onPress={handleRemindAll}
+        disabled={loadingActions.has('remind-all')}
+      >
+        {loadingActions.has('remind-all') ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <>
+            <MaterialCommunityIcons name="bell-ring" size={20} color="#fff" />
+            <Text style={styles.remindAllText}>{t('reminders.remindAllGroups')}</Text>
+          </>
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -536,116 +661,248 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.md,
   },
-  tabContainer: {
-    padding: Spacing.md,
-    paddingBottom: 0,
-  },
-  segmentedButtons: {
-    backgroundColor: Colors.surface,
-  },
-  filtersContainer: {
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
     gap: Spacing.sm,
+  },
+  searchBar: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    elevation: 0,
+    height: 48,
+    minHeight: 48,
+  },
+  searchInput: {
+    fontSize: FontSize.sm,
+    minHeight: 48,
   },
   filterButton: {
-    borderColor: Colors.border,
-  },
-  filterButtonContent: {
-    flexDirection: 'row-reverse',
-  },
-  menuContent: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
     backgroundColor: Colors.surface,
-  },
-  periodFilter: {
-    flex: 1,
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'flex-end',
   },
-  periodArrow: {
-    padding: Spacing.xs,
+  filterButtonActive: {
+    backgroundColor: Colors.primary + '20',
   },
-  periodText: {
-    fontSize: FontSize.md,
+  monthFilterContainer: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+  },
+  yearSelector: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  yearText: {
+    fontSize: FontSize.lg,
     fontWeight: '600',
     color: Colors.text,
-    paddingHorizontal: Spacing.sm,
+    marginHorizontal: Spacing.lg,
   },
-  statsContainer: {
+  monthsGrid: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-    gap: Spacing.sm,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  statBox: {
-    flex: 1,
+  monthButton: {
+    width: '23%',
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.xs,
+    borderRadius: BorderRadius.sm,
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    backgroundColor: Colors.background,
+  },
+  monthButtonSelected: {
+    backgroundColor: Colors.primary,
+  },
+  monthButtonText: {
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  monthButtonTextSelected: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
+    padding: 4,
   },
-  statNumber: {
-    fontSize: FontSize.xl,
-    fontWeight: 'bold',
+  toggleButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    alignItems: 'center',
   },
-  statLabel: {
+  toggleButtonActive: {
+    backgroundColor: Colors.primary,
+  },
+  toggleText: {
+    fontSize: FontSize.md,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+  },
+  toggleTextActive: {
+    color: '#fff',
+  },
+  progressContainer: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  progressBarBackground: {
+    height: 8,
+    backgroundColor: Colors.surface,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: Colors.success,
+    borderRadius: 4,
+  },
+  progressText: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
-    marginTop: 2,
+    marginTop: 4,
+    textAlign: 'right',
   },
-  listContent: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: Spacing.md,
-    paddingTop: 0,
+    paddingBottom: 80,
   },
-  itemCard: {
-    backgroundColor: Colors.surface,
+  groupCardContainer: {
     marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
   },
-  itemContent: {
-    paddingVertical: Spacing.sm,
-  },
-  itemRow: {
+  groupCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md,
+    paddingRight: Spacing.md,
+    overflow: 'hidden',
   },
-  itemInfo: {
+  groupColorBar: {
+    width: 6,
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderTopLeftRadius: BorderRadius.md,
+    borderBottomLeftRadius: BorderRadius.md,
+  },
+  groupInfo: {
     flex: 1,
-    marginLeft: Spacing.md,
-  },
-  memberName: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.text,
+    marginLeft: Spacing.lg,
   },
   groupName: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  groupStats: {
+    marginRight: Spacing.sm,
+  },
+  groupMemberCount: {
     fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  groupReminderButton: {
+    padding: Spacing.xs,
+    marginRight: Spacing.xs,
+  },
+  membersContainer: {
+    backgroundColor: Colors.surface,
+    borderBottomLeftRadius: BorderRadius.md,
+    borderBottomRightRadius: BorderRadius.md,
+    marginTop: -BorderRadius.md,
+    paddingTop: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.sm,
+  },
+  noMembersText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: Spacing.md,
+  },
+  memberCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.xs,
+  },
+  memberCardPaid: {
+    backgroundColor: Colors.success + '15',
+  },
+  memberCardUnpaid: {
+    backgroundColor: Colors.error + '15',
+  },
+  memberInfo: {
+    flex: 1,
+    marginLeft: Spacing.sm,
+  },
+  memberName: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
+    color: Colors.text,
+  },
+  memberStatus: {
+    fontSize: FontSize.xs,
+    marginTop: 2,
+  },
+  memberStatusPaid: {
+    color: Colors.success,
+  },
+  memberStatusUnpaid: {
+    color: Colors.error,
+  },
+  memberLastActive: {
+    fontSize: FontSize.xs,
     color: Colors.textSecondary,
     marginTop: 2,
   },
-  amountText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  dateText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  itemActions: {
+  memberActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  statusChip: {
-    height: 28,
-    justifyContent: 'center',
+  reminderButton: {
+    padding: Spacing.xs,
   },
-  statusChipText: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    lineHeight: FontSize.xs + 2,
+  checkboxContainer: {
+    padding: Spacing.xs,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
   },
   emptyContainer: {
     flex: 1,
@@ -654,14 +911,31 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxl,
   },
   emptyText: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
-    color: Colors.text,
-    marginTop: Spacing.md,
-  },
-  emptySubtext: {
     fontSize: FontSize.md,
     color: Colors.textSecondary,
-    marginTop: Spacing.xs,
+    marginTop: Spacing.md,
+  },
+  remindAllButton: {
+    position: 'absolute',
+    bottom: Spacing.lg,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  remindAllText: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

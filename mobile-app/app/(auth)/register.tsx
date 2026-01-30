@@ -1,87 +1,75 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Text, TextInput, Button, HelperText, Card } from 'react-native-paper';
+import React, { useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Image,
+} from 'react-native';
+import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import { Link, router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/services/AuthContext';
 import { useLanguage } from '@/services/LanguageContext';
 import { getAuthErrorMessage } from '@/services/auth';
-import api, { getApiErrorMessage } from '@/services/api';
+import { getApiErrorMessage } from '@/services/api';
 import { UserRole } from '@/types';
 import { AppColors, Spacing, FontSize, BorderRadius } from '@/constants';
 
-interface InviteInfo {
+interface RegisterParams {
+  inviteCode: string;
   clubName: string;
+  clubLogo?: string;
   groupName?: string;
   role: string;
-  type?: string; // Original invite type from backend
 }
 
 export default function RegisterScreen() {
+  const insets = useSafeAreaInsets();
   const { register, loading } = useAuth();
   const { t } = useLanguage();
-  const params = useLocalSearchParams<{ inviteCode?: string }>();
-
-  // Invite info from validation
-  const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null);
-  const [loadingInvite, setLoadingInvite] = useState(false);
+  const params = useLocalSearchParams<RegisterParams>();
 
   // Form state
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [inviteCode, setInviteCode] = useState(params.inviteCode || '');
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Load invite info when inviteCode changes
-  useEffect(() => {
-    if (params.inviteCode) {
-      setInviteCode(params.inviteCode);
-      validateInviteCode(params.inviteCode);
-    }
-  }, [params.inviteCode]);
-
-  const validateInviteCode = async (code: string) => {
-    if (!code || code.length < 3) return;
-
-    try {
-      setLoadingInvite(true);
-      const response = await api.get(`/invites/validate/${code.trim()}`);
-      setInviteInfo({
-        clubName: response.data.data.clubName || response.data.data.club?.name,
-        groupName: response.data.data.groupName || response.data.data.group?.name,
-        role: response.data.data.role,
-      });
-    } catch (err) {
-      console.error('Failed to validate invite code:', err);
-      setInviteInfo(null);
-    } finally {
-      setLoadingInvite(false);
-    }
-  };
-
   // Validation
+  const fullNameError = fullName && fullName.trim().length < 2;
   const emailError = email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const phoneNumberError = phoneNumber && phoneNumber.trim().length < 6;
   const passwordError = password && password.length < 6;
   const confirmPasswordError = confirmPassword && password !== confirmPassword;
-  const fullNameError = fullName && fullName.trim().length < 2;
-  const phoneNumberError = phoneNumber && phoneNumber.trim().length < 6;
-  const inviteCodeError = inviteCode && inviteCode.trim().length < 3;
 
   const handleRegister = async () => {
     setError(null);
 
-    // Validate inputs
-    if (!email || !password || !confirmPassword || !fullName || !phoneNumber || !inviteCode) {
+    // Validate all fields
+    if (!fullName || !email || !phoneNumber || !password || !confirmPassword) {
       setError(t('validation.enterAllFields'));
+      return;
+    }
+
+    if (fullNameError) {
+      setError(t('validation.fullNameRequired'));
       return;
     }
 
     if (emailError) {
       setError(t('validation.invalidEmail'));
+      return;
+    }
+
+    if (phoneNumberError) {
+      setError(t('validation.phoneInvalid'));
       return;
     }
 
@@ -95,44 +83,37 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (fullNameError) {
-      setError(t('validation.fullNameRequired'));
-      return;
-    }
-
-    if (phoneNumberError) {
-      setError(t('validation.phoneInvalid'));
-      return;
-    }
-
-    if (inviteCodeError) {
+    if (!params.inviteCode) {
       setError(t('validation.inviteCodeRequired'));
       return;
     }
 
     try {
-      // Role is determined by the invite code type on the backend
-      // COACH type -> COACH role, MEMBER type -> MEMBER role
-      const inviteType = inviteInfo?.type || inviteInfo?.role;
-      const determinedRole = inviteType === 'COACH' ? UserRole.COACH : UserRole.MEMBER;
-      await register(email, password, fullName, phoneNumber, determinedRole, inviteCode);
-      // Navigate directly based on role to avoid race conditions
-      console.log('Registration successful, navigating based on role:', determinedRole);
-      if (determinedRole === UserRole.COACH || determinedRole === UserRole.OWNER) {
+      // Determine role from params
+      const role = params.role === 'COACH' ? UserRole.COACH : UserRole.MEMBER;
+
+      await register(
+        email,
+        password,
+        fullName,
+        phoneNumber,
+        role,
+        params.inviteCode
+      );
+
+      // Navigate based on role
+      if (role === UserRole.COACH || params.role === 'OWNER') {
         router.replace('/(coach)');
-      } else if (determinedRole === UserRole.MEMBER) {
+      } else if (role === UserRole.MEMBER) {
         router.replace('/(member)');
       } else {
         router.replace('/(parent)');
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-
-      // Try to get Firebase error first, then API error
-      let errorMessage = error.code
+      const errorMessage = error.code
         ? getAuthErrorMessage(error.code)
         : getApiErrorMessage(error);
-
       setError(errorMessage);
     }
   };
@@ -143,33 +124,43 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + Spacing.md },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <Text style={styles.logo}>4SPORTS</Text>
-          <Text style={styles.subtitle}>{t('auth.createAccount')}</Text>
+        {/* Club Info Header */}
+        <View style={styles.clubHeader}>
+          {params.clubLogo ? (
+            <Image
+              source={{ uri: params.clubLogo }}
+              style={styles.clubLogo}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.clubLogoPlaceholder}>
+              <MaterialCommunityIcons
+                name="shield-outline"
+                size={48}
+                color={AppColors.primary}
+              />
+            </View>
+          )}
+          <Text style={styles.clubName}>{params.clubName || 'Klub'}</Text>
+          {params.groupName && (
+            <Text style={styles.groupName}>{params.groupName}</Text>
+          )}
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleBadgeText}>
+              {t('roles.' + (params.role?.toLowerCase() || 'member'))}
+            </Text>
+          </View>
         </View>
 
-        {/* Club Info Card */}
-        {inviteInfo && (
-          <Card style={styles.clubCard}>
-            <Card.Content>
-              <Text style={styles.clubName}>{inviteInfo.clubName}</Text>
-              {inviteInfo.groupName && (
-                <Text style={styles.groupName}>{t('groups.group')}: {inviteInfo.groupName}</Text>
-              )}
-              <View style={styles.roleTag}>
-                <Text style={styles.roleTagText}>
-                  {t('roles.' + inviteInfo.role.toLowerCase())}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
-        )}
-
+        {/* Form */}
         <View style={styles.form}>
-          {/* Full Name Input */}
+          {/* Full Name */}
           <TextInput
             label={t('auth.fullName')}
             value={fullName}
@@ -183,7 +174,12 @@ export default function RegisterScreen() {
             style={styles.input}
             outlineColor={AppColors.border}
             activeOutlineColor={AppColors.primary}
-            theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
+            theme={{
+              colors: {
+                text: AppColors.text,
+                placeholder: AppColors.textSecondary,
+              },
+            }}
           />
           {fullNameError && (
             <HelperText type="error" visible={fullNameError}>
@@ -191,7 +187,7 @@ export default function RegisterScreen() {
             </HelperText>
           )}
 
-          {/* Email Input */}
+          {/* Email */}
           <TextInput
             label={t('auth.email')}
             value={email}
@@ -206,7 +202,12 @@ export default function RegisterScreen() {
             style={styles.input}
             outlineColor={AppColors.border}
             activeOutlineColor={AppColors.primary}
-            theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
+            theme={{
+              colors: {
+                text: AppColors.text,
+                placeholder: AppColors.textSecondary,
+              },
+            }}
           />
           {emailError && (
             <HelperText type="error" visible={emailError}>
@@ -214,7 +215,7 @@ export default function RegisterScreen() {
             </HelperText>
           )}
 
-          {/* Phone Number Input */}
+          {/* Phone Number */}
           <TextInput
             label={t('auth.phoneNumber')}
             value={phoneNumber}
@@ -228,7 +229,12 @@ export default function RegisterScreen() {
             style={styles.input}
             outlineColor={AppColors.border}
             activeOutlineColor={AppColors.primary}
-            theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
+            theme={{
+              colors: {
+                text: AppColors.text,
+                placeholder: AppColors.textSecondary,
+              },
+            }}
           />
           {phoneNumberError && (
             <HelperText type="error" visible={phoneNumberError}>
@@ -236,7 +242,7 @@ export default function RegisterScreen() {
             </HelperText>
           )}
 
-          {/* Password Input */}
+          {/* Password */}
           <TextInput
             label={t('auth.password')}
             value={password}
@@ -251,7 +257,12 @@ export default function RegisterScreen() {
             style={styles.input}
             outlineColor={AppColors.border}
             activeOutlineColor={AppColors.primary}
-            theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
+            theme={{
+              colors: {
+                text: AppColors.text,
+                placeholder: AppColors.textSecondary,
+              },
+            }}
             right={
               <TextInput.Icon
                 icon={showPassword ? 'eye-off' : 'eye'}
@@ -266,7 +277,7 @@ export default function RegisterScreen() {
             </HelperText>
           )}
 
-          {/* Confirm Password Input */}
+          {/* Confirm Password */}
           <TextInput
             label={t('auth.confirmPassword')}
             value={confirmPassword}
@@ -281,7 +292,12 @@ export default function RegisterScreen() {
             style={styles.input}
             outlineColor={AppColors.border}
             activeOutlineColor={AppColors.primary}
-            theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
+            theme={{
+              colors: {
+                text: AppColors.text,
+                placeholder: AppColors.textSecondary,
+              },
+            }}
             right={
               <TextInput.Icon
                 icon={showConfirmPassword ? 'eye-off' : 'eye'}
@@ -294,35 +310,6 @@ export default function RegisterScreen() {
             <HelperText type="error" visible={confirmPasswordError}>
               {t('validation.passwordsNoMatch')}
             </HelperText>
-          )}
-
-          {/* Invite Code Input - only show if not pre-filled */}
-          {!params.inviteCode && (
-            <>
-              <TextInput
-                label={t('auth.inviteCode')}
-                value={inviteCode}
-                onChangeText={(text) => {
-                  setInviteCode(text);
-                  if (text.length >= 6) {
-                    validateInviteCode(text);
-                  }
-                }}
-                mode="outlined"
-                autoCapitalize="characters"
-                error={!!inviteCodeError}
-                disabled={loading}
-                style={styles.input}
-                outlineColor={AppColors.border}
-                activeOutlineColor={AppColors.primary}
-                theme={{ colors: { text: AppColors.text, placeholder: AppColors.textSecondary } }}
-              />
-              {inviteCodeError && (
-                <HelperText type="error" visible={inviteCodeError}>
-                  {t('validation.inviteCodeRequired')}
-                </HelperText>
-              )}
-            </>
           )}
 
           {/* Error Message */}
@@ -339,12 +326,11 @@ export default function RegisterScreen() {
             loading={loading}
             disabled={
               loading ||
-              !!emailError ||
-              !!passwordError ||
-              !!confirmPasswordError ||
               !!fullNameError ||
+              !!emailError ||
               !!phoneNumberError ||
-              !!inviteCodeError
+              !!passwordError ||
+              !!confirmPasswordError
             }
             style={styles.button}
             contentStyle={styles.buttonContent}
@@ -373,51 +359,46 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     padding: Spacing.lg,
-    paddingVertical: Spacing.xxl,
   },
-  header: {
+  clubHeader: {
     alignItems: 'center',
     marginBottom: Spacing.xl,
   },
-  logo: {
-    fontSize: FontSize.xxxl * 1.5,
-    fontWeight: 'bold',
-    color: AppColors.primary,
-    letterSpacing: 2,
-    marginBottom: Spacing.sm,
+  clubLogo: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    marginBottom: Spacing.md,
   },
-  subtitle: {
-    fontSize: FontSize.lg,
-    color: AppColors.textSecondary,
-  },
-  clubCard: {
-    backgroundColor: AppColors.primary + '15',
-    marginBottom: Spacing.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: AppColors.primary,
+  clubLogoPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    backgroundColor: AppColors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   clubName: {
-    fontSize: FontSize.lg,
+    fontSize: FontSize.xl,
     fontWeight: 'bold',
     color: AppColors.text,
-    marginBottom: Spacing.xs,
+    textAlign: 'center',
   },
   groupName: {
     fontSize: FontSize.md,
     color: AppColors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  roleTag: {
-    backgroundColor: AppColors.primary,
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
     marginTop: Spacing.xs,
   },
-  roleTagText: {
+  roleBadge: {
+    backgroundColor: AppColors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.round,
+    marginTop: Spacing.md,
+  },
+  roleBadgeText: {
     color: '#FFFFFF',
     fontSize: FontSize.sm,
     fontWeight: '600',
@@ -459,6 +440,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   linkText: {
     color: AppColors.textSecondary,
