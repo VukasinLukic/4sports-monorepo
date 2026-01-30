@@ -17,6 +17,7 @@ import settingsRoutes from './settingsRoutes';
 import evidenceRoutes from './evidenceRoutes';
 import clubRoutes from './clubRoutes';
 import chatRoutes from './chatRoutes';
+import reminderRoutes from './reminderRoutes';
 
 /**
  * Main Router
@@ -44,6 +45,7 @@ router.use('/settings', settingsRoutes);
 router.use('/evidence', evidenceRoutes);
 router.use('/clubs', clubRoutes);
 router.use('/chat', chatRoutes);
+router.use('/reminders', reminderRoutes);
 
 /**
  * Future Routes (Phase 3+)
