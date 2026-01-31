@@ -10,7 +10,11 @@ import {
   Platform,
   Image,
   ActivityIndicator,
+  Modal,
+  Dimensions,
+  Keyboard,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
@@ -46,16 +50,47 @@ interface Conversation {
   groupName?: string;
 }
 
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
 export default function ChatScreen() {
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [inputText, setInputText] = useState('');
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  const openImageModal = (imageUrl: string) => {
+    setSelectedImageUrl(imageUrl);
+    setImageModalVisible(true);
+  };
+
+  const closeImageModal = () => {
+    setImageModalVisible(false);
+    setSelectedImageUrl(null);
+  };
+
+  // Handle keyboard show - scroll to bottom
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   // Get conversation details
   useEffect(() => {
@@ -199,12 +234,17 @@ export default function ChatScreen() {
           {item.images && item.images.length > 0 && (
             <View style={styles.imagesContainer}>
               {item.images.map((imageUrl, index) => (
-                <Image
+                <TouchableOpacity
                   key={index}
-                  source={{ uri: imageUrl }}
-                  style={styles.messageImage}
-                  resizeMode="cover"
-                />
+                  onPress={() => openImageModal(imageUrl)}
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.messageImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
               ))}
             </View>
           )}
@@ -252,8 +292,8 @@ export default function ChatScreen() {
 
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={90}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <FlatList
           ref={flatListRef}
@@ -262,6 +302,8 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         />
 
         {/* Selected Images Preview */}
@@ -317,6 +359,30 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Image Zoom Modal */}
+      <Modal
+        visible={imageModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeImageModal}
+      >
+        <View style={styles.imageModalContainer}>
+          <TouchableOpacity
+            style={styles.imageModalClose}
+            onPress={closeImageModal}
+          >
+            <MaterialCommunityIcons name="close" size={28} color="#FFF" />
+          </TouchableOpacity>
+          {selectedImageUrl && (
+            <Image
+              source={{ uri: selectedImageUrl }}
+              style={styles.fullscreenImage}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
     </>
   );
 }
@@ -482,5 +548,22 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: Colors.textSecondary,
+  },
+  imageModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+  },
+  fullscreenImage: {
+    width: screenWidth,
+    height: screenHeight * 0.8,
   },
 });

@@ -111,6 +111,8 @@ export default {
     enterBothEmailPassword: 'Please enter both email and password',
     enterAllFields: 'Please fill in all required fields',
     selectMember: 'Please select a member.',
+    selectGroup: 'Please select a group',
+    endTimeAfterStart: 'End time must be after start time',
   },
 
   errors: {
@@ -187,9 +189,14 @@ export default {
     totalMembers: 'Total Members',
     activeMembers: 'Active Members',
     eventsToday: 'Events Today',
+    todaysEvents: "Today's Events",
     unpaidMembers: 'Unpaid',
     medicalDue: 'Medical Due',
     attendanceRate: 'Attendance Rate',
+    openNews: 'Open news feed',
+    attending: 'attending',
+    notAttending: 'not attending',
+    pending: 'pending',
   },
 
   // Members
@@ -247,8 +254,10 @@ export default {
     title: 'Events',
     event: 'Event',
     createEvent: 'Create Event',
+    createNewEvent: 'Create New Event',
     editEvent: 'Edit Event',
     eventDetails: 'Event Details',
+    eventStatus: 'Event Status',
     noEvents: 'No Events Scheduled',
     noEventsDescription: 'Create your first event to get started.',
     upcomingEvents: 'Upcoming Events',
@@ -279,8 +288,12 @@ export default {
     eventCreated: 'Event created successfully',
     eventUpdated: 'Event updated successfully',
     recurring: 'Recurring',
+    recurringDescription: 'Repeat this event',
     oneTime: 'One-time',
+    daily: 'Daily',
     weekly: 'Weekly',
+    monthly: 'Monthly',
+    repeatUntil: 'Repeat Until',
     noDescription: 'No description',
     newEvent: 'New Event',
     viewAllEvents: 'View All Events',
@@ -298,8 +311,7 @@ export default {
     noParticipants: 'No participants yet',
     eventNamePlaceholder: 'e.g., Weekly Training',
     locationPlaceholder: 'e.g., Sports Center Arena',
-    descriptionPlaceholder: 'Add event description...',
-    recurringDescription: 'This event will automatically appear every week.',
+    descriptionPlaceholder: 'Additional event information...',
     advancedOptions: 'Advanced Options',
     mandatoryDescription: 'Participants must attend this event.',
     notesForAttendees: 'Notes for Attendees',
@@ -307,6 +319,17 @@ export default {
     equipmentPlaceholder: 'e.g., Ball, cleats',
     maxParticipants: 'Maximum Participants',
     maxParticipantsPlaceholder: 'Enter number',
+    // New event form fields
+    addNewType: 'Add new type',
+    newEventType: 'New event type',
+    selectLocation: 'Select location',
+    addNewLocation: 'Add new location',
+    newLocation: 'New location',
+    equipment: 'Equipment',
+    items: 'items',
+    addEquipment: 'Add equipment',
+    addNewEquipment: 'Add new equipment',
+    newEquipment: 'New equipment',
   },
 
   // Attendance
@@ -658,6 +681,7 @@ export default {
     today: 'Today',
     yesterday: 'Yesterday',
     daysAgo: 'days ago',
+    justNow: 'Just now',
   },
 
   // Confirmation dialogs

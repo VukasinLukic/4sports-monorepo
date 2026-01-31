@@ -1,47 +1,187 @@
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, Card, Button, ActivityIndicator } from 'react-native-paper';
+import { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { Text, Card, Button, ActivityIndicator, Avatar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
 import { useLanguage } from '@/services/LanguageContext';
 import { useCoachDashboard } from '@/hooks/useDashboard';
+import api from '@/services/api';
+import { Post } from '@/types';
+
+// Helper function to get event type color for any type string
+const getEventTypeColorFromString = (type: string): string => {
+  const upperType = type?.toUpperCase() || '';
+  if (upperType === 'TRAINING' || upperType.includes('TRENING')) {
+    return Colors.eventTraining;
+  }
+  if (upperType === 'MATCH' || upperType.includes('UTAKMICA') || upperType.includes('MEČ')) {
+    return Colors.eventCompetition;
+  }
+  if (upperType === 'OTHER') {
+    return Colors.eventMeeting;
+  }
+  return Colors.primary;
+};
+
+// Check if event is today
+const isEventToday = (dateString: string): boolean => {
+  const eventDate = new Date(dateString);
+  const today = new Date();
+  return eventDate.toDateString() === today.toDateString();
+};
+
+// Get relative time text
+const getRelativeTimeText = (dateString: string): string => {
+  const eventDate = new Date(dateString);
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const eventStart = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+
+  const diffTime = eventStart.getTime() - todayStart.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Danas';
+  if (diffDays === 1) return 'Sutra';
+  if (diffDays > 1 && diffDays <= 7) return `Za ${diffDays} dana`;
+  if (diffDays > 7) return `Za ${Math.floor(diffDays / 7)} ned.`;
+  return '';
+};
 
 export default function CoachDashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { data: dashboardStats, isLoading } = useCoachDashboard();
+  const { data: dashboardStats, isLoading, refetch } = useCoachDashboard();
+  const [latestPost, setLatestPost] = useState<(Post & { author?: { fullName: string; profilePicture?: string } }) | null>(null);
+  const [isLoadingNews, setIsLoadingNews] = useState(true);
+
+  const fetchLatestPost = useCallback(async () => {
+    try {
+      const response = await api.get('/posts?limit=1');
+      const posts = response.data.data || [];
+      if (posts.length > 0) {
+        setLatestPost(posts[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching latest post:', error);
+    } finally {
+      setIsLoadingNews(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLatestPost();
+  }, [fetchLatestPost]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      fetchLatestPost();
+    }, [refetch, fetchLatestPost])
+  );
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const formatDate = (dateString: string) => {
+  const formatPostDate = (dateString: string) => {
     const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (date.toDateString() === today.toDateString()) {
-      return t('dateTime.today');
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return t('dateTime.tomorrow');
-    } else {
-      return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-    }
+    if (diffMins < 1) return t('time.justNow') || 'Just now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return date.toLocaleDateString();
   };
 
-  const getEventTypeIcon = (type: string) => {
-    switch (type) {
-      case 'TRAINING':
-        return 'whistle';
-      case 'MATCH':
-        return 'soccer';
-      default:
-        return 'calendar';
-    }
+  // Split events into today and upcoming
+  const todayEvents = dashboardStats?.upcomingEvents?.filter(event => isEventToday(event.startTime)) || [];
+  const upcomingEvents = dashboardStats?.upcomingEvents?.filter(event => !isEventToday(event.startTime)) || [];
+
+  const renderEventCard = (event: typeof dashboardStats.upcomingEvents[0], isToday: boolean) => {
+    const eventDate = new Date(event.startTime);
+    const dayNumber = eventDate.getDate();
+    const dayName = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' });
+    const eventTypeColor = getEventTypeColorFromString(event.type);
+    const relativeTime = getRelativeTimeText(event.startTime);
+
+    return (
+      <TouchableOpacity
+        key={event._id}
+        onPress={() => router.push(`/(coach)/events/${event._id}`)}
+      >
+        <Card style={[styles.eventCard, isToday && styles.eventCardToday]}>
+          <Card.Content style={styles.eventCardContent}>
+            {/* Date Column */}
+            <View style={styles.dateWrapper}>
+              <View style={[
+                styles.dateColumn,
+                { backgroundColor: isToday ? Colors.success : eventTypeColor }
+              ]}>
+                <Text style={styles.dateDay}>{dayNumber}</Text>
+                <Text style={styles.dateDayName}>{dayName}</Text>
+              </View>
+              {relativeTime && (
+                <View style={styles.relativeTimeRow}>
+                  <MaterialCommunityIcons name="clock-outline" size={10} color={Colors.textSecondary} />
+                  <Text style={styles.relativeTime}>{relativeTime}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Event Info */}
+            <View style={styles.eventInfo}>
+              <View style={styles.eventHeader}>
+                <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                <Text style={styles.eventTime}>
+                  {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                </Text>
+              </View>
+
+              {/* Group Name */}
+              {event.groupName && (
+                <View style={styles.groupRow}>
+                  <View style={[styles.groupDot, { backgroundColor: event.groupColor || Colors.primary }]} />
+                  <Text style={[styles.groupName, { color: event.groupColor || Colors.primary }]}>
+                    {event.groupName}
+                  </Text>
+                </View>
+              )}
+
+              {/* RSVP Stats */}
+              <View style={styles.rsvpStats}>
+                <View style={styles.rsvpStat}>
+                  <MaterialCommunityIcons name="check-circle" size={14} color={Colors.success} />
+                  <Text style={[styles.rsvpText, { color: Colors.success }]}>
+                    {event.confirmedCount} {t('dashboard.attending')}
+                  </Text>
+                </View>
+                <View style={styles.rsvpStat}>
+                  <MaterialCommunityIcons name="close-circle" size={14} color={Colors.error} />
+                  <Text style={[styles.rsvpText, { color: Colors.error }]}>
+                    {event.declinedCount || 0} {t('dashboard.notAttending')}
+                  </Text>
+                </View>
+                <View style={styles.rsvpStat}>
+                  <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.warning} />
+                  <Text style={[styles.rsvpText, { color: Colors.warning }]}>
+                    {event.pendingCount} {t('dashboard.pending')}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </Card.Content>
+        </Card>
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -52,187 +192,80 @@ export default function CoachDashboard() {
         <Text style={styles.userName}>{user?.fullName || t('roles.coach')}</Text>
       </View>
 
-      {/* Quick Stats */}
-      <View style={styles.statsGrid}>
-        <TouchableOpacity style={{ width: '48%' }} onPress={() => router.push('/(coach)/members')}>
-          <Card style={styles.statCard}>
-            <Card.Content style={styles.statContent}>
-              <MaterialCommunityIcons name="account-group" size={32} color={Colors.primary} />
-              <Text style={styles.statNumber}>{isLoading ? '...' : dashboardStats?.totalMembers ?? 0}</Text>
-              <Text style={styles.statLabel}>{t('navigation.members')}</Text>
-            </Card.Content>
-          </Card>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={{ width: '48%' }} onPress={() => router.push('/(coach)/calendar')}>
-          <Card style={styles.statCard}>
-            <Card.Content style={styles.statContent}>
-              <MaterialCommunityIcons name="calendar-check" size={32} color={Colors.info} />
-              <Text style={styles.statNumber}>{isLoading ? '...' : dashboardStats?.eventsToday ?? 0}</Text>
-              <Text style={styles.statLabel}>{t('dashboard.eventsToday')}</Text>
-            </Card.Content>
-          </Card>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={{ width: '48%' }} onPress={() => router.push('/(coach)/evidence')}>
-          <Card style={styles.statCard}>
-            <Card.Content style={styles.statContent}>
-              <MaterialCommunityIcons name="cash" size={32} color={Colors.warning} />
-              <Text style={styles.statNumber}>{isLoading ? '...' : dashboardStats?.unpaidCount ?? 0}</Text>
-              <Text style={styles.statLabel}>{t('status.unpaid')}</Text>
-            </Card.Content>
-          </Card>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={{ width: '48%' }} onPress={() => router.push('/(coach)/evidence')}>
-          <Card style={styles.statCard}>
-            <Card.Content style={styles.statContent}>
-              <MaterialCommunityIcons name="medical-bag" size={32} color={Colors.error} />
-              <Text style={styles.statNumber}>{isLoading ? '...' : dashboardStats?.medicalDueCount ?? 0}</Text>
-              <Text style={styles.statLabel}>{t('dashboard.medicalDue')}</Text>
-            </Card.Content>
-          </Card>
-        </TouchableOpacity>
-      </View>
-
-      {/* Quick Actions */}
-      <Text style={styles.sectionTitle}>{t('dashboard.quickActions')}</Text>
-      <View style={styles.actionsGrid}>
-        <Button
-          mode="contained"
-          icon="clipboard-check"
-          style={styles.actionButton}
-          contentStyle={styles.actionButtonContent}
-          labelStyle={styles.actionButtonLabel}
-          onPress={() => router.push('/(coach)/evidence')}
-        >
-          {t('navigation.evidence')}
-        </Button>
-
-        <Button
-          mode="contained"
-          icon="calendar-plus"
-          style={styles.actionButton}
-          contentStyle={styles.actionButtonContent}
-          labelStyle={styles.actionButtonLabel}
-          buttonColor={Colors.info}
-          onPress={() => router.push('/(coach)/events/create')}
-        >
-          {t('events.newEvent')}
-        </Button>
-
-        <Button
-          mode="contained"
-          icon="account-plus"
-          style={styles.actionButton}
-          contentStyle={styles.actionButtonContent}
-          labelStyle={styles.actionButtonLabel}
-          buttonColor={Colors.secondary}
-          onPress={() => router.push('/(coach)/members')}
-        >
-          {t('members.addMember')}
-        </Button>
-
-        <Button
-          mode="contained"
-          icon="cash-plus"
-          style={styles.actionButton}
-          contentStyle={styles.actionButtonContent}
-          labelStyle={styles.actionButtonLabel}
-          buttonColor={Colors.success}
-          onPress={() => router.push('/(coach)/payments/record')}
-        >
-          {t('payments.payment')}
-        </Button>
-
-        <Button
-          mode="contained"
-          icon="account-group"
-          style={styles.actionButton}
-          contentStyle={styles.actionButtonContent}
-          labelStyle={styles.actionButtonLabel}
-          buttonColor={Colors.warning}
-          onPress={() => router.push('/(coach)/groups')}
-        >
-          {t('navigation.groups')}
-        </Button>
-
-        <Button
-          mode="contained"
-          icon="qrcode-plus"
-          style={styles.actionButton}
-          contentStyle={styles.actionButtonContent}
-          labelStyle={styles.actionButtonLabel}
-          buttonColor="#6C5CE7"
-          onPress={() => router.push('/(coach)/invites')}
-        >
-          {t('invites.title')}
-        </Button>
-      </View>
-
-      {/* Upcoming Events */}
-      <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
-      {isLoading ? (
-        <Card style={styles.emptyCard}>
-          <Card.Content style={styles.emptyContent}>
+      {/* Latest News Section */}
+      <Text style={styles.sectionTitle}>{t('navigation.news')}</Text>
+      {isLoadingNews ? (
+        <Card style={styles.newsCard}>
+          <Card.Content style={styles.newsLoadingContent}>
             <ActivityIndicator size="small" color={Colors.primary} />
           </Card.Content>
         </Card>
-      ) : dashboardStats?.upcomingEvents && dashboardStats.upcomingEvents.length > 0 ? (
-        <View style={styles.eventsContainer}>
-          {dashboardStats.upcomingEvents.map((event) => (
-            <TouchableOpacity
-              key={event._id}
-              onPress={() => router.push(`/(coach)/events/${event._id}`)}
-            >
-              <Card style={styles.eventCard}>
-                <Card.Content>
-                  <View style={styles.eventHeader}>
-                    <View style={styles.eventTypeContainer}>
-                      <MaterialCommunityIcons
-                        name={getEventTypeIcon(event.type) as any}
-                        size={20}
-                        color={Colors.primary}
-                      />
-                      <Text style={styles.eventType}>{event.type}</Text>
-                    </View>
-                    <Text style={styles.eventDate}>{formatDate(event.startTime)}</Text>
-                  </View>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  <View style={styles.eventDetails}>
-                    <View style={styles.eventDetail}>
-                      <MaterialCommunityIcons name="clock-outline" size={16} color={Colors.textSecondary} />
-                      <Text style={styles.eventDetailText}>
-                        {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                      </Text>
-                    </View>
-                    {event.location && (
-                      <View style={styles.eventDetail}>
-                        <MaterialCommunityIcons name="map-marker-outline" size={16} color={Colors.textSecondary} />
-                        <Text style={styles.eventDetailText}>{event.location}</Text>
-                      </View>
-                    )}
-                    {event.groupName && (
-                      <View style={styles.eventDetail}>
-                        <MaterialCommunityIcons name="account-group-outline" size={16} color={Colors.textSecondary} />
-                        <Text style={styles.eventDetailText}>{event.groupName}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.participantStats}>
-                    <View style={styles.participantStat}>
-                      <MaterialCommunityIcons name="check-circle" size={16} color={Colors.success} />
-                      <Text style={styles.participantStatText}>{event.confirmedCount} {t('attendance.confirmed')}</Text>
-                    </View>
-                    <View style={styles.participantStat}>
-                      <MaterialCommunityIcons name="clock-outline" size={16} color={Colors.warning} />
-                      <Text style={styles.participantStatText}>{event.pendingCount} {t('attendance.pending')}</Text>
-                    </View>
-                  </View>
-                </Card.Content>
-              </Card>
-            </TouchableOpacity>
-          ))}
+      ) : latestPost ? (
+        <TouchableOpacity onPress={() => router.push('/(coach)/news')}>
+          <Card style={styles.newsCard}>
+            <Card.Content style={styles.newsCardContent}>
+              <View style={styles.newsHeader}>
+                {latestPost.author?.profilePicture ? (
+                  <Avatar.Image size={36} source={{ uri: latestPost.author.profilePicture }} />
+                ) : (
+                  <Avatar.Text
+                    size={36}
+                    label={(latestPost.author?.fullName || 'U').slice(0, 2).toUpperCase()}
+                    style={styles.newsAvatar}
+                  />
+                )}
+                <View style={styles.newsHeaderInfo}>
+                  <Text style={styles.newsAuthor}>{latestPost.author?.fullName || t('roles.coach')}</Text>
+                  <Text style={styles.newsTimestamp}>{formatPostDate(latestPost.createdAt)}</Text>
+                </View>
+              </View>
+              {latestPost.title && <Text style={styles.newsTitle} numberOfLines={1}>{latestPost.title}</Text>}
+              <Text style={styles.newsContent} numberOfLines={2}>{latestPost.content}</Text>
+              {latestPost.images && latestPost.images.length > 0 && (
+                <Image source={{ uri: latestPost.images[0] }} style={styles.newsImage} resizeMode="cover" />
+              )}
+            </Card.Content>
+          </Card>
+          <TouchableOpacity style={styles.openNewsLink} onPress={() => router.push('/(coach)/news')}>
+            <Text style={styles.openNewsText}>{t('dashboard.openNews')}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={16} color={Colors.primary} />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      ) : (
+        <Card style={styles.newsCard}>
+          <Card.Content style={styles.emptyNewsContent}>
+            <MaterialCommunityIcons name="newspaper-variant-outline" size={32} color={Colors.textSecondary} />
+            <Text style={styles.emptyNewsText}>{t('news.noPosts')}</Text>
+          </Card.Content>
+        </Card>
+      )}
+
+      {/* Today's Events - only show if there are events today */}
+      {todayEvents.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>{t('dashboard.todaysEvents')}</Text>
+          <View style={styles.eventsContainer}>
+            {todayEvents.map((event) => renderEventCard(event, true))}
+          </View>
+        </>
+      )}
+
+      {/* Upcoming Events - only future events */}
+      {isLoading ? (
+        <>
+          <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
+          <Card style={styles.emptyCard}>
+            <Card.Content style={styles.emptyContent}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+            </Card.Content>
+          </Card>
+        </>
+      ) : upcomingEvents.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
+          <View style={styles.eventsContainer}>
+            {upcomingEvents.map((event) => renderEventCard(event, false))}
+          </View>
           <Button
             mode="text"
             onPress={() => router.push('/(coach)/calendar')}
@@ -240,22 +273,25 @@ export default function CoachDashboard() {
           >
             {t('events.viewAllEvents')}
           </Button>
-        </View>
-      ) : (
-        <Card style={styles.emptyCard}>
-          <Card.Content style={styles.emptyContent}>
-            <MaterialCommunityIcons name="calendar-blank" size={48} color={Colors.textSecondary} />
-            <Text style={styles.emptyText}>{t('empty.noUpcomingEvents')}</Text>
-            <Button
-              mode="contained"
-              onPress={() => router.push('/(coach)/events/create')}
-              style={styles.createEventButton}
-            >
-              {t('events.createEvent')}
-            </Button>
-          </Card.Content>
-        </Card>
-      )}
+        </>
+      ) : todayEvents.length === 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
+          <Card style={styles.emptyCard}>
+            <Card.Content style={styles.emptyContent}>
+              <MaterialCommunityIcons name="calendar-blank" size={48} color={Colors.textSecondary} />
+              <Text style={styles.emptyText}>{t('empty.noUpcomingEvents')}</Text>
+              <Button
+                mode="contained"
+                onPress={() => router.push('/(coach)/events/create')}
+                style={styles.createEventButton}
+              >
+                {t('events.createEvent')}
+              </Button>
+            </Card.Content>
+          </Card>
+        </>
+      ) : null}
     </ScrollView>
   );
 }
@@ -273,38 +309,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   greeting: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     color: Colors.textSecondary,
   },
   userName: {
-    fontSize: FontSize.xxl,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-  },
-  statCard: {
-    width: '48%',
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
-  },
-  statContent: {
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-  },
-  statNumber: {
     fontSize: FontSize.xl,
     fontWeight: 'bold',
     color: Colors.text,
-    marginTop: Spacing.xs,
-  },
-  statLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
   },
   sectionTitle: {
     fontSize: FontSize.lg,
@@ -313,22 +324,76 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     marginTop: Spacing.sm,
   },
-  actionsGrid: {
+  // News Section
+  newsCard: {
+    backgroundColor: Colors.surface,
+    marginBottom: Spacing.xs,
+  },
+  newsCardContent: {
+    padding: Spacing.sm,
+  },
+  newsLoadingContent: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  newsHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-  },
-  actionButton: {
-    width: '48%',
+    alignItems: 'center',
     marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
   },
-  actionButtonContent: {
-    paddingVertical: Spacing.sm,
+  newsAvatar: {
+    backgroundColor: Colors.primary,
   },
-  actionButtonLabel: {
+  newsHeaderInfo: {
+    marginLeft: Spacing.sm,
+    flex: 1,
+  },
+  newsAuthor: {
     fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  newsTimestamp: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+  },
+  newsTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  newsContent: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  newsImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.sm,
+  },
+  emptyNewsContent: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  emptyNewsText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
+  openNewsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  openNewsText: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   emptyCard: {
     backgroundColor: Colors.surface,
@@ -344,68 +409,110 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   eventsContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
+  // Event Card
   eventCard: {
     backgroundColor: Colors.surface,
     marginBottom: Spacing.sm,
+    overflow: 'hidden',
+  },
+  eventCardToday: {
+    borderWidth: 2,
+    borderColor: Colors.success,
+  },
+  eventCardContent: {
+    flexDirection: 'row',
+    padding: 0,
+    alignItems: 'flex-start',
+  },
+  dateWrapper: {
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    marginLeft: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  dateColumn: {
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+  },
+  dateDay: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  dateDayName: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    marginTop: 1,
+  },
+  relativeTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 3,
+  },
+  relativeTime: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+  },
+  eventInfo: {
+    flex: 1,
+    padding: Spacing.sm,
+    paddingLeft: Spacing.md,
   },
   eventHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  eventTypeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  eventType: {
-    fontSize: FontSize.xs,
-    color: Colors.primary,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  eventDate: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+    alignItems: 'flex-start',
   },
   eventTitle: {
     fontSize: FontSize.md,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: Spacing.xs,
+    flex: 1,
+    marginRight: Spacing.sm,
   },
-  eventDetails: {
-    marginTop: Spacing.xs,
-    gap: Spacing.xs / 2,
-  },
-  eventDetail: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  eventDetailText: {
+  eventTime: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
   },
-  participantStats: {
+  groupRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  groupDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: Spacing.xs,
+  },
+  groupName: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
+  },
+  rsvpStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
-  participantStat: {
+  rsvpStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: 3,
   },
-  participantStatText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+  rsvpText: {
+    fontSize: FontSize.xs,
+    fontWeight: '500',
   },
   viewAllButton: {
     marginTop: Spacing.xs,

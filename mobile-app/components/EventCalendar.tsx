@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Colors } from '@/constants/Colors';
 import { BorderRadius } from '@/constants/Layout';
-import { Event, EventType } from '@/types';
+import { Event } from '@/types';
 
 interface EventCalendarProps {
   events: Event[];
@@ -17,27 +17,35 @@ interface MarkedDates {
     dotColor?: string;
     selected?: boolean;
     selectedColor?: string;
-    dots?: Array<{ key: string; color: string }>;
+    customStyles?: {
+      container?: object;
+      text?: object;
+    };
   };
 }
+
+// Helper function to get event type color for any type string
+const getEventTypeColor = (type: string): string => {
+  const upperType = type?.toUpperCase() || '';
+  if (upperType === 'TRAINING' || upperType.includes('TRENING')) {
+    return Colors.eventTraining;
+  }
+  if (upperType === 'MATCH' || upperType.includes('UTAKMICA') || upperType.includes('MEČ')) {
+    return Colors.eventCompetition;
+  }
+  if (upperType === 'OTHER') {
+    return Colors.eventMeeting;
+  }
+  // Return primary color for custom types
+  return Colors.primary;
+};
 
 export default function EventCalendar({
   events,
   selectedDate,
   onDayPress,
 }: EventCalendarProps) {
-  const getEventTypeColor = (type: EventType): string => {
-    switch (type) {
-      case EventType.TRAINING:
-        return Colors.eventTraining;
-      case EventType.MATCH:
-        return Colors.eventCompetition;
-      case EventType.OTHER:
-        return Colors.eventMeeting;
-      default:
-        return Colors.primary;
-    }
-  };
+  const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().split('T')[0]);
 
   // Generate marked dates from events
   const markedDates = useMemo(() => {
@@ -46,36 +54,65 @@ export default function EventCalendar({
     // Group events by date
     const eventsByDate = new Map<string, Event[]>();
     events.forEach(event => {
-      // Use startTime if date is not available
       const dateSource = event.date || event.startTime;
       if (!dateSource) return;
-      const dateKey = dateSource.split('T')[0]; // Get YYYY-MM-DD
+      const dateKey = dateSource.split('T')[0];
       if (!eventsByDate.has(dateKey)) {
         eventsByDate.set(dateKey, []);
       }
       eventsByDate.get(dateKey)!.push(event);
     });
 
-    // Create marks for each date
+    // Create marks for each date with events
     eventsByDate.forEach((dateEvents, date) => {
-      const dots = dateEvents.slice(0, 3).map((event, index) => ({
-        key: `${event._id}-${index}`,
-        color: getEventTypeColor(event.type),
-      }));
+      // Get the primary event type color (first event)
+      const primaryColor = getEventTypeColor(dateEvents[0].type);
 
       marks[date] = {
-        dots,
-        marked: true,
+        customStyles: {
+          container: {
+            backgroundColor: primaryColor,
+            borderRadius: 20,
+          },
+          text: {
+            color: '#FFFFFF',
+            fontWeight: '600',
+          },
+        },
       };
     });
 
     // Add selected date styling
     if (selectedDate) {
-      marks[selectedDate] = {
-        ...marks[selectedDate],
-        selected: true,
-        selectedColor: Colors.primary,
-      };
+      const existingMark = marks[selectedDate];
+      if (existingMark) {
+        // If date has events, add border to show selection
+        marks[selectedDate] = {
+          ...existingMark,
+          customStyles: {
+            container: {
+              ...existingMark.customStyles?.container,
+              borderWidth: 2,
+              borderColor: Colors.text,
+            },
+            text: existingMark.customStyles?.text,
+          },
+        };
+      } else {
+        // If no events, just show selection
+        marks[selectedDate] = {
+          customStyles: {
+            container: {
+              backgroundColor: Colors.primary,
+              borderRadius: 20,
+            },
+            text: {
+              color: '#FFFFFF',
+              fontWeight: '600',
+            },
+          },
+        };
+      }
     }
 
     return marks;
@@ -85,12 +122,18 @@ export default function EventCalendar({
     onDayPress(day.dateString);
   };
 
+  const handleMonthChange = (month: DateData) => {
+    setCurrentMonth(month.dateString);
+  };
+
   return (
     <View style={styles.container}>
       <Calendar
-        markingType="multi-dot"
+        markingType="custom"
         markedDates={markedDates}
         onDayPress={handleDayPress}
+        onMonthChange={handleMonthChange}
+        enableSwipeMonths={true}
         theme={{
           backgroundColor: Colors.surface,
           calendarBackground: Colors.surface,
@@ -98,6 +141,7 @@ export default function EventCalendar({
           selectedDayBackgroundColor: Colors.primary,
           selectedDayTextColor: Colors.text,
           todayTextColor: Colors.primary,
+          todayBackgroundColor: Colors.primary + '20',
           dayTextColor: Colors.text,
           textDisabledColor: Colors.textDisabled,
           dotColor: Colors.primary,
@@ -105,11 +149,11 @@ export default function EventCalendar({
           arrowColor: Colors.primary,
           monthTextColor: Colors.text,
           indicatorColor: Colors.primary,
-          textDayFontWeight: '400',
+          textDayFontWeight: '500',
           textMonthFontWeight: '600',
           textDayHeaderFontWeight: '500',
-          textDayFontSize: 14,
-          textMonthFontSize: 16,
+          textDayFontSize: 15,
+          textMonthFontSize: 17,
           textDayHeaderFontSize: 12,
         }}
         style={styles.calendar}

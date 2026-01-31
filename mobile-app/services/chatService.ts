@@ -23,6 +23,7 @@ interface Conversation {
     timestamp: Date;
     imageUrl?: string;
   };
+  unreadCounts?: Record<string, number>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -158,9 +159,8 @@ export const chatService = {
    * Get count of unread messages for a conversation
    */
   getUnreadCount: (conversation: Conversation, userId: string): number => {
-    // This would need to be implemented based on your unread tracking logic
-    // For now, return 0 as placeholder
-    return 0;
+    if (!conversation.unreadCounts || !userId) return 0;
+    return conversation.unreadCounts[userId] || 0;
   },
 };
 

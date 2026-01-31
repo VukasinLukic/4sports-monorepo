@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/services/api';
+import { Post } from '@/types';
 
 export interface DashboardStats {
   totalMembers: number;
@@ -9,6 +10,7 @@ export interface DashboardStats {
   totalGroups: number;
   totalEvents: number;
   totalRevenue: number;
+  latestPost?: Post & { author?: { _id: string; fullName: string; profilePicture?: string } };
   upcomingEvents: {
     _id: string;
     title: string;
@@ -17,7 +19,9 @@ export interface DashboardStats {
     endTime: string;
     location?: string;
     groupName?: string;
+    groupColor?: string;
     confirmedCount: number;
+    declinedCount: number;
     pendingCount: number;
     totalParticipants: number;
   }[];

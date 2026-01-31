@@ -124,7 +124,7 @@ export interface Event {
   _id: string;
   title: string;
   description?: string;
-  type: EventType;
+  type: string;
   clubId: string;
   groupId: string | { _id: string; name: string; color?: string };
   date: string;

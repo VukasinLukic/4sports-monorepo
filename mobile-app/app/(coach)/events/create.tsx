@@ -1,51 +1,84 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity } from 'react-native';
-import { Text, TextInput, Button, SegmentedButtons, ActivityIndicator, Switch, Chip, IconButton } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity, LayoutAnimation, UIManager } from 'react-native';
+import { Text, TextInput, Button, ActivityIndicator, Switch, IconButton, Menu } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
-import { EventType, Group } from '@/types';
+import { Group } from '@/types';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const SAVED_LOCATIONS_KEY = '@saved_locations';
+const SAVED_EVENT_TYPES_KEY = '@saved_event_types';
+const SAVED_EQUIPMENT_KEY = '@saved_equipment';
+
+const DEFAULT_EVENT_TYPES = [
+  { id: 'TRAINING', label: 'Trening' },
+  { id: 'MATCH', label: 'Utakmica' },
+];
 
 export default function CreateEventScreen() {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ date?: string; groupId?: string }>();
 
   const DAYS_OF_WEEK = [
-    t('dateTime.days.sun') || 'Sun',
-    t('dateTime.days.mon') || 'Mon',
-    t('dateTime.days.tue') || 'Tue',
-    t('dateTime.days.wed') || 'Wed',
-    t('dateTime.days.thu') || 'Thu',
-    t('dateTime.days.fri') || 'Fri',
-    t('dateTime.days.sat') || 'Sat',
+    t('dateTime.days.sun') || 'Ned',
+    t('dateTime.days.mon') || 'Pon',
+    t('dateTime.days.tue') || 'Uto',
+    t('dateTime.days.wed') || 'Sre',
+    t('dateTime.days.thu') || 'Čet',
+    t('dateTime.days.fri') || 'Pet',
+    t('dateTime.days.sat') || 'Sub',
   ];
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [eventType, setEventType] = useState<EventType>(EventType.TRAINING);
-  const [location, setLocation] = useState('');
+  // Required fields
+  const [eventType, setEventType] = useState<string>('TRAINING');
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(params.groupId || '');
   const [date, setDate] = useState(params.date ? new Date(params.date) : new Date());
   const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date(Date.now() + 90 * 60 * 1000)); // +1.5 hours
-  const [selectedGroupId, setSelectedGroupId] = useState<string>(params.groupId || '');
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [endTime, setEndTime] = useState(new Date(Date.now() + 90 * 60 * 1000));
 
-  // Advanced options
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [isMandatory, setIsMandatory] = useState(true);
-  const [notes, setNotes] = useState('');
-  const [equipment, setEquipment] = useState<string[]>([]);
-  const [newEquipment, setNewEquipment] = useState('');
-  const [maxParticipants, setMaxParticipants] = useState('');
+  // Recurring
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringFrequency, setRecurringFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
   const [recurringDays, setRecurringDays] = useState<number[]>([]);
-  const [recurringUntil, setRecurringUntil] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // +30 days
+  const [recurringUntil, setRecurringUntil] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
 
+  // Advanced options (optional)
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [equipment, setEquipment] = useState<string[]>([]);
+  const [newEquipment, setNewEquipment] = useState('');
+
+  // Data
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [savedLocations, setSavedLocations] = useState<string[]>([]);
+  const [eventTypes, setEventTypes] = useState(DEFAULT_EVENT_TYPES);
+  const [savedEquipment, setSavedEquipment] = useState<string[]>([]);
+  const [newLocation, setNewLocation] = useState('');
+  const [newEventType, setNewEventType] = useState('');
+
+  // Menus
+  const [locationMenuVisible, setLocationMenuVisible] = useState(false);
+  const [eventTypeMenuVisible, setEventTypeMenuVisible] = useState(false);
+  const [groupMenuVisible, setGroupMenuVisible] = useState(false);
+  const [equipmentMenuVisible, setEquipmentMenuVisible] = useState(false);
+  const [showAddLocation, setShowAddLocation] = useState(false);
+  const [showAddEventType, setShowAddEventType] = useState(false);
+  const [showAddEquipment, setShowAddEquipment] = useState(false);
+
+  // Date pickers
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
@@ -56,14 +89,68 @@ export default function CreateEventScreen() {
 
   useEffect(() => {
     fetchGroups();
+    loadSavedData();
   }, []);
+
+  const loadSavedData = async () => {
+    try {
+      const [locationsJson, typesJson, equipmentJson] = await Promise.all([
+        AsyncStorage.getItem(SAVED_LOCATIONS_KEY),
+        AsyncStorage.getItem(SAVED_EVENT_TYPES_KEY),
+        AsyncStorage.getItem(SAVED_EQUIPMENT_KEY),
+      ]);
+
+      if (locationsJson) {
+        setSavedLocations(JSON.parse(locationsJson));
+      }
+      if (typesJson) {
+        const savedTypes = JSON.parse(typesJson);
+        setEventTypes([...DEFAULT_EVENT_TYPES, ...savedTypes]);
+      }
+      if (equipmentJson) {
+        setSavedEquipment(JSON.parse(equipmentJson));
+      }
+    } catch (error) {
+      console.error('Error loading saved data:', error);
+    }
+  };
+
+  const saveLocation = async (loc: string) => {
+    if (!loc.trim() || savedLocations.includes(loc.trim())) return;
+
+    const newLocations = [...savedLocations, loc.trim()];
+    setSavedLocations(newLocations);
+    await AsyncStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(newLocations));
+  };
+
+  const saveEventType = async (type: string) => {
+    if (!type.trim()) return;
+
+    const typeId = type.trim().toUpperCase().replace(/\s+/g, '_');
+    if (eventTypes.some(t => t.id === typeId)) return;
+
+    const newType = { id: typeId, label: type.trim() };
+    const customTypes = eventTypes.filter(t => !DEFAULT_EVENT_TYPES.some(d => d.id === t.id));
+    const newCustomTypes = [...customTypes, newType];
+
+    setEventTypes([...DEFAULT_EVENT_TYPES, ...newCustomTypes]);
+    await AsyncStorage.setItem(SAVED_EVENT_TYPES_KEY, JSON.stringify(newCustomTypes));
+  };
+
+  const saveEquipmentItem = async (item: string) => {
+    if (!item.trim() || savedEquipment.includes(item.trim())) return;
+
+    const newEquipmentList = [...savedEquipment, item.trim()];
+    setSavedEquipment(newEquipmentList);
+    await AsyncStorage.setItem(SAVED_EQUIPMENT_KEY, JSON.stringify(newEquipmentList));
+  };
 
   const fetchGroups = async () => {
     try {
       const response = await api.get('/groups');
       const groupsData = response.data.data || [];
       setGroups(groupsData);
-      if (groupsData.length > 0) {
+      if (groupsData.length > 0 && !params.groupId) {
         setSelectedGroupId(groupsData[0]._id);
       }
     } catch (error) {
@@ -77,50 +164,27 @@ export default function CreateEventScreen() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
-  const formatDate = (date: Date): string => {
-    return date.toISOString().split('T')[0];
-  };
-
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
+    if (selectedDate) setDate(selectedDate);
   };
 
   const handleStartTimeChange = (event: any, selectedTime?: Date) => {
     setShowStartTimePicker(Platform.OS === 'ios');
     if (selectedTime) {
       setStartTime(selectedTime);
-      // Auto-set end time to 1.5 hours after start
-      const newEndTime = new Date(selectedTime.getTime() + 90 * 60 * 1000);
-      setEndTime(newEndTime);
+      setEndTime(new Date(selectedTime.getTime() + 90 * 60 * 1000));
     }
   };
 
   const handleEndTimeChange = (event: any, selectedTime?: Date) => {
     setShowEndTimePicker(Platform.OS === 'ios');
-    if (selectedTime) {
-      setEndTime(selectedTime);
-    }
+    if (selectedTime) setEndTime(selectedTime);
   };
 
   const handleRecurringUntilChange = (event: any, selectedDate?: Date) => {
     setShowRecurringUntilPicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setRecurringUntil(selectedDate);
-    }
-  };
-
-  const addEquipment = () => {
-    if (newEquipment.trim()) {
-      setEquipment([...equipment, newEquipment.trim()]);
-      setNewEquipment('');
-    }
-  };
-
-  const removeEquipment = (index: number) => {
-    setEquipment(equipment.filter((_, i) => i !== index));
+    if (selectedDate) setRecurringUntil(selectedDate);
   };
 
   const toggleRecurringDay = (day: number) => {
@@ -129,17 +193,34 @@ export default function CreateEventScreen() {
     );
   };
 
+  const toggleAdvancedOptions = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowAdvancedOptions(!showAdvancedOptions);
+  };
+
+  const getSelectedGroupName = () => {
+    const group = groups.find(g => g._id === selectedGroupId);
+    return group?.name || t('events.selectGroups');
+  };
+
+  const getSelectedEventTypeName = () => {
+    const type = eventTypes.find(t => t.id === eventType);
+    return type?.label || eventType;
+  };
+
+  const generateEventTitle = () => {
+    const typeName = getSelectedEventTypeName();
+    const groupName = getSelectedGroupName();
+    return `${typeName} - ${groupName}`;
+  };
+
   const validateForm = (): boolean => {
-    if (!title.trim()) {
-      Alert.alert(t('common.error'), t('validation.eventTitleRequired') || 'Please enter an event title.');
-      return false;
-    }
     if (!selectedGroupId) {
-      Alert.alert(t('common.error'), t('validation.groupRequired') || 'Please select a group.');
+      Alert.alert(t('common.error'), 'Izaberite grupu');
       return false;
     }
     if (startTime >= endTime) {
-      Alert.alert(t('common.error'), t('validation.endTimeAfterStart') || 'End time must be after start time.');
+      Alert.alert(t('common.error'), 'Vreme završetka mora biti posle vremena početka');
       return false;
     }
     return true;
@@ -151,30 +232,32 @@ export default function CreateEventScreen() {
     setIsLoading(true);
 
     try {
-      // Combine date and time for startTime/endTime
+      // Save location if new
+      if (location.trim() && !savedLocations.includes(location.trim())) {
+        await saveLocation(location.trim());
+      }
+
       const startDateTime = new Date(date);
       startDateTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
 
       const endDateTime = new Date(date);
       endDateTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
 
+      // Use custom title or generate one
+      const eventTitle = title.trim() || generateEventTitle();
+
       const eventData: Record<string, any> = {
-        title: title.trim(),
+        title: eventTitle,
         description: description.trim() || undefined,
         type: eventType,
         groupId: selectedGroupId,
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         location: location.trim() || undefined,
-        isMandatory,
+        equipment: equipment.length > 0 ? equipment : undefined,
+        isMandatory: true,
       };
 
-      // Advanced options
-      if (notes.trim()) eventData.notes = notes.trim();
-      if (equipment.length > 0) eventData.equipment = equipment;
-      if (maxParticipants && parseInt(maxParticipants) > 0) {
-        eventData.maxParticipants = parseInt(maxParticipants);
-      }
       if (isRecurring) {
         eventData.isRecurring = true;
         eventData.recurringPattern = {
@@ -191,13 +274,20 @@ export default function CreateEventScreen() {
       ]);
     } catch (error: any) {
       console.error('Error creating event:', error);
-      Alert.alert(
-        t('common.error'),
-        error.response?.data?.message || t('errors.saveFailed')
-      );
+      Alert.alert(t('common.error'), error.response?.data?.message || t('errors.saveFailed'));
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const addEquipmentItem = (item: string) => {
+    if (item.trim() && !equipment.includes(item.trim())) {
+      setEquipment([...equipment, item.trim()]);
+    }
+  };
+
+  const removeEquipmentItem = (item: string) => {
+    setEquipment(equipment.filter(e => e !== item));
   };
 
   if (isLoadingGroups) {
@@ -210,266 +300,244 @@ export default function CreateEventScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Event Type */}
-      <Text style={styles.label}>{t('events.eventType')}</Text>
-      <SegmentedButtons
-        value={eventType}
-        onValueChange={(value) => setEventType(value as EventType)}
-        buttons={[
-          { value: EventType.TRAINING, label: t('eventTypes.training') },
-          { value: EventType.MATCH, label: t('eventTypes.match') },
-          { value: EventType.OTHER, label: t('eventTypes.other') },
-        ]}
-        style={styles.segmentedButtons}
-      />
+    <View style={styles.container}>
+      {/* Page Header */}
+      <View style={[styles.pageHeader, { paddingTop: insets.top + Spacing.sm }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.pageTitle}>{t('events.createNewEvent')}</Text>
+        <View style={styles.headerSpacer} />
+      </View>
 
-      {/* Title */}
-      <Text style={styles.label}>{t('events.eventName')} *</Text>
-      <TextInput
-        value={title}
-        onChangeText={setTitle}
-        placeholder={t('events.eventNamePlaceholder') || 'e.g., Morning Training Session'}
-        mode="outlined"
-        style={styles.input}
-        outlineColor={Colors.border}
-        activeOutlineColor={Colors.primary}
-        textColor={Colors.text}
-        placeholderTextColor={Colors.textSecondary}
-      />
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Event Type Dropdown */}
+        <Text style={styles.label}>{t('events.eventType')} *</Text>
+      <Menu
+        visible={eventTypeMenuVisible}
+        onDismiss={() => setEventTypeMenuVisible(false)}
+        anchor={
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => setEventTypeMenuVisible(true)}
+          >
+            <Text style={styles.dropdownText}>{getSelectedEventTypeName()}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        }
+        contentStyle={styles.menuContent}
+      >
+        {eventTypes.map(type => (
+          <Menu.Item
+            key={type.id}
+            onPress={() => {
+              setEventType(type.id);
+              setEventTypeMenuVisible(false);
+            }}
+            title={type.label}
+            leadingIcon={eventType === type.id ? 'check' : undefined}
+          />
+        ))}
+        <Menu.Item
+          onPress={() => {
+            setEventTypeMenuVisible(false);
+            setShowAddEventType(true);
+          }}
+          title="+ Dodaj novi tip"
+          titleStyle={{ color: Colors.primary }}
+        />
+      </Menu>
 
-      {/* Group Selection */}
-      <Text style={styles.label}>{t('groups.group')} *</Text>
-      {groups.length === 0 ? (
-        <View style={styles.noGroupsContainer}>
-          <MaterialCommunityIcons name="account-group-outline" size={24} color={Colors.textSecondary} />
-          <Text style={styles.noGroupsText}>{t('empty.noGroups')}. {t('groups.createGroup')}.</Text>
-        </View>
-      ) : (
-        <View style={styles.groupsContainer}>
-          {groups.map(group => (
-            <Button
-              key={group._id}
-              mode={selectedGroupId === group._id ? 'contained' : 'outlined'}
-              onPress={() => setSelectedGroupId(group._id)}
-              style={styles.groupButton}
-              buttonColor={selectedGroupId === group._id ? Colors.primary : undefined}
-              textColor={selectedGroupId === group._id ? Colors.text : Colors.primary}
-            >
-              {group.name}
-            </Button>
-          ))}
+      {/* Add new event type */}
+      {showAddEventType && (
+        <View style={styles.addNewRow}>
+          <TextInput
+            value={newEventType}
+            onChangeText={setNewEventType}
+            placeholder="Novi tip događaja"
+            mode="outlined"
+            style={styles.addNewInput}
+            outlineColor={Colors.border}
+            activeOutlineColor={Colors.primary}
+            dense
+          />
+          <IconButton
+            icon="check"
+            mode="contained"
+            containerColor={Colors.primary}
+            iconColor="#fff"
+            size={20}
+            onPress={async () => {
+              if (newEventType.trim()) {
+                await saveEventType(newEventType);
+                const typeId = newEventType.trim().toUpperCase().replace(/\s+/g, '_');
+                setEventType(typeId);
+                setNewEventType('');
+                setShowAddEventType(false);
+              }
+            }}
+          />
+          <IconButton
+            icon="close"
+            size={20}
+            onPress={() => {
+              setNewEventType('');
+              setShowAddEventType(false);
+            }}
+          />
         </View>
       )}
 
-      {/* Date */}
-      <Text style={styles.label}>{t('events.eventDate')} *</Text>
-      <Button
-        mode="outlined"
-        onPress={() => setShowDatePicker(true)}
-        style={styles.dateButton}
-        icon="calendar"
-        textColor={Colors.text}
+      {/* Group Dropdown */}
+      <Text style={styles.label}>Grupa *</Text>
+      <Menu
+        visible={groupMenuVisible}
+        onDismiss={() => setGroupMenuVisible(false)}
+        anchor={
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => setGroupMenuVisible(true)}
+          >
+            <Text style={styles.dropdownText}>{getSelectedGroupName()}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        }
+        contentStyle={styles.menuContent}
       >
-        {date.toLocaleDateString()}
-      </Button>
+        {groups.map(group => (
+          <Menu.Item
+            key={group._id}
+            onPress={() => {
+              setSelectedGroupId(group._id);
+              setGroupMenuVisible(false);
+            }}
+            title={group.name}
+            leadingIcon={selectedGroupId === group._id ? 'check' : undefined}
+          />
+        ))}
+      </Menu>
+
+      {/* Date */}
+      <Text style={styles.label}>Datum *</Text>
+      <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowDatePicker(true)}>
+        <MaterialCommunityIcons name="calendar" size={20} color={Colors.textSecondary} />
+        <Text style={[styles.dropdownText, { marginLeft: Spacing.sm }]}>
+          {date.toLocaleDateString('sr-RS', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+        </Text>
+      </TouchableOpacity>
       {showDatePicker && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-          minimumDate={new Date()}
-        />
+        <DateTimePicker value={date} mode="date" display="default" onChange={handleDateChange} minimumDate={new Date()} />
       )}
 
       {/* Time */}
       <View style={styles.timeRow}>
         <View style={styles.timeColumn}>
-          <Text style={styles.label}>{t('events.startTime')} *</Text>
-          <Button
-            mode="outlined"
-            onPress={() => setShowStartTimePicker(true)}
-            style={styles.timeButton}
-            icon="clock-outline"
-            textColor={Colors.text}
-          >
-            {formatTime(startTime)}
-          </Button>
+          <Text style={styles.label}>Početak *</Text>
+          <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowStartTimePicker(true)}>
+            <MaterialCommunityIcons name="clock-outline" size={20} color={Colors.textSecondary} />
+            <Text style={[styles.dropdownText, { marginLeft: Spacing.sm }]}>{formatTime(startTime)}</Text>
+          </TouchableOpacity>
           {showStartTimePicker && (
-            <DateTimePicker
-              value={startTime}
-              mode="time"
-              display="default"
-              onChange={handleStartTimeChange}
-            />
+            <DateTimePicker value={startTime} mode="time" display="default" onChange={handleStartTimeChange} />
           )}
         </View>
         <View style={styles.timeColumn}>
-          <Text style={styles.label}>{t('events.endTime')} *</Text>
-          <Button
-            mode="outlined"
-            onPress={() => setShowEndTimePicker(true)}
-            style={styles.timeButton}
-            icon="clock-outline"
-            textColor={Colors.text}
-          >
-            {formatTime(endTime)}
-          </Button>
+          <Text style={styles.label}>Završetak *</Text>
+          <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowEndTimePicker(true)}>
+            <MaterialCommunityIcons name="clock-outline" size={20} color={Colors.textSecondary} />
+            <Text style={[styles.dropdownText, { marginLeft: Spacing.sm }]}>{formatTime(endTime)}</Text>
+          </TouchableOpacity>
           {showEndTimePicker && (
-            <DateTimePicker
-              value={endTime}
-              mode="time"
-              display="default"
-              onChange={handleEndTimeChange}
-            />
+            <DateTimePicker value={endTime} mode="time" display="default" onChange={handleEndTimeChange} />
           )}
         </View>
       </View>
 
-      {/* Location */}
-      <Text style={styles.label}>{t('events.location')}</Text>
-      <TextInput
-        value={location}
-        onChangeText={setLocation}
-        placeholder={t('events.locationPlaceholder') || 'e.g., Main Field, Sports Hall'}
-        mode="outlined"
-        style={styles.input}
-        outlineColor={Colors.border}
-        activeOutlineColor={Colors.primary}
-        textColor={Colors.text}
-        placeholderTextColor={Colors.textSecondary}
-      />
-
-      {/* Description */}
-      <Text style={styles.label}>{t('events.description')}</Text>
-      <TextInput
-        value={description}
-        onChangeText={setDescription}
-        placeholder={t('events.descriptionPlaceholder') || 'Additional details about the event...'}
-        mode="outlined"
-        multiline
-        numberOfLines={4}
-        style={[styles.input, styles.textArea]}
-        outlineColor={Colors.border}
-        activeOutlineColor={Colors.primary}
-        textColor={Colors.text}
-        placeholderTextColor={Colors.textSecondary}
-      />
-
-      {/* Recurring Event Section */}
+      {/* Recurring Toggle */}
       <View style={styles.switchRow}>
         <View>
-          <Text style={styles.switchLabel}>{t('events.recurring')}</Text>
-          <Text style={styles.switchDescription}>{t('events.recurringDescription') || 'Repeat this event on a schedule'}</Text>
+          <Text style={styles.switchLabel}>Ponavljanje</Text>
+          <Text style={styles.switchDescription}>Ponavljaj ovaj događaj</Text>
         </View>
-        <Switch
-          value={isRecurring}
-          onValueChange={setIsRecurring}
-          color={Colors.primary}
-        />
+        <Switch value={isRecurring} onValueChange={setIsRecurring} color={Colors.primary} />
       </View>
 
       {isRecurring && (
         <View style={styles.recurringSection}>
-          {/* Frequency */}
-          <Text style={styles.label}>{t('events.frequency') || 'Frequency'}</Text>
-          <SegmentedButtons
-            value={recurringFrequency}
-            onValueChange={(value) => setRecurringFrequency(value as 'daily' | 'weekly' | 'monthly')}
-            buttons={[
-              { value: 'daily', label: t('events.daily') || 'Daily' },
-              { value: 'weekly', label: t('events.weekly') },
-              { value: 'monthly', label: t('events.monthly') || 'Monthly' },
-            ]}
-            style={styles.segmentedButtons}
-          />
+          {/* Frequency buttons */}
+          <View style={styles.frequencyRow}>
+            {(['daily', 'weekly', 'monthly'] as const).map(freq => (
+              <TouchableOpacity
+                key={freq}
+                style={[styles.frequencyButton, recurringFrequency === freq && styles.frequencyButtonActive]}
+                onPress={() => setRecurringFrequency(freq)}
+              >
+                <Text style={[styles.frequencyText, recurringFrequency === freq && styles.frequencyTextActive]}>
+                  {freq === 'daily' ? 'Dnevno' : freq === 'weekly' ? 'Nedeljno' : 'Mesečno'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-          {/* Days of Week (for weekly) */}
           {recurringFrequency === 'weekly' && (
-            <>
-              <Text style={styles.label}>{t('events.repeatOn') || 'Repeat On'}</Text>
-              <View style={styles.daysRow}>
-                {DAYS_OF_WEEK.map((day, index) => (
-                  <TouchableOpacity
-                    key={day}
-                    style={[
-                      styles.dayButton,
-                      recurringDays.includes(index) && styles.dayButtonSelected,
-                    ]}
-                    onPress={() => toggleRecurringDay(index)}
-                  >
-                    <Text
-                      style={[
-                        styles.dayButtonText,
-                        recurringDays.includes(index) && styles.dayButtonTextSelected,
-                      ]}
-                    >
-                      {day}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
+            <View style={styles.daysRow}>
+              {DAYS_OF_WEEK.map((day, index) => (
+                <TouchableOpacity
+                  key={day}
+                  style={[styles.dayButton, recurringDays.includes(index) && styles.dayButtonSelected]}
+                  onPress={() => toggleRecurringDay(index)}
+                >
+                  <Text style={[styles.dayButtonText, recurringDays.includes(index) && styles.dayButtonTextSelected]}>
+                    {day}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           )}
 
-          {/* Until Date */}
-          <Text style={styles.label}>{t('events.repeatUntil') || 'Repeat Until'}</Text>
-          <Button
-            mode="outlined"
-            onPress={() => setShowRecurringUntilPicker(true)}
-            style={styles.dateButton}
-            icon="calendar"
-            textColor={Colors.text}
-          >
-            {recurringUntil.toLocaleDateString()}
-          </Button>
+          <Text style={styles.label}>Ponavljaj do</Text>
+          <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowRecurringUntilPicker(true)}>
+            <MaterialCommunityIcons name="calendar" size={20} color={Colors.textSecondary} />
+            <Text style={[styles.dropdownText, { marginLeft: Spacing.sm }]}>{recurringUntil.toLocaleDateString()}</Text>
+          </TouchableOpacity>
           {showRecurringUntilPicker && (
-            <DateTimePicker
-              value={recurringUntil}
-              mode="date"
-              display="default"
-              onChange={handleRecurringUntilChange}
-              minimumDate={date}
-            />
+            <DateTimePicker value={recurringUntil} mode="date" display="default" onChange={handleRecurringUntilChange} minimumDate={date} />
           )}
         </View>
       )}
 
-      {/* Advanced Options Toggle */}
-      <TouchableOpacity
-        style={styles.advancedToggle}
-        onPress={() => setShowAdvanced(!showAdvanced)}
-      >
-        <Text style={styles.advancedToggleText}>{t('events.advancedOptions') || 'Advanced Options'}</Text>
+      {/* ADVANCED OPTIONS BUTTON */}
+      <TouchableOpacity style={styles.advancedOptionsButton} onPress={toggleAdvancedOptions}>
+        <Text style={styles.advancedOptionsText}>Napredne opcije</Text>
         <MaterialCommunityIcons
-          name={showAdvanced ? 'chevron-up' : 'chevron-down'}
+          name={showAdvancedOptions ? 'chevron-up' : 'chevron-down'}
           size={24}
           color={Colors.primary}
         />
       </TouchableOpacity>
 
-      {showAdvanced && (
+      {/* ADVANCED OPTIONS SECTION */}
+      {showAdvancedOptions && (
         <View style={styles.advancedSection}>
-          {/* Mandatory Toggle */}
-          <View style={styles.switchRow}>
-            <View>
-              <Text style={styles.switchLabel}>{t('events.mandatory')}</Text>
-              <Text style={styles.switchDescription}>{t('events.mandatoryDescription') || 'Members must attend'}</Text>
-            </View>
-            <Switch
-              value={isMandatory}
-              onValueChange={setIsMandatory}
-              color={Colors.primary}
-            />
-          </View>
-
-          {/* Notes */}
-          <Text style={styles.label}>{t('events.notesForAttendees') || 'Notes for Attendees'}</Text>
+          {/* Title */}
+          <Text style={styles.label}>Naziv događaja</Text>
           <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder={t('events.notesPlaceholder') || 'Special instructions, reminders...'}
+            value={title}
+            onChangeText={setTitle}
+            placeholder={generateEventTitle()}
+            mode="outlined"
+            style={styles.input}
+            outlineColor={Colors.border}
+            activeOutlineColor={Colors.primary}
+            textColor={Colors.text}
+          />
+
+          {/* Description */}
+          <Text style={styles.label}>Opis</Text>
+          <TextInput
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Dodatne informacije o događaju..."
             mode="outlined"
             multiline
             numberOfLines={3}
@@ -477,65 +545,183 @@ export default function CreateEventScreen() {
             outlineColor={Colors.border}
             activeOutlineColor={Colors.primary}
             textColor={Colors.text}
-            placeholderTextColor={Colors.textSecondary}
           />
 
-          {/* Equipment */}
-          <Text style={styles.label}>{t('events.requiredEquipment') || 'Required Equipment'}</Text>
-          <View style={styles.equipmentInputRow}>
-            <TextInput
-              value={newEquipment}
-              onChangeText={setNewEquipment}
-              placeholder={t('events.equipmentPlaceholder') || 'e.g., Shin guards, Water bottle'}
-              mode="outlined"
-              style={[styles.input, styles.equipmentInput]}
-              outlineColor={Colors.border}
-              activeOutlineColor={Colors.primary}
-              textColor={Colors.text}
-              placeholderTextColor={Colors.textSecondary}
-              onSubmitEditing={addEquipment}
+          {/* Location Dropdown */}
+          <Text style={styles.label}>Lokacija</Text>
+          <Menu
+            visible={locationMenuVisible}
+            onDismiss={() => setLocationMenuVisible(false)}
+            anchor={
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setLocationMenuVisible(true)}
+              >
+                <MaterialCommunityIcons name="map-marker-outline" size={20} color={Colors.textSecondary} />
+                <Text style={[styles.dropdownText, { marginLeft: Spacing.sm, flex: 1 }]}>
+                  {location || 'Izaberi lokaciju'}
+                </Text>
+                <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            }
+            contentStyle={styles.menuContent}
+          >
+            {savedLocations.map((loc, index) => (
+              <Menu.Item
+                key={index}
+                onPress={() => {
+                  setLocation(loc);
+                  setLocationMenuVisible(false);
+                }}
+                title={loc}
+                leadingIcon={location === loc ? 'check' : 'map-marker'}
+              />
+            ))}
+            <Menu.Item
+              onPress={() => {
+                setLocationMenuVisible(false);
+                setShowAddLocation(true);
+              }}
+              title="+ Dodaj novu lokaciju"
+              titleStyle={{ color: Colors.primary }}
             />
-            <IconButton
-              icon="plus"
-              mode="contained"
-              onPress={addEquipment}
-              containerColor={Colors.primary}
-              iconColor={Colors.text}
-            />
-          </View>
-          {equipment.length > 0 && (
-            <View style={styles.equipmentList}>
-              {equipment.map((item, index) => (
-                <Chip
-                  key={index}
-                  onClose={() => removeEquipment(index)}
-                  style={styles.equipmentChip}
-                  textStyle={styles.equipmentChipText}
-                >
-                  {item}
-                </Chip>
-              ))}
+          </Menu>
+
+          {/* Add new location */}
+          {showAddLocation && (
+            <View style={styles.addNewRow}>
+              <TextInput
+                value={newLocation}
+                onChangeText={setNewLocation}
+                placeholder="Nova lokacija"
+                mode="outlined"
+                style={styles.addNewInput}
+                outlineColor={Colors.border}
+                activeOutlineColor={Colors.primary}
+                dense
+              />
+              <IconButton
+                icon="check"
+                mode="contained"
+                containerColor={Colors.primary}
+                iconColor="#fff"
+                size={20}
+                onPress={async () => {
+                  if (newLocation.trim()) {
+                    await saveLocation(newLocation);
+                    setLocation(newLocation.trim());
+                    setNewLocation('');
+                    setShowAddLocation(false);
+                  }
+                }}
+              />
+              <IconButton
+                icon="close"
+                size={20}
+                onPress={() => {
+                  setNewLocation('');
+                  setShowAddLocation(false);
+                }}
+              />
             </View>
           )}
 
-          {/* Max Participants */}
-          <Text style={styles.label}>{t('events.maxParticipants') || 'Max Participants'} ({t('common.optional')})</Text>
-          <TextInput
-            value={maxParticipants}
-            onChangeText={setMaxParticipants}
-            placeholder={t('events.maxParticipantsPlaceholder') || 'Leave empty for unlimited'}
-            mode="outlined"
-            keyboardType="number-pad"
-            style={styles.input}
-            outlineColor={Colors.border}
-            activeOutlineColor={Colors.primary}
-            textColor={Colors.text}
-            placeholderTextColor={Colors.textSecondary}
-          />
+          {/* Equipment */}
+          <Text style={styles.label}>Oprema</Text>
+          <Menu
+            visible={equipmentMenuVisible}
+            onDismiss={() => setEquipmentMenuVisible(false)}
+            anchor={
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setEquipmentMenuVisible(true)}
+              >
+                <MaterialCommunityIcons name="bag-personal-outline" size={20} color={Colors.textSecondary} />
+                <Text style={[styles.dropdownText, { marginLeft: Spacing.sm, flex: 1 }]}>
+                  {equipment.length > 0 ? `${equipment.length} stavki` : 'Dodaj opremu'}
+                </Text>
+                <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            }
+            contentStyle={styles.menuContent}
+          >
+            {savedEquipment.map((item, index) => (
+              <Menu.Item
+                key={index}
+                onPress={() => {
+                  addEquipmentItem(item);
+                  setEquipmentMenuVisible(false);
+                }}
+                title={item}
+                leadingIcon={equipment.includes(item) ? 'check' : 'plus'}
+              />
+            ))}
+            <Menu.Item
+              onPress={() => {
+                setEquipmentMenuVisible(false);
+                setShowAddEquipment(true);
+              }}
+              title="+ Dodaj novu opremu"
+              titleStyle={{ color: Colors.primary }}
+            />
+          </Menu>
+
+          {/* Add new equipment */}
+          {showAddEquipment && (
+            <View style={styles.addNewRow}>
+              <TextInput
+                value={newEquipment}
+                onChangeText={setNewEquipment}
+                placeholder="Nova oprema"
+                mode="outlined"
+                style={styles.addNewInput}
+                outlineColor={Colors.border}
+                activeOutlineColor={Colors.primary}
+                dense
+              />
+              <IconButton
+                icon="check"
+                mode="contained"
+                containerColor={Colors.primary}
+                iconColor="#fff"
+                size={20}
+                onPress={async () => {
+                  if (newEquipment.trim()) {
+                    await saveEquipmentItem(newEquipment);
+                    addEquipmentItem(newEquipment);
+                    setNewEquipment('');
+                    setShowAddEquipment(false);
+                  }
+                }}
+              />
+              <IconButton
+                icon="close"
+                size={20}
+                onPress={() => {
+                  setNewEquipment('');
+                  setShowAddEquipment(false);
+                }}
+              />
+            </View>
+          )}
+
+          {/* Selected Equipment Tags */}
+          {equipment.length > 0 && (
+            <View style={styles.equipmentTags}>
+              {equipment.map((item, index) => (
+                <View key={index} style={styles.equipmentTag}>
+                  <Text style={styles.equipmentTagText}>{item}</Text>
+                  <TouchableOpacity onPress={() => removeEquipmentItem(item)}>
+                    <MaterialCommunityIcons name="close" size={16} color={Colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       )}
 
-      {/* Submit Button */}
+      {/* Submit */}
       <Button
         mode="contained"
         onPress={handleSubmit}
@@ -547,183 +733,93 @@ export default function CreateEventScreen() {
         {t('events.createEvent')}
       </Button>
 
-      {/* Cancel Button */}
-      <Button
-        mode="outlined"
-        onPress={() => router.back()}
-        style={styles.cancelButton}
-        textColor={Colors.textSecondary}
-      >
+      <Button mode="outlined" onPress={() => router.back()} style={styles.cancelButton} textColor={Colors.textSecondary}>
         {t('common.cancel')}
       </Button>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  content: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  container: { flex: 1, backgroundColor: Colors.background },
+  pageHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
     backgroundColor: Colors.background,
   },
-  loadingText: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
-    marginTop: Spacing.md,
+  backButton: {
+    padding: Spacing.xs,
+    marginRight: Spacing.sm,
   },
-  label: {
-    fontSize: FontSize.sm,
+  pageTitle: {
+    flex: 1,
+    fontSize: FontSize.xl,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: Spacing.xs,
-    marginTop: Spacing.md,
   },
-  segmentedButtons: {
-    marginBottom: Spacing.sm,
-  },
-  input: {
-    backgroundColor: Colors.surface,
-  },
-  textArea: {
-    minHeight: 100,
-  },
-  groupsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  groupButton: {
-    marginBottom: Spacing.xs,
-  },
-  noGroupsContainer: {
+  headerSpacer: { width: 32 },
+  content: { padding: Spacing.md, paddingBottom: Spacing.xxl },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
+  loadingText: { fontSize: FontSize.md, color: Colors.textSecondary, marginTop: Spacing.md },
+  label: { fontSize: FontSize.sm, fontWeight: '500', color: Colors.textSecondary, marginBottom: Spacing.xs, marginTop: Spacing.md },
+  input: { backgroundColor: Colors.surface },
+  textArea: { minHeight: 80 },
+  dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
     padding: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
   },
-  noGroupsText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    flex: 1,
-  },
-  dateButton: {
-    borderColor: Colors.border,
-    justifyContent: 'flex-start',
-  },
-  timeRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  timeColumn: {
-    flex: 1,
-  },
-  timeButton: {
-    borderColor: Colors.border,
-    justifyContent: 'flex-start',
-  },
-  submitButton: {
-    marginTop: Spacing.xl,
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.xs,
-  },
-  cancelButton: {
-    marginTop: Spacing.sm,
-    borderColor: Colors.border,
-  },
-  advancedToggle: {
+  dropdownText: { fontSize: FontSize.md, color: Colors.text, flex: 1 },
+  menuContent: { backgroundColor: Colors.surface },
+  addNewRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.sm, gap: Spacing.xs },
+  addNewInput: { flex: 1, backgroundColor: Colors.surface },
+  timeRow: { flexDirection: 'row', gap: Spacing.md },
+  timeColumn: { flex: 1 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.lg, paddingVertical: Spacing.sm },
+  switchLabel: { fontSize: FontSize.md, fontWeight: '500', color: Colors.text },
+  switchDescription: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
+  recurringSection: { marginTop: Spacing.sm, paddingLeft: Spacing.sm, borderLeftWidth: 2, borderLeftColor: Colors.primary },
+  frequencyRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  frequencyButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.sm, backgroundColor: Colors.surface, alignItems: 'center' },
+  frequencyButtonActive: { backgroundColor: Colors.primary },
+  frequencyText: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  frequencyTextActive: { color: '#fff', fontWeight: '600' },
+  daysRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.md },
+  dayButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface, justifyContent: 'center', alignItems: 'center' },
+  dayButtonSelected: { backgroundColor: Colors.primary },
+  dayButtonText: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '500' },
+  dayButtonTextSelected: { color: '#fff' },
+  advancedOptionsButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    justifyContent: 'center',
+    marginTop: Spacing.xl,
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
-  advancedToggleText: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  advancedSection: {
-    marginTop: Spacing.sm,
-  },
-  switchRow: {
+  advancedOptionsText: { fontSize: FontSize.md, fontWeight: '500', color: Colors.primary, marginRight: Spacing.xs },
+  advancedSection: { marginTop: Spacing.sm },
+  equipmentTags: { flexDirection: 'row', flexWrap: 'wrap', marginTop: Spacing.sm, gap: Spacing.xs },
+  equipmentTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  switchLabel: {
-    fontSize: FontSize.md,
-    fontWeight: '500',
-    color: Colors.text,
-  },
-  switchDescription: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  equipmentInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  equipmentInput: {
-    flex: 1,
-  },
-  equipmentList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  equipmentChip: {
     backgroundColor: Colors.surface,
-    height: 32,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    gap: Spacing.xs,
   },
-  equipmentChipText: {
-    fontSize: FontSize.sm,
-  },
-  recurringSection: {
-    marginTop: Spacing.sm,
-    paddingLeft: Spacing.sm,
-    borderLeftWidth: 2,
-    borderLeftColor: Colors.primary,
-  },
-  daysRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xs,
-  },
-  dayButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayButtonSelected: {
-    backgroundColor: Colors.primary,
-  },
-  dayButtonText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  dayButtonTextSelected: {
-    color: Colors.text,
-  },
+  equipmentTagText: { fontSize: FontSize.sm, color: Colors.text },
+  submitButton: { marginTop: Spacing.xl, backgroundColor: Colors.primary, paddingVertical: Spacing.xs },
+  cancelButton: { marginTop: Spacing.sm, borderColor: Colors.border },
 });

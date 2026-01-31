@@ -14,15 +14,21 @@ import { Colors } from '@/constants/Colors';
 import { router } from 'expo-router';
 import { useAuth } from '@/services/AuthContext';
 import { chatService, Conversation } from '@/services/chatService';
+import { Spacing, FontSize } from '@/constants/Layout';
 
 type FilterType = 'all' | 'members' | 'staff';
+
+// Extended conversation with unread counts per user
+interface ConversationWithUnread extends Conversation {
+  unreadCounts?: Record<string, number>;
+}
 
 export default function ChatListScreen() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<ConversationWithUnread[]>([]);
 
   const filters: { key: FilterType; label: string; icon: string }[] = [
     { key: 'all', label: 'All', icon: 'message-text' },
@@ -135,10 +141,28 @@ export default function ChatListScreen() {
     </TouchableOpacity>
   );
 
-  const renderConversationCard = ({ item }: { item: Conversation }) => {
+  const formatMessageTime = (timestamp: any): string => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return date.toLocaleDateString([], { weekday: 'short' });
+    }
+    return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+  };
+
+  const renderConversationCard = ({ item }: { item: ConversationWithUnread }) => {
     const name = getConversationName(item);
     const avatar = getConversationAvatar(item);
-    const hasUnread = false; // TODO: implement unread tracking
+    const unreadCount = user?._id && item.unreadCounts ? (item.unreadCounts[user._id] || 0) : 0;
+    const hasUnread = unreadCount > 0;
     const isGroup = item.type === 'group' || item.type === 'staff-group';
 
     return (
@@ -161,20 +185,26 @@ export default function ChatListScreen() {
         </View>
 
         <View style={styles.cardContent}>
-          <Text style={styles.cardName} numberOfLines={1}>{name}</Text>
-          <Text
-            style={[styles.cardMessage, hasUnread && styles.cardMessageUnread]}
-            numberOfLines={1}
-          >
-            {item.lastMessage?.text || 'No messages yet'}
-          </Text>
-        </View>
-
-        {hasUnread && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadBadgeText}>1</Text>
+          <View style={styles.cardHeader}>
+            <Text style={[styles.cardName, hasUnread && styles.cardNameUnread]} numberOfLines={1}>{name}</Text>
+            <Text style={[styles.cardTime, hasUnread && styles.cardTimeUnread]}>
+              {formatMessageTime(item.lastMessage?.timestamp)}
+            </Text>
           </View>
-        )}
+          <View style={styles.cardBottom}>
+            <Text
+              style={[styles.cardMessage, hasUnread && styles.cardMessageUnread]}
+              numberOfLines={1}
+            >
+              {item.lastMessage?.text || 'No messages yet'}
+            </Text>
+            {hasUnread && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            )}
+          </View>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -296,35 +326,32 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   list: {
-    padding: 16,
+    paddingHorizontal: Spacing.md,
     paddingTop: 0,
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: 'transparent',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
   groupAvatar: {
     backgroundColor: Colors.secondary || '#6366F1',
   },
   avatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   avatarText: {
     color: '#FFFFFF',
@@ -333,34 +360,60 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
+    marginLeft: Spacing.sm,
   },
-  cardName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  cardMessage: {
-    fontSize: 14,
+  cardBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardName: {
+    fontSize: FontSize.md,
+    fontWeight: '500',
+    color: Colors.text,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  cardNameUnread: {
+    fontWeight: '700',
+  },
+  cardTime: {
+    fontSize: FontSize.xs,
     color: Colors.textSecondary,
   },
+  cardTimeUnread: {
+    color: Colors.success,
+    fontWeight: '600',
+  },
+  cardMessage: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
   cardMessageUnread: {
-    color: Colors.primary,
+    color: Colors.text,
     fontWeight: '500',
   },
   unreadBadge: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.success,
     borderRadius: 12,
-    minWidth: 24,
-    height: 24,
+    minWidth: 22,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   unreadBadgeText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
   },
   loadingContainer: {
     flex: 1,

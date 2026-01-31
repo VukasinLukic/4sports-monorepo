@@ -8,9 +8,44 @@ import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import EventCalendar from '@/components/EventCalendar';
 import api from '@/services/api';
-import { Event, EventType, Group } from '@/types';
+import { Event, Group } from '@/types';
 
 type FilterType = 'all' | 'training' | 'competition';
+
+// Helper function to get relative time text
+const getRelativeTimeText = (eventDate: Date): string => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+
+  const diffTime = eventDay.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Danas';
+  if (diffDays === 1) return 'Sutra';
+  if (diffDays === -1) return 'Juče';
+  if (diffDays > 1 && diffDays <= 7) return `Za ${diffDays} dana`;
+  if (diffDays > 7) return `Za ${Math.floor(diffDays / 7)} ned.`;
+  if (diffDays < -1) return `Pre ${Math.abs(diffDays)} dana`;
+
+  return '';
+};
+
+// Helper function to get event type color for any type string
+const getEventTypeColorFromString = (type: string): string => {
+  const upperType = type?.toUpperCase() || '';
+  if (upperType === 'TRAINING' || upperType.includes('TRENING')) {
+    return Colors.eventTraining;
+  }
+  if (upperType === 'MATCH' || upperType.includes('UTAKMICA') || upperType.includes('MEČ')) {
+    return Colors.eventCompetition;
+  }
+  if (upperType === 'OTHER') {
+    return Colors.eventMeeting;
+  }
+  // Return primary color for custom types
+  return Colors.primary;
+};
 
 export default function CoachCalendar() {
   const { t } = useLanguage();
@@ -73,23 +108,16 @@ export default function CoachCalendar() {
     fetchEvents();
   };
 
-  const getEventTypeColor = (type: EventType) => {
-    switch (type) {
-      case EventType.TRAINING:
-        return Colors.eventTraining;
-      case EventType.MATCH:
-        return Colors.eventCompetition;
-      case EventType.OTHER:
-        return Colors.eventMeeting;
-      default:
-        return Colors.primary;
-    }
-  };
 
-  // Filter events
+  // Filter events by type (handles string types)
   const filteredEvents = events.filter(event => {
-    if (filter === 'training') return event.type === EventType.TRAINING;
-    if (filter === 'competition') return event.type === EventType.MATCH;
+    const upperType = event.type?.toUpperCase() || '';
+    if (filter === 'training') {
+      return upperType === 'TRAINING' || upperType.includes('TRENING');
+    }
+    if (filter === 'competition') {
+      return upperType === 'MATCH' || upperType.includes('UTAKMICA') || upperType.includes('MEČ');
+    }
     return true;
   });
 
@@ -258,39 +286,58 @@ export default function CoachCalendar() {
             </Card.Content>
           </Card>
         ) : (
-          sortedEvents.map(event => (
-            <TouchableOpacity
-              key={event._id}
-              onPress={() => navigateToEvent(event._id)}
-              activeOpacity={0.7}
-            >
-              <Card style={styles.eventCard}>
-                <Card.Content>
-                  <View style={styles.eventHeader}>
-                    <View style={[styles.eventTypeBadge, { backgroundColor: getEventTypeColor(event.type) }]}>
-                      <Text style={styles.eventTypeText}>{event.type}</Text>
+          sortedEvents.map(event => {
+            const eventDate = new Date(event.date || event.startTime);
+            const dayNumber = eventDate.getDate();
+            const dayName = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' });
+            const groupName = typeof event.groupId === 'object' ? event.groupId.name : '';
+            const groupColor = typeof event.groupId === 'object' ? event.groupId.color : Colors.primary;
+            const relativeTime = getRelativeTimeText(eventDate);
+
+            return (
+              <TouchableOpacity
+                key={event._id}
+                onPress={() => navigateToEvent(event._id)}
+                activeOpacity={0.7}
+              >
+                <Card style={styles.eventCard}>
+                  <Card.Content style={styles.eventCardContent}>
+                    {/* Date Column - Compact */}
+                    <View style={[styles.dateColumn, { backgroundColor: getEventTypeColorFromString(event.type) }]}>
+                      <Text style={styles.dateDay}>{dayNumber}</Text>
+                      <Text style={styles.dateDayName}>{dayName}</Text>
                     </View>
-                    <Text style={styles.eventTime}>
-                      {formatEventTime(event.startTime)} - {formatEventTime(event.endTime)}
-                    </Text>
-                  </View>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  <View style={styles.eventMeta}>
-                    <MaterialCommunityIcons name="calendar" size={16} color={Colors.textSecondary} />
-                    <Text style={styles.eventDate}>
-                      {formatEventDate(event)}
-                    </Text>
-                  </View>
-                  {event.location && (
-                    <View style={styles.eventMeta}>
-                      <MaterialCommunityIcons name="map-marker" size={16} color={Colors.textSecondary} />
-                      <Text style={styles.eventLocation}>{event.location}</Text>
+
+                    {/* Event Info */}
+                    <View style={styles.eventInfo}>
+                      <View style={styles.eventHeader}>
+                        <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                        <Text style={styles.eventTime}>
+                          {formatEventTime(event.startTime)} - {formatEventTime(event.endTime)}
+                        </Text>
+                      </View>
+
+                      {/* Group Name - colored with group color */}
+                      {groupName && (
+                        <View style={styles.groupRow}>
+                          <View style={[styles.groupDot, { backgroundColor: groupColor || Colors.primary }]} />
+                          <Text style={[styles.groupName, { color: groupColor || Colors.primary }]}>{groupName}</Text>
+                        </View>
+                      )}
+
+                      {/* Relative Time instead of location */}
+                      {relativeTime && (
+                        <View style={styles.eventMeta}>
+                          <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
+                          <Text style={styles.eventLocation}>{relativeTime}</Text>
+                        </View>
+                      )}
                     </View>
-                  )}
-                </Card.Content>
-              </Card>
-            </TouchableOpacity>
-          ))
+                  </Card.Content>
+                </Card>
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
 
@@ -376,45 +423,79 @@ const styles = StyleSheet.create({
   eventCard: {
     backgroundColor: Colors.surface,
     marginBottom: Spacing.sm,
+    overflow: 'hidden',
+  },
+  eventCardContent: {
+    flexDirection: 'row',
+    padding: 0,
+    alignItems: 'flex-start',
+  },
+  dateColumn: {
+    width: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.sm2,
+    marginLeft: Spacing.sm,
+    // marginBottom: Spacing.,
+  },
+  dateDay: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  dateDayName: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    marginTop: 1,
+  },
+  eventInfo: {
+    flex: 1,
+    padding: Spacing.sm,
+    paddingLeft: Spacing.md,
+    justifyContent: 'center',
   },
   eventHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  eventTypeBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-  },
-  eventTypeText: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  eventTime: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+    alignItems: 'flex-start',
   },
   eventTitle: {
     fontSize: FontSize.md,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: Spacing.sm,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  eventTime: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+  },
+  groupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  groupDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: Spacing.xs,
+  },
+  groupName: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
   },
   eventMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: Spacing.xs,
-    gap: Spacing.xs,
-  },
-  eventDate: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+    gap: 4,
   },
   eventLocation: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     color: Colors.textSecondary,
   },
   fab: {

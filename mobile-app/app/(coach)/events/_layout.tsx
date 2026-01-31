@@ -5,43 +5,25 @@ export default function EventsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: Colors.surface,
-        },
-        headerTintColor: Colors.text,
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
+        headerShown: false,
         contentStyle: {
           backgroundColor: Colors.background,
         },
       }}
     >
-      <Stack.Screen
-        name="create"
-        options={{
-          title: 'Create Event',
-        }}
-      />
-      <Stack.Screen
-        name="[id]"
-        options={{
-          title: 'Event Details',
-        }}
-      />
+      <Stack.Screen name="create" />
+      <Stack.Screen name="[id]" />
       <Stack.Screen
         name="qr"
         options={{
-          title: 'QR Code',
+          headerShown: true,
+          title: 'QR Kod',
           presentation: 'modal',
+          headerStyle: { backgroundColor: Colors.surface },
+          headerTintColor: Colors.text,
         }}
       />
-      <Stack.Screen
-        name="edit"
-        options={{
-          title: 'Edit Event',
-        }}
-      />
+      <Stack.Screen name="edit" />
     </Stack>
   );
 }
