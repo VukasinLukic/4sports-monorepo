@@ -699,6 +699,32 @@ export default {
     unsavedChanges: 'Unsaved Changes',
   },
 
+  // Notifications
+  notifications: {
+    title: 'Notifications',
+    noNotifications: 'No notifications',
+    noNotificationsDescription: 'You will see notifications about news, events and activities here.',
+    markAllRead: 'Mark all as read',
+    markAsRead: 'Mark as read',
+    newNotification: 'New notification',
+    // Notification types
+    types: {
+      newPost: 'New post',
+      newComment: 'New comment',
+      newLike: 'Someone liked your post',
+      newEvent: 'New event',
+      eventReminder: 'Event reminder',
+      eventCancelled: 'Event cancelled',
+      paymentDue: 'Payment due',
+      paymentReceived: 'Payment received',
+      medicalExpiry: 'Medical expiring',
+      attendanceMarked: 'Attendance marked',
+      inviteAccepted: 'Invite accepted',
+      newMessage: 'New message',
+      groupAdded: 'You were added to a group',
+    },
+  },
+
   // App specific
   app: {
     name: '4Sports',

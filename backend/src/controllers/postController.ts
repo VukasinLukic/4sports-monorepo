@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
 import Like from '../models/Like';
+import Notification from '../models/Notification';
+import User from '../models/User';
 
 // ============================================
 // POST MANAGEMENT
@@ -32,6 +34,31 @@ export const createPost = async (req: Request, res: Response) => {
       tags: tags || [],
       isPinned: finalIsPinned,
     });
+
+    // Create notifications for all club members (except author)
+    try {
+      const clubMembers = await User.find({
+        clubId,
+        _id: { $ne: req.user._id },
+      }).select('_id');
+
+      const notificationPromises = clubMembers.map((member) =>
+        Notification.createNotification({
+          clubId,
+          recipientId: member._id,
+          type: 'NEW_POST',
+          title: 'Nova objava',
+          message: `${req.user!.fullName} je objavio: ${title}`,
+          data: { postId: post._id },
+          priority: 'MEDIUM',
+        })
+      );
+
+      await Promise.all(notificationPromises);
+    } catch (notifError) {
+      console.error('Failed to create notifications for new post:', notifError);
+      // Don't fail the post creation if notifications fail
+    }
 
     return res.status(201).json({ success: true, data: post });
   } catch (error: any) {
@@ -170,6 +197,23 @@ export const createComment = async (req: Request, res: Response) => {
 
     // Increment post comments count
     await Post.incrementComments(postId as any);
+
+    // Notify post author about new comment (if not commenting on own post)
+    if (post.authorId.toString() !== req.user._id.toString()) {
+      try {
+        await Notification.createNotification({
+          clubId: post.clubId,
+          recipientId: post.authorId,
+          type: 'NEW_COMMENT',
+          title: 'Novi komentar',
+          message: `${req.user!.fullName} je komentarisao vašu objavu`,
+          data: { postId: post._id, commentId: comment._id },
+          priority: 'LOW',
+        });
+      } catch (notifError) {
+        console.error('Failed to create notification for comment:', notifError);
+      }
+    }
 
     return res.status(201).json({ success: true, data: comment });
   } catch (error: any) {

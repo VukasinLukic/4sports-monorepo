@@ -702,6 +702,32 @@ export default {
     unsavedChanges: 'Nesačuvane promene',
   },
 
+  // Notifications
+  notifications: {
+    title: 'Obaveštenja',
+    noNotifications: 'Nema obaveštenja',
+    noNotificationsDescription: 'Ovde ćete videti obaveštenja o novostima, događajima i aktivnostima.',
+    markAllRead: 'Označi sve kao pročitano',
+    markAsRead: 'Označi kao pročitano',
+    newNotification: 'Novo obaveštenje',
+    // Notification types
+    types: {
+      newPost: 'Nova objava',
+      newComment: 'Novi komentar',
+      newLike: 'Neko je lajkovao vašu objavu',
+      newEvent: 'Novi događaj',
+      eventReminder: 'Podsetnik za događaj',
+      eventCancelled: 'Događaj otkazan',
+      paymentDue: 'Rok za uplatu',
+      paymentReceived: 'Uplata primljena',
+      medicalExpiry: 'Lekarski ističe',
+      attendanceMarked: 'Prisustvo označeno',
+      inviteAccepted: 'Pozivnica prihvaćena',
+      newMessage: 'Nova poruka',
+      groupAdded: 'Dodati ste u grupu',
+    },
+  },
+
   // App specific
   app: {
     name: '4Sports',

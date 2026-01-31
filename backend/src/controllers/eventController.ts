@@ -3,6 +3,7 @@ import Event from '../models/Event';
 import Group from '../models/Group';
 import Member from '../models/Member';
 import Attendance from '../models/Attendance';
+import Notification from '../models/Notification';
 
 export const createEvent = async (req: Request, res: Response) => {
   try {
@@ -39,6 +40,31 @@ export const createEvent = async (req: Request, res: Response) => {
     const members = await Member.findByGroup(groupId);
     const attendanceRecords = members.map(member => ({ eventId: event._id, memberId: member._id, status: 'ABSENT' }));
     if (attendanceRecords.length > 0) await Attendance.insertMany(attendanceRecords);
+
+    // Create notifications for group members with linked user accounts
+    try {
+      const memberUserIds = members
+        .filter(m => m.userId)
+        .map(m => m.userId);
+
+      if (memberUserIds.length > 0) {
+        const eventDate = new Date(startTime).toLocaleDateString('sr-RS');
+        const notificationPromises = memberUserIds.map((userId) =>
+          Notification.createNotification({
+            clubId,
+            recipientId: userId!,
+            type: 'EVENT_REMINDER',
+            title: 'Novi događaj',
+            message: `${title} - ${eventDate}`,
+            data: { eventId: event._id },
+            priority: isMandatory ? 'HIGH' : 'MEDIUM',
+          })
+        );
+        await Promise.all(notificationPromises);
+      }
+    } catch (notifError) {
+      console.error('Failed to create notifications for new event:', notifError);
+    }
 
     return res.status(201).json({ success: true, data: event });
   } catch (error: any) {

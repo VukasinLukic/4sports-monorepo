@@ -39,13 +39,12 @@ export default function TopHeader({ basePath }: TopHeaderProps) {
   };
 
   const fetchUnreadNotifications = async () => {
-    // TODO: Implement when notifications backend is ready
-    // try {
-    //   const response = await api.get('/notifications/unread-count');
-    //   setUnreadCount(response.data.data?.count || 0);
-    // } catch (error) {
-    //   // Silently fail
-    // }
+    try {
+      const response = await api.get('/notifications/unread/count');
+      setUnreadCount(response.data.data?.count || 0);
+    } catch (error) {
+      // Silently fail - notifications might not be set up yet
+    }
   };
 
   const handleNotificationsPress = () => {
