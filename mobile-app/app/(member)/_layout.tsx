@@ -1,8 +1,12 @@
 import { Tabs } from 'expo-router';
+import { StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { useChat } from '@/services/ChatContext';
 
 export default function MemberLayout() {
+  const { totalUnreadCount } = useChat();
+
   return (
     <Tabs
       screenOptions={{
@@ -69,6 +73,8 @@ export default function MemberLayout() {
             <MaterialCommunityIcons name="message" size={size} color={color} />
           ),
           headerTitle: 'Messages',
+          tabBarBadge: totalUnreadCount > 0 ? (totalUnreadCount > 99 ? '99+' : totalUnreadCount) : undefined,
+          tabBarBadgeStyle: styles.tabBadge,
         }}
       />
       <Tabs.Screen
@@ -118,3 +124,13 @@ export default function MemberLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBadge: {
+    backgroundColor: Colors.error,
+    fontSize: 10,
+    fontWeight: '700',
+    minWidth: 18,
+    height: 18,
+  },
+});

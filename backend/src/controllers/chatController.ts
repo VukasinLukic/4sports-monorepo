@@ -118,6 +118,12 @@ export const createConversation = async (req: Request, res: Response): Promise<a
       };
     });
 
+    // Initialize unreadCounts for all participants to 0
+    const unreadCounts: Record<string, number> = {};
+    allParticipantIds.forEach((id: string) => {
+      unreadCounts[id] = 0;
+    });
+
     // Create new conversation in Firestore
     const conversationData = {
       type,
@@ -126,6 +132,7 @@ export const createConversation = async (req: Request, res: Response): Promise<a
       participantDetails,
       groupName: type === 'group' || type === 'staff-group' ? groupName : null,
       lastMessage: null,
+      unreadCounts,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -274,7 +281,17 @@ export const sendMessage = async (req: Request, res: Response): Promise<any> => 
 
     const messageRef = await conversationRef.collection('messages').add(messageData);
 
-    // Update conversation's lastMessage
+    // Build unreadCounts update - increment for all participants except sender
+    const currentUnreadCounts = conversationData.unreadCounts || {};
+    const updatedUnreadCounts: Record<string, number> = { ...currentUnreadCounts };
+
+    conversationData.participantIds.forEach((participantId: string) => {
+      if (participantId !== senderId) {
+        updatedUnreadCounts[participantId] = (updatedUnreadCounts[participantId] || 0) + 1;
+      }
+    });
+
+    // Update conversation's lastMessage and unreadCounts
     await conversationRef.update({
       lastMessage: {
         text: text || '📷 Image',
@@ -283,6 +300,7 @@ export const sendMessage = async (req: Request, res: Response): Promise<any> => 
         timestamp: new Date(),
         imageUrl: images && images.length > 0 ? images[0] : null,
       },
+      unreadCounts: updatedUnreadCounts,
       updatedAt: new Date(),
     });
 
@@ -332,9 +350,18 @@ export const markAsRead = async (req: Request, res: Response): Promise<any> => {
     const userId = req.user!._id.toString();
 
     const conversationRef = db.collection('conversations').doc(conversationId);
-    const messagesRef = conversationRef.collection('messages');
 
-    // Get all unread messages
+    // Reset unreadCounts for this user to 0
+    const conversationDoc = await conversationRef.get();
+    if (conversationDoc.exists) {
+      // Set user's unread count to 0
+      await conversationRef.update({
+        [`unreadCounts.${userId}`]: 0,
+      });
+    }
+
+    // Also update individual messages' readBy array
+    const messagesRef = conversationRef.collection('messages');
     const unreadMessages = await messagesRef
       .where('readBy', 'not-in', [[userId]])
       .get();

@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
 import { AppColors } from '@/constants/Colors';
 import { AuthProvider } from '@/services/AuthContext';
+import { ChatProvider } from '@/services/ChatContext';
 import { LanguageProvider } from '@/services/LanguageContext';
 import NetworkStatus from '@/components/NetworkStatus';
 import { ToastProvider } from '@/components/Toast';
@@ -58,8 +59,9 @@ export default function RootLayout() {
       <LanguageProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <PaperProvider theme={theme}>
-              <ToastProvider>
+            <ChatProvider>
+              <PaperProvider theme={theme}>
+                <ToastProvider>
                 <View style={{ flex: 1, backgroundColor: AppColors.background }}>
                   <StatusBar style="light" backgroundColor={AppColors.background} />
                   <NetworkStatus />
@@ -86,7 +88,8 @@ export default function RootLayout() {
                   </Stack>
                 </View>
               </ToastProvider>
-            </PaperProvider>
+              </PaperProvider>
+            </ChatProvider>
           </AuthProvider>
         </QueryClientProvider>
       </LanguageProvider>

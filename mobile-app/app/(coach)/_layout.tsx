@@ -1,9 +1,13 @@
 import { Tabs } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import TopHeader from '@/components/TopHeader';
+import { useChat } from '@/services/ChatContext';
 
 export default function CoachLayout() {
+  const { totalUnreadCount } = useChat();
+
   return (
     <>
       <TopHeader basePath="/(coach)" />
@@ -79,6 +83,8 @@ export default function CoachLayout() {
                 color={color}
               />
             ),
+            tabBarBadge: totalUnreadCount > 0 ? (totalUnreadCount > 99 ? '99+' : totalUnreadCount) : undefined,
+            tabBarBadgeStyle: styles.tabBadge,
           }}
         />
 
@@ -156,3 +162,13 @@ export default function CoachLayout() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBadge: {
+    backgroundColor: Colors.error,
+    fontSize: 10,
+    fontWeight: '700',
+    minWidth: 18,
+    height: 18,
+  },
+});

@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   Modal,
   Dimensions,
-  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack } from 'expo-router';
@@ -75,22 +74,6 @@ export default function ChatScreen() {
     setImageModalVisible(false);
     setSelectedImageUrl(null);
   };
-
-  // Handle keyboard show - scroll to bottom
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      }
-    );
-
-    return () => {
-      keyboardDidShowListener.remove();
-    };
-  }, []);
 
   // Get conversation details
   useEffect(() => {
@@ -281,6 +264,11 @@ export default function ChatScreen() {
     );
   }
 
+  const ContainerComponent = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
+  const containerProps = Platform.OS === 'ios'
+    ? { behavior: 'padding' as const, keyboardVerticalOffset: 88 }
+    : {};
+
   return (
     <>
       <Stack.Screen
@@ -290,11 +278,7 @@ export default function ChatScreen() {
         }}
       />
 
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+      <ContainerComponent style={styles.container} {...containerProps}>
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -358,7 +342,7 @@ export default function ChatScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </ContainerComponent>
 
       {/* Image Zoom Modal */}
       <Modal
