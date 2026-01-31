@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, RefreshControl, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, RefreshControl, Linking, TouchableOpacity } from 'react-native';
 import { Text, Card, Avatar, Button, List, Divider, Switch, ActivityIndicator } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -178,18 +178,30 @@ export default function CoachProfile() {
       <Card style={styles.infoCard}>
         <Card.Content>
           <Text style={styles.sectionTitle}>{t('profile.contactInfo')}</Text>
-          <View style={styles.infoRow}>
+          <View style={styles.contactRow}>
             <MaterialCommunityIcons name="email-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>{t('auth.email')}</Text>
-            <Text style={styles.infoValue} numberOfLines={1}>{user?.email || '--'}</Text>
+            <Text style={styles.contactValue} numberOfLines={1}>{user?.email || '--'}</Text>
           </View>
           <Divider style={styles.divider} />
-          <View style={styles.infoRow}>
+          <View style={styles.contactRow}>
             <MaterialCommunityIcons name="phone-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>{t('auth.phoneNumber')}</Text>
-            <Text style={styles.infoValue}>{user?.phoneNumber || t('profile.notAssigned')}</Text>
+            <Text style={styles.contactValue}>{user?.phoneNumber || '--'}</Text>
           </View>
         </Card.Content>
+      </Card>
+
+      {/* Switch Account - Prominent */}
+      <Card style={styles.switchAccountCard}>
+        <TouchableOpacity style={styles.switchAccountContent} onPress={() => setShowAccountSwitcher(true)}>
+          <View style={styles.switchAccountIcon}>
+            <MaterialCommunityIcons name="account-switch" size={24} color={Colors.primary} />
+          </View>
+          <View style={styles.switchAccountInfo}>
+            <Text style={styles.switchAccountTitle}>{t('profile.switchAccount')}</Text>
+            <Text style={styles.switchAccountDescription}>{t('profile.manageAccounts')}</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textSecondary} />
+        </TouchableOpacity>
       </Card>
 
       {/* Settings Menu */}
@@ -202,29 +214,11 @@ export default function CoachProfile() {
           onPress={() => router.push('/profile/edit')}
         />
         <Divider />
-        <List.Item
-          title={t('invites.title')}
-          description={t('invites.noInvitesDescription')}
-          left={props => <List.Icon {...props} icon="qrcode" color={Colors.text} />}
-          right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
-          titleStyle={styles.menuItemTitle}
-          descriptionStyle={styles.menuItemDescription}
-          onPress={() => router.push('/(coach)/invites')}
-        />
-        <Divider />
-        <List.Item
-          title={t('profile.switchAccount')}
-          description={t('profile.manageAccounts')}
-          left={props => <List.Icon {...props} icon="account-switch" color={Colors.text} />}
-          right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
-          titleStyle={styles.menuItemTitle}
-          descriptionStyle={styles.menuItemDescription}
-          onPress={() => setShowAccountSwitcher(true)}
-        />
-        <Divider />
-        <View style={styles.languagePickerContainer}>
-          <List.Icon icon="translate" color={Colors.text} />
-          <LanguagePicker />
+        <View style={styles.languageRow}>
+          <MaterialCommunityIcons name="translate" size={24} color={Colors.text} style={styles.languageIcon} />
+          <View style={styles.languagePickerWrapper}>
+            <LanguagePicker />
+          </View>
         </View>
         <Divider />
         <List.Item
@@ -366,9 +360,53 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     maxWidth: '40%',
   },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    gap: Spacing.md,
+  },
+  contactValue: {
+    flex: 1,
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
   divider: {
     backgroundColor: Colors.border,
     marginVertical: Spacing.sm,
+  },
+  switchAccountCard: {
+    backgroundColor: Colors.primary + '15',
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  switchAccountContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+  },
+  switchAccountIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  switchAccountInfo: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  switchAccountTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  switchAccountDescription: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   menuCard: {
     backgroundColor: Colors.surface,
@@ -381,11 +419,17 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: FontSize.xs,
   },
-  languagePickerContainer: {
+  languageRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  languageIcon: {
+    marginLeft: Spacing.md,
+  },
+  languagePickerWrapper: {
     flex: 1,
+    overflow: 'hidden',
   },
   logoutButton: {
     marginTop: Spacing.md,

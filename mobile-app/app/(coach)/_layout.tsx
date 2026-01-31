@@ -158,6 +158,12 @@ export default function CoachLayout() {
             href: null,
           }}
         />
+        <Tabs.Screen
+          name="club"
+          options={{
+            href: null,
+          }}
+        />
       </Tabs>
     </>
   );

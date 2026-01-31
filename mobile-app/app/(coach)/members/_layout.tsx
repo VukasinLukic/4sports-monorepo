@@ -37,6 +37,12 @@ export default function MembersLayout() {
           presentation: 'modal',
         }}
       />
+      <Stack.Screen
+        name="edit"
+        options={{
+          title: 'Edit Member',
+        }}
+      />
     </Stack>
   );
 }

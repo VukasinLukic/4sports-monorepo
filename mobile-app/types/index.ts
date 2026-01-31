@@ -93,6 +93,8 @@ export interface Member {
   height?: number;
   weight?: number;
   position?: string;
+  jerseyNumber?: number | string;
+  groupName?: string;
   paymentStatus: PaymentStatus;
   medicalCheckStatus: 'VALID' | 'EXPIRED' | 'EXPIRING_SOON';
   medicalCheckExpiryDate?: string;
@@ -181,9 +183,14 @@ export interface EventParticipantsStats {
 // Attendance Interface
 export interface Attendance {
   _id: string;
-  eventId: string;
+  eventId: string | {
+    _id: string;
+    title?: string;
+    type?: string;
+    date?: string;
+  };
   memberId: string;
-  status: 'PRESENT' | 'ABSENT' | 'EXCUSED';
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
   markedBy: string;
   markedAt: string;
   notes?: string;
@@ -198,11 +205,19 @@ export interface Payment {
   clubId: string;
   amount: number;
   currency: string;
-  paymentMethod: PaymentMethod;
-  paymentDate: string;
-  status: PaymentStatus;
-  isPaid: boolean;
+  type: 'MEMBERSHIP' | 'EVENT' | 'EQUIPMENT' | 'OTHER';
+  paymentMethod?: PaymentMethod;
+  paymentDate?: string;
+  paidDate?: string;
+  dueDate?: string;
+  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  isPaid?: boolean;
+  description?: string;
   note?: string;
+  period?: {
+    month: number;
+    year: number;
+  };
   createdBy: string;
   createdAt: string;
   updatedAt: string;

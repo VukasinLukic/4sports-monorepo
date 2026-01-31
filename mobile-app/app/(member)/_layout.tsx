@@ -121,6 +121,12 @@ export default function MemberLayout() {
           href: null, // Hidden from tab bar
         }}
       />
+      <Tabs.Screen
+        name="club"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

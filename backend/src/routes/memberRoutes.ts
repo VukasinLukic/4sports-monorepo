@@ -21,7 +21,7 @@ router.put('/me', restrictTo(['MEMBER']), updateMyMemberProfile);
 // Member CRUD
 router.post('/', restrictTo(['PARENT']), createMember);
 router.get('/:id', getMember);
-router.put('/:id', restrictTo(['PARENT']), updateMember);
-router.delete('/:id', restrictTo(['PARENT']), deleteMember);
+router.put('/:id', restrictTo(['PARENT', 'OWNER', 'COACH']), updateMember);
+router.delete('/:id', restrictTo(['PARENT', 'OWNER', 'COACH']), deleteMember);
 
 export default router;

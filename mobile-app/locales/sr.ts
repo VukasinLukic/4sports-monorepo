@@ -1,6 +1,7 @@
 export default {
   // Common
   common: {
+    continue: 'Nastavi',
     loading: 'Učitavanje...',
     save: 'Sačuvaj',
     cancel: 'Otkaži',
@@ -250,6 +251,11 @@ export default {
     memberDeleted: 'Član je uspešno obrisan',
     medicalIssues: 'Problemi sa lekarskim',
     noMembersFilter: 'Nema članova koji odgovaraju ovom filteru',
+    height: 'Visina',
+    weight: 'Težina',
+    position: 'Pozicija',
+    jerseyNumber: 'Broj dresa',
+    lastActive: 'Aktivan:',
   },
 
   // Events
@@ -362,7 +368,7 @@ export default {
     rate: 'Stopa prisustva',
     loading: 'Učitavanje prisustva...',
     recentEvents: 'Nedavni događaji',
-    noRecords: 'Još nema evidencije prisustva',
+    noRecords: 'Nikad',
     historyAppearHere: 'Vaša istorija prisustva će se pojaviti ovde',
     checkedIn: 'Prijavljen',
     summary: 'Pregled prisustva',
@@ -403,6 +409,12 @@ export default {
     enterAmount: 'Unesite iznos',
     notePlaceholder: 'npr. Mesečna članarina za januar',
     bank: 'Banka',
+    bankTransfer: 'Na račun',
+    paid: 'Plaćeno',
+    partial: 'Delimično',
+    unpaid: 'Neplaćeno',
+    debt: 'Dugovanje',
+    membershipFee: 'Mesečna članarina',
   },
 
   // Groups
@@ -416,6 +428,10 @@ export default {
     noGroupsDescription: 'Kreirajte grupe da biste organizovali članove.',
     groupName: 'Naziv grupe',
     groupDescription: 'Opis',
+    groupColor: 'Boja grupe',
+    ageGroup: 'Uzrast',
+    sport: 'Sport',
+    preview: 'Pregled',
     memberCount: '{{count}} članova',
     addMembers: 'Dodaj članove',
     removeFromGroup: 'Ukloni iz grupe',
@@ -428,6 +444,9 @@ export default {
     allGroups: 'Sve grupe',
     coaches: 'trenera',
     searchGroups: 'Pretraži grupe...',
+    newGroup: 'Nova Grupa',
+    addMember: 'Dodaj Člana',
+    lastTraining: 'Poslednji trening',
   },
 
   // News
@@ -496,7 +515,8 @@ export default {
     deactivate: 'Deaktiviraj',
     generateDescription: 'Generišite pozivni kod koji novi članovi mogu koristiti za registraciju u vašem klubu.',
     shareInviteDescription: 'Podelite ovaj kod sa novim članovima da bi se pridružili vašem klubu.',
-    existingCodes: "Postojeći pozivni kodovi",
+    existingCodes: 'Postojeći pozivni kodovi',
+    codeCopiedMessage: 'Pozivni kod je kopiran',
   },
 
   // Medical
@@ -654,6 +674,16 @@ export default {
       november: 'Novembar',
       december: 'Decembar',
     },
+   days: {
+    sun: 'Ned',
+    mon: 'Pon',
+    tue: 'Uto',
+    wed: 'Sre',
+    thu: 'Čet',
+    fri: 'Pet',
+    sat: 'Sub',
+   },
+
   },
 
   // Evidence
@@ -683,8 +713,12 @@ export default {
   time: {
     today: 'Danas',
     yesterday: 'Juče',
+    twoDaysAgo: 'Prekjuče',
     daysAgo: 'dana',
+    oneWeekAgo: 'Pre nedelju dana',
+    weeksAgo: 'nedelja',
     justNow: 'Upravo sada',
+    months: 'Meseci',
   },
 
   // Confirmation dialogs
@@ -726,6 +760,15 @@ export default {
       newMessage: 'Nova poruka',
       groupAdded: 'Dodati ste u grupu',
     },
+  },
+
+  // Chat
+  chat: {
+    title: 'Chat',
+    startChat: 'Poruka',
+    noMessages: 'Nema poruka',
+    typeMessage: 'Unesite poruku...',
+    send: 'Pošalji',
   },
 
   // App specific

@@ -1,6 +1,7 @@
 export default {
   // Common
   common: {
+    continue: 'Continue',
     loading: 'Loading...',
     save: 'Save',
     cancel: 'Cancel',
@@ -247,6 +248,11 @@ export default {
     memberDeleted: 'Member deleted successfully',
     medicalIssues: 'Medical Issues',
     noMembersFilter: 'No members match this filter',
+    height: 'Height',
+    weight: 'Weight',
+    position: 'Position',
+    jerseyNumber: 'Jersey Number',
+    lastActive: 'Last Active',
   },
 
   // Events
@@ -359,7 +365,7 @@ export default {
     rate: 'Attendance Rate',
     loading: 'Loading attendance...',
     recentEvents: 'Recent Events',
-    noRecords: 'No attendance records yet',
+    noRecords: 'No attendance yet',
     historyAppearHere: 'Your attendance history will appear here',
     checkedIn: 'Checked In',
     summary: 'Attendance Summary',
@@ -400,6 +406,12 @@ export default {
     enterAmount: 'Enter amount',
     notePlaceholder: 'e.g., Monthly fee for January',
     bank: 'Bank',
+    bankTransfer: 'Bank Transfer',
+    paid: 'Paid',
+    partial: 'Partial',
+    unpaid: 'Unpaid',
+    debt: 'Debt',
+    membershipFee: 'Monthly Fee',
   },
 
   // Groups
@@ -413,6 +425,10 @@ export default {
     noGroupsDescription: 'Create groups to organize your members.',
     groupName: 'Group Name',
     groupDescription: 'Description',
+    groupColor: 'Group Color',
+    ageGroup: 'Age Group',
+    sport: 'Sport',
+    preview: 'Preview',
     memberCount: '{{count}} members',
     addMembers: 'Add Members',
     removeFromGroup: 'Remove from Group',
@@ -425,6 +441,9 @@ export default {
     allGroups: 'All Groups',
     coaches: 'coaches',
     searchGroups: 'Search groups...',
+    newGroup: 'New Group',
+    addMember: 'Add Member',
+    lastTraining: 'Last Training',
   },
 
   // News
@@ -493,7 +512,8 @@ export default {
     deactivate: 'Deactivate',
     generateDescription: 'Generate an invite code that new members can use to register for your club.',
     shareInviteDescription: 'Share this code with new members to join your club.',
-    existingCodes: "Existing Invite Codes",
+    existingCodes: 'Existing Invite Codes',
+    codeCopiedMessage: 'Invite code copied to clipboard',
   },
 
   // Medical
@@ -680,8 +700,12 @@ export default {
   time: {
     today: 'Today',
     yesterday: 'Yesterday',
+    twoDaysAgo: '2 days ago',
     daysAgo: 'days ago',
+    oneWeekAgo: '1 week ago',
+    weeksAgo: 'weeks ago',
     justNow: 'Just now',
+    months: 'Months',
   },
 
   // Confirmation dialogs
@@ -723,6 +747,15 @@ export default {
       newMessage: 'New message',
       groupAdded: 'You were added to a group',
     },
+  },
+
+  // Chat
+  chat: {
+    title: 'Chat',
+    startChat: 'Chat',
+    noMessages: 'No messages yet',
+    typeMessage: 'Type a message...',
+    send: 'Send',
   },
 
   // App specific

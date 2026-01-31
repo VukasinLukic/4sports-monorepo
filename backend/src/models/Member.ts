@@ -24,6 +24,10 @@ export interface IMember extends Document {
   userId?: mongoose.Types.ObjectId;   // For self-registered members (MEMBER role)
   clubs: IClubMembership[];
   profileImage?: string;
+  position?: string;
+  jerseyNumber?: number;
+  height?: number;
+  weight?: number;
   medicalInfo?: {
     bloodType?: string;
     allergies?: string;
@@ -154,6 +158,29 @@ const memberSchema = new Schema<IMember, IMemberModel>(
     profileImage: {
       type: String,
       trim: true,
+    },
+
+    position: {
+      type: String,
+      trim: true,
+    },
+
+    jerseyNumber: {
+      type: Number,
+      min: [0, 'Jersey number must be positive'],
+      max: [999, 'Jersey number cannot exceed 999'],
+    },
+
+    height: {
+      type: Number,
+      min: [50, 'Height must be at least 50cm'],
+      max: [300, 'Height cannot exceed 300cm'],
+    },
+
+    weight: {
+      type: Number,
+      min: [10, 'Weight must be at least 10kg'],
+      max: [500, 'Weight cannot exceed 500kg'],
     },
 
     medicalInfo: {

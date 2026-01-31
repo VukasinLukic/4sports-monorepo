@@ -6,6 +6,7 @@ import {
   RefreshControl,
   Share,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Text,
@@ -280,17 +281,18 @@ export default function InviteCodesScreen() {
                   visible={menuVisible}
                   onDismiss={() => setMenuVisible(false)}
                   anchor={
-                    <Button
-                      mode="outlined"
-                      onPress={() => setMenuVisible(true)}
+                    <TouchableOpacity
                       style={styles.dropdownButton}
-                      contentStyle={styles.dropdownContent}
-                      icon="chevron-down"
+                      onPress={() => setMenuVisible(true)}
+                      activeOpacity={0.7}
                     >
-                      {selectedGroup
-                        ? `${selectedGroup.name}${selectedGroup.ageGroup ? ` (${selectedGroup.ageGroup})` : ''}`
-                        : t('groups.selectGroup') + '...'}
-                    </Button>
+                      <Text style={styles.dropdownText}>
+                        {selectedGroup
+                          ? `${selectedGroup.name}${selectedGroup.ageGroup ? ` (${selectedGroup.ageGroup})` : ''}`
+                          : t('groups.selectGroup') + '...'}
+                      </Text>
+                      <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.textSecondary} />
+                    </TouchableOpacity>
                   }
                   contentStyle={styles.menuContent}
                 >
@@ -568,10 +570,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
   },
-  dropdownContent: {
-    justifyContent: 'flex-start',
+  dropdownText: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+    flex: 1,
   },
   menuContent: {
     backgroundColor: Colors.surface,

@@ -198,13 +198,23 @@ export const getAllMembers = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
     }
 
-    console.log('👥 Club members list requested for club:', clubId);
+    // Check for groupId filter in query params
+    const { groupId } = req.query;
 
-    // Get members for this club
-    const members = await Member.find({
+    console.log('👥 Club members list requested for club:', clubId, groupId ? `(filtered by group: ${groupId})` : '');
+
+    // Build query - filter by groupId if provided
+    const query: any = {
       'clubs.clubId': clubId,
       'clubs.status': 'ACTIVE',
-    })
+    };
+
+    if (groupId) {
+      query['clubs.groupId'] = groupId;
+    }
+
+    // Get members for this club (optionally filtered by group)
+    const members = await Member.find(query)
       .populate('parentId', 'fullName email phoneNumber')
       .populate('clubs.groupId', 'name ageGroup color')
       .sort({ fullName: 1 });
@@ -427,16 +437,18 @@ export const updateMember = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
 
     const { id } = req.params;
-    const { fullName, dateOfBirth, gender, medicalInfo, emergencyContact } = req.body;
+    const { fullName, dateOfBirth, gender, medicalInfo, emergencyContact, position, jerseyNumber, height, weight } = req.body;
 
     const member = await Member.findById(id);
 
     if (!member) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found' } });
 
-    // Only parent (for children) or the member themselves can update
+    // Access control: parent, member themselves, or COACH/OWNER of the club
     const isParent = member.parentId && member.parentId.toString() === req.user._id.toString();
     const isSelf = member.userId && member.userId.toString() === req.user._id.toString();
-    if (!isParent && !isSelf) {
+    const isCoachOrOwner = (req.user.role === 'COACH' || req.user.role === 'OWNER') && req.user.clubId && member.isInClub(req.user.clubId);
+
+    if (!isParent && !isSelf && !isCoachOrOwner) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
     }
 
@@ -445,6 +457,10 @@ export const updateMember = async (req: Request, res: Response) => {
     if (gender) member.gender = gender;
     if (medicalInfo) member.medicalInfo = medicalInfo;
     if (emergencyContact) member.emergencyContact = emergencyContact;
+    if (position !== undefined) member.position = position;
+    if (jerseyNumber !== undefined) member.jerseyNumber = jerseyNumber;
+    if (height !== undefined) member.height = height;
+    if (weight !== undefined) member.weight = weight;
 
     await member.save();
 

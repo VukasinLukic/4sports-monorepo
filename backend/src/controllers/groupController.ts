@@ -111,9 +111,23 @@ export const getClubGroups = async (req: Request, res: Response) => {
 
     const groups = await Group.findByClub(clubId);
 
+    // Get member counts for each group
+    const groupsWithCounts = await Promise.all(
+      groups.map(async (group) => {
+        const memberCount = await Member.countDocuments({
+          'clubs.groupId': group._id,
+          'clubs.status': 'ACTIVE',
+        });
+        return {
+          ...group.toObject(),
+          memberCount,
+        };
+      })
+    );
+
     return res.status(200).json({
       success: true,
-      data: groups,
+      data: groupsWithCounts,
     });
   } catch (error: any) {
     console.error('❌ Get Groups Error:', error);

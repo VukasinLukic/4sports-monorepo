@@ -20,8 +20,11 @@ export const createPayment = async (req: Request, res: Response) => {
     // If paymentMethod is provided, this is a "record payment" (already paid)
     const isPaid = !!paymentMethod;
     const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
+
+    // Use paymentDate for period if provided, otherwise use current date
+    const periodDate = paymentDate ? new Date(paymentDate) : now;
+    const periodMonth = periodDate.getMonth() + 1;
+    const periodYear = periodDate.getFullYear();
 
     const paymentData: any = {
       clubId,
@@ -31,7 +34,7 @@ export const createPayment = async (req: Request, res: Response) => {
       description: description || note,
       dueDate: dueDate || now,
       createdBy: req.user._id,
-      period: { month: currentMonth, year: currentYear },
+      period: { month: periodMonth, year: periodYear },
     };
 
     if (isPaid) {

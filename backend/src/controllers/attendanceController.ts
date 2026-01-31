@@ -63,6 +63,46 @@ export const getMemberAttendance = async (req: Request, res: Response) => {
 };
 
 /**
+ * Get last attendance (training) for a member
+ */
+export const getLastMemberAttendance = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+
+    const { memberId } = req.params;
+
+    // Find the most recent attendance where member was PRESENT or LATE
+    const lastAttendance = await Attendance.findOne({
+      memberId,
+      status: { $in: ['PRESENT', 'LATE'] },
+    })
+      .sort({ markedAt: -1 })
+      .populate('eventId', 'title startTime type');
+
+    if (!lastAttendance) {
+      return res.status(200).json({ success: true, data: null });
+    }
+
+    const event = lastAttendance.eventId as any;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        eventId: event?._id,
+        eventTitle: event?.title,
+        eventDate: event?.startTime,
+        eventType: event?.type,
+        status: lastAttendance.status,
+        markedAt: lastAttendance.markedAt,
+      },
+    });
+  } catch (error: any) {
+    console.error('❌ Get Last Member Attendance Error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch last attendance' } });
+  }
+};
+
+/**
  * Get own attendance (for MEMBER role users)
  */
 export const getMyAttendance = async (req: Request, res: Response) => {

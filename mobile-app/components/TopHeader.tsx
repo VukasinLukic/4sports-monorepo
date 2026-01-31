@@ -55,6 +55,10 @@ export default function TopHeader({ basePath }: TopHeaderProps) {
     router.push(`${basePath}/profile` as any);
   };
 
+  const handleClubPress = () => {
+    router.push(`${basePath}/club` as any);
+  };
+
   const getInitials = (name?: string) => {
     if (!name) return 'CL';
     return name
@@ -69,7 +73,7 @@ export default function TopHeader({ basePath }: TopHeaderProps) {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.content}>
         {/* Left side - Club info */}
-        <View style={styles.clubSection}>
+        <TouchableOpacity style={styles.clubSection} onPress={handleClubPress} activeOpacity={0.7}>
           <View style={styles.clubIcon}>
             {clubInfo?.logo ? (
               <Image source={{ uri: clubInfo.logo }} style={styles.clubLogo} />
@@ -84,7 +88,7 @@ export default function TopHeader({ basePath }: TopHeaderProps) {
           <Text style={styles.clubName} numberOfLines={1}>
             {clubInfo?.name || 'Loading...'}
           </Text>
-        </View>
+        </TouchableOpacity>
 
         {/* Right side - Icons */}
         <View style={styles.iconsSection}>

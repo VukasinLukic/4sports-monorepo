@@ -101,6 +101,12 @@ export default function ParentLayout() {
           headerTitle: 'Attendance History',
         }}
       />
+      <Tabs.Screen
+        name="club"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

@@ -1,7 +1,10 @@
 import { Stack } from 'expo-router';
 import { Colors } from '@/constants/Colors';
+import { useLanguage } from '@/services/LanguageContext';
 
 export default function PaymentsLayout() {
+  const { t } = useLanguage();
+
   return (
     <Stack
       screenOptions={{
@@ -20,7 +23,7 @@ export default function PaymentsLayout() {
       <Stack.Screen
         name="record"
         options={{
-          title: 'Record Payment',
+          title: t('payments.recordPayment'),
           presentation: 'modal',
         }}
       />
