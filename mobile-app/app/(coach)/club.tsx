@@ -129,33 +129,34 @@ export default function ClubInfoScreen() {
               </Text>
             </View>
           </View>
-        </View>
 
-        {/* Contact info */}
-        <View style={styles.contactSection}>
-          {person.email && (
-            <TouchableOpacity style={styles.contactRow} onPress={() => handleEmail(person.email)}>
-              <MaterialCommunityIcons name="email-outline" size={18} color={Colors.textSecondary} />
-              <Text style={styles.contactText}>{person.email}</Text>
-            </TouchableOpacity>
-          )}
-          {person.phoneNumber && (
-            <TouchableOpacity style={styles.contactRow} onPress={() => handleCall(person.phoneNumber)}>
-              <MaterialCommunityIcons name="phone-outline" size={18} color={Colors.textSecondary} />
-              <Text style={styles.contactText}>{person.phoneNumber}</Text>
+          {/* Chat button - icon only, subtle */}
+          {person._id !== user?._id && (
+            <TouchableOpacity
+              style={styles.chatIconButton}
+              onPress={() => handleChatWithUser(person._id)}
+            >
+              <MaterialCommunityIcons name="chat-outline" size={22} color={Colors.primary} />
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Chat button - don't show for current user */}
-        {person._id !== user?._id && (
-          <TouchableOpacity
-            style={styles.chatButton}
-            onPress={() => handleChatWithUser(person._id)}
-          >
-            <MaterialCommunityIcons name="chat-outline" size={20} color={Colors.primary} />
-            <Text style={styles.chatButtonText}>{t('chat.startChat') || 'Chat'}</Text>
-          </TouchableOpacity>
+        {/* Contact info - phone and email */}
+        {(person.phoneNumber || person.email) && (
+          <View style={styles.contactSection}>
+            {person.phoneNumber && (
+              <TouchableOpacity style={styles.contactRow} onPress={() => handleCall(person.phoneNumber)}>
+                <MaterialCommunityIcons name="phone" size={18} color={Colors.primary} />
+                <Text style={[styles.contactText, styles.contactLink]}>{person.phoneNumber}</Text>
+              </TouchableOpacity>
+            )}
+            {person.email && (
+              <TouchableOpacity style={styles.contactRow} onPress={() => handleEmail(person.email)}>
+                <MaterialCommunityIcons name="email-outline" size={18} color={Colors.textSecondary} />
+                <Text style={styles.contactText}>{person.email}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
       </Card.Content>
     </Card>
@@ -403,20 +404,16 @@ const styles = StyleSheet.create({
     color: Colors.text,
     flex: 1,
   },
-  chatButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: BorderRadius.sm,
-    gap: Spacing.sm,
-  },
-  chatButtonText: {
-    fontSize: FontSize.md,
+  contactLink: {
     color: Colors.primary,
     fontWeight: '500',
+  },
+  chatIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

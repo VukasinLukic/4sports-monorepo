@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Image, Alert, Linking } from 'react-native';
 import { Text, Card, Avatar, Button, ActivityIndicator, Divider } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -312,6 +312,45 @@ export default function MemberDetailsScreen() {
           <Text style={styles.detailLabel}>{t('members.joinDate')}:</Text>
           <Text style={styles.detailValue}>{formatDate(member.createdAt)}</Text>
         </View>
+
+        {/* Parent Contact - always show in main details if available */}
+        {member.parentPhone && (
+          <TouchableOpacity
+            style={styles.detailRow}
+            onPress={() => Linking.openURL(`tel:${member.parentPhone}`)}
+          >
+            <MaterialCommunityIcons name="phone" size={20} color={Colors.textSecondary} />
+            <Text style={styles.detailLabel}>{t('members.parentPhone')}:</Text>
+            <Text style={[styles.detailValue, { color: Colors.primary }]}>{member.parentPhone}</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Additional Parent Info Section */}
+        {(member.parentName || member.parentEmail) && (
+          <>
+            <Divider style={styles.divider} />
+            <Text style={styles.cardTitle}>{t('members.parentInfo')}</Text>
+
+            {member.parentName && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons name="account" size={20} color={Colors.textSecondary} />
+                <Text style={styles.detailLabel}>{t('members.parentName')}:</Text>
+                <Text style={styles.detailValue}>{member.parentName}</Text>
+              </View>
+            )}
+
+            {member.parentEmail && (
+              <TouchableOpacity
+                style={styles.detailRow}
+                onPress={() => Linking.openURL(`mailto:${member.parentEmail}`)}
+              >
+                <MaterialCommunityIcons name="email" size={20} color={Colors.textSecondary} />
+                <Text style={styles.detailLabel}>{t('members.parentEmail')}:</Text>
+                <Text style={[styles.detailValue, { color: Colors.primary }]}>{member.parentEmail}</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
       </Card.Content>
     </Card>
   );

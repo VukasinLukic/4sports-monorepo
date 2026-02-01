@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -69,21 +69,24 @@ export default function GroupsScreen() {
     fetchGroups();
   }, [fetchGroups]);
 
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredGroups(groups);
-    } else {
-      const query = searchQuery.toLowerCase();
-      setFilteredGroups(
-        groups.filter(
-          (group) =>
-            group.name.toLowerCase().includes(query) ||
-            group.ageGroup?.toLowerCase().includes(query) ||
-            group.sport?.toLowerCase().includes(query)
-        )
-      );
+  // Filter members within groups by search query
+  const displayGroups = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return filteredGroups;
     }
-  }, [searchQuery, groups]);
+
+    const query = searchQuery.toLowerCase();
+    return filteredGroups.map(group => ({
+      ...group,
+      members: group.members?.filter(m =>
+        m.fullName.toLowerCase().includes(query)
+      ),
+    }));
+  }, [filteredGroups, searchQuery]);
+
+  useEffect(() => {
+    setFilteredGroups(groups);
+  }, [groups]);
 
   const onRefresh = () => {
     setIsRefreshing(true);
@@ -394,7 +397,7 @@ export default function GroupsScreen() {
     <View style={styles.container}>
       {/* Search Bar */}
       <Searchbar
-        placeholder={t('groups.searchGroups') || 'Search groups...'}
+        placeholder={t('groups.searchMembers') || 'Search members...'}
         onChangeText={setSearchQuery}
         value={searchQuery}
         style={styles.searchBar}
@@ -404,7 +407,7 @@ export default function GroupsScreen() {
       />
 
       {/* Groups List */}
-      {filteredGroups.length === 0 ? (
+      {displayGroups.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialCommunityIcons
             name="account-group-outline"
@@ -422,7 +425,7 @@ export default function GroupsScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredGroups}
+          data={displayGroups}
           renderItem={renderGroupCard}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}

@@ -20,6 +20,9 @@ export default function EditMemberScreen() {
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
+  const [parentName, setParentName] = useState('');
+  const [parentPhone, setParentPhone] = useState('');
+  const [parentEmail, setParentEmail] = useState('');
 
   useEffect(() => {
     fetchMember();
@@ -36,6 +39,9 @@ export default function EditMemberScreen() {
       setJerseyNumber(member.jerseyNumber?.toString() || '');
       setHeight(member.height?.toString() || '');
       setWeight(member.weight?.toString() || '');
+      setParentName(member.parentName || '');
+      setParentPhone(member.parentPhone || '');
+      setParentEmail(member.parentEmail || '');
     } catch (error) {
       console.error('Error fetching member:', error);
       Alert.alert(t('common.error'), t('errors.loadingFailed'));
@@ -55,6 +61,9 @@ export default function EditMemberScreen() {
         jerseyNumber: jerseyNumber ? parseInt(jerseyNumber) : undefined,
         height: height ? parseInt(height) : undefined,
         weight: weight ? parseInt(weight) : undefined,
+        parentName: parentName || undefined,
+        parentPhone: parentPhone || undefined,
+        parentEmail: parentEmail || undefined,
       });
       Alert.alert(t('common.success'), t('profile.profileUpdated'), [
         { text: t('common.ok'), onPress: () => router.back() },
@@ -146,6 +155,41 @@ export default function EditMemberScreen() {
           activeOutlineColor={Colors.primary}
         />
       </View>
+
+      <Text style={styles.sectionTitle}>{t('members.parentInfo')}</Text>
+
+      <TextInput
+        label={t('members.parentName')}
+        value={parentName}
+        onChangeText={setParentName}
+        mode="outlined"
+        style={styles.input}
+        outlineColor={Colors.border}
+        activeOutlineColor={Colors.primary}
+      />
+
+      <TextInput
+        label={t('members.parentPhone')}
+        value={parentPhone}
+        onChangeText={setParentPhone}
+        mode="outlined"
+        style={styles.input}
+        keyboardType="phone-pad"
+        outlineColor={Colors.border}
+        activeOutlineColor={Colors.primary}
+      />
+
+      <TextInput
+        label={t('members.parentEmail')}
+        value={parentEmail}
+        onChangeText={setParentEmail}
+        mode="outlined"
+        style={styles.input}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        outlineColor={Colors.border}
+        activeOutlineColor={Colors.primary}
+      />
 
       <Button
         mode="contained"

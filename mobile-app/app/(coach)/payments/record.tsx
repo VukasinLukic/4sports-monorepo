@@ -14,6 +14,16 @@ const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July
 
 type PaymentStatus = 'paid' | 'partial' | 'unpaid';
 
+interface MonthOption {
+  month: number;
+  year: number;
+  label: string;
+  status: PaymentStatus;
+  paidAmount: number;
+  expectedAmount: number;
+  remainingAmount: number;
+}
+
 export default function RecordPaymentScreen() {
   const { t, language } = useLanguage();
   const { memberId, memberName } = useLocalSearchParams<{ memberId?: string; memberName?: string }>();
@@ -59,9 +69,12 @@ export default function RecordPaymentScreen() {
     return null;
   }, [member]);
 
+  // Monthly fee - TODO: Get from club settings
+  const monthlyFee = 3000;
+
   // Get months with payment status (only months since member joined)
   const monthOptions = useMemo(() => {
-    const options: { month: number; year: number; label: string; status: PaymentStatus }[] = [];
+    const options: MonthOption[] = [];
 
     for (let i = 0; i < 12; i++) {
       const date = new Date(currentYear, currentMonth - i, 1);
@@ -77,22 +90,31 @@ export default function RecordPaymentScreen() {
         }
       }
 
-      // Get all payments for this month
-      const monthPayments = memberPayments.filter((p: Payment) =>
-        p.period?.month === month + 1 && p.period?.year === year
-      );
-
-      // Determine payment status
-      let status: PaymentStatus = 'unpaid';
-      if (monthPayments.length > 0) {
-        const allPaid = monthPayments.every((p: Payment) => p.status === 'PAID');
-        const somePaid = monthPayments.some((p: Payment) => p.status === 'PAID');
-
-        if (allPaid) {
-          status = 'paid';
-        } else if (somePaid || monthPayments.some((p: Payment) => p.status === 'PENDING' || p.status === 'OVERDUE')) {
-          status = 'partial';
+      // Get all payments for this month - check period first, then fallback to paidDate/createdAt
+      const monthPayments = memberPayments.filter((p: Payment) => {
+        if (p.period?.month && p.period?.year) {
+          return p.period.month === month + 1 && p.period.year === year;
         }
+        // Fallback to paidDate or createdAt
+        const pDate = new Date(p.paidDate || p.createdAt);
+        return pDate.getMonth() === month && pDate.getFullYear() === year;
+      });
+
+      // Calculate paid amount (sum of amounts where status = 'PAID')
+      const paidAmount = monthPayments
+        .filter((p: Payment) => p.status === 'PAID')
+        .reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
+
+      // Expected amount is the monthly fee
+      const expectedAmount = monthlyFee;
+      const remainingAmount = Math.max(0, expectedAmount - paidAmount);
+
+      // Determine payment status based on amounts vs monthly fee
+      let status: PaymentStatus = 'unpaid';
+      if (paidAmount >= expectedAmount) {
+        status = 'paid';
+      } else if (paidAmount > 0) {
+        status = 'partial';
       }
 
       options.push({
@@ -100,11 +122,14 @@ export default function RecordPaymentScreen() {
         year,
         label: `${months[month]} ${year}`,
         status,
+        paidAmount,
+        expectedAmount,
+        remainingAmount,
       });
     }
 
     return options;
-  }, [memberPayments, months, currentMonth, currentYear, memberJoinDate]);
+  }, [memberPayments, months, currentMonth, currentYear, memberJoinDate, monthlyFee]);
 
   const selectedMonthLabel = `${months[selectedMonth]} ${selectedYear}`;
 
@@ -209,8 +234,12 @@ export default function RecordPaymentScreen() {
                   </View>
                 ) : option.status === 'partial' ? (
                   <View style={styles.partialBadge}>
-                    <MaterialCommunityIcons name="circle-half-full" size={12} color={Colors.warning} />
-                    <Text style={styles.partialText}>{t('payments.partial')}</Text>
+                    <Text style={styles.partialText}>
+                      {option.paidAmount}/{option.expectedAmount}
+                    </Text>
+                    <Text style={styles.partialRemainingText}>
+                      (-{option.remainingAmount})
+                    </Text>
                   </View>
                 ) : (
                   <View style={styles.unpaidBadge}>
@@ -459,7 +488,13 @@ const styles = StyleSheet.create({
   partialText: {
     fontSize: FontSize.xs,
     color: Colors.warning,
+    fontWeight: '600',
+  },
+  partialRemainingText: {
+    fontSize: FontSize.xs,
+    color: Colors.error,
     fontWeight: '500',
+    marginLeft: 4,
   },
   unpaidBadge: {
     backgroundColor: Colors.error + '20',

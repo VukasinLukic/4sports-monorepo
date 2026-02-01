@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,6 +7,10 @@ import {
   Share,
   Alert,
   TouchableOpacity,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  Modal,
 } from 'react-native';
 import {
   Text,
@@ -15,8 +19,6 @@ import {
   ActivityIndicator,
   Chip,
   IconButton,
-  Menu,
-  Divider,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -27,6 +29,11 @@ import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { Group } from '@/types';
 
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 interface InviteCode {
   _id: string;
   code: string;
@@ -35,6 +42,7 @@ interface InviteCode {
     _id: string;
     name: string;
     ageGroup?: string;
+    color?: string;
   };
   expiresAt: string;
   maxUses: number;
@@ -43,6 +51,13 @@ interface InviteCode {
   isValid: boolean;
   createdAt: string;
 }
+
+// Helper to get group color
+const getGroupColor = (groupId?: InviteCode['groupId'], groups?: Group[]): string => {
+  if (!groupId) return Colors.primary;
+  const group = groups?.find(g => g._id === (typeof groupId === 'string' ? groupId : groupId._id));
+  return group?.color || groupId.color || Colors.primary;
+};
 
 export default function InviteCodesScreen() {
   const { t } = useLanguage();
@@ -56,6 +71,32 @@ export default function InviteCodesScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<InviteCode | null>(null);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [showExpiredCodes, setShowExpiredCodes] = useState(false);
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+
+  // Find existing valid code for selected group
+  const existingCodeForGroup = useMemo(() => {
+    if (!selectedGroup) return null;
+    return inviteCodes.find(
+      (inv) =>
+        inv.groupId &&
+        (typeof inv.groupId === 'string' ? inv.groupId : inv.groupId._id) === selectedGroup._id &&
+        inv.isValid &&
+        inv.isActive
+    ) || null;
+  }, [selectedGroup, inviteCodes]);
+
+  // Split codes into valid and invalid
+  const { validCodes, invalidCodes } = useMemo(() => {
+    const valid = inviteCodes.filter(inv => inv.isValid && inv.isActive);
+    const invalid = inviteCodes.filter(inv => !inv.isValid || !inv.isActive);
+    return { validCodes: valid, invalidCodes: invalid };
+  }, [inviteCodes]);
+
+  const toggleExpiredCodes = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowExpiredCodes(!showExpiredCodes);
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -207,6 +248,10 @@ export default function InviteCodesScreen() {
     );
   };
 
+  const showInstructions = () => {
+    setShowInstructionsModal(true);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('sr-RS', {
@@ -277,50 +322,106 @@ export default function InviteCodesScreen() {
               {/* Group Selector */}
               <View style={styles.groupSelector}>
                 <Text style={styles.label}>{t('groups.selectGroup')}</Text>
-                <Menu
-                  visible={menuVisible}
-                  onDismiss={() => setMenuVisible(false)}
-                  anchor={
-                    <TouchableOpacity
-                      style={styles.dropdownButton}
-                      onPress={() => setMenuVisible(true)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.dropdownText}>
-                        {selectedGroup
-                          ? `${selectedGroup.name}${selectedGroup.ageGroup ? ` (${selectedGroup.ageGroup})` : ''}`
-                          : t('groups.selectGroup') + '...'}
-                      </Text>
-                      <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.textSecondary} />
-                    </TouchableOpacity>
-                  }
-                  contentStyle={styles.menuContent}
+                <TouchableOpacity
+                  style={styles.dropdownButton}
+                  onPress={() => setMenuVisible(true)}
+                  activeOpacity={0.7}
                 >
-                  {groups.map((group) => (
-                    <Menu.Item
-                      key={group._id}
-                      onPress={() => {
-                        setSelectedGroup(group);
-                        setMenuVisible(false);
-                      }}
-                      title={`${group.name}${group.ageGroup ? ` (${group.ageGroup})` : ''}`}
-                      titleStyle={styles.menuItemTitle}
-                    />
-                  ))}
-                </Menu>
+                  <Text style={styles.dropdownText}>
+                    {selectedGroup
+                      ? `${selectedGroup.name}${selectedGroup.ageGroup ? ` (${selectedGroup.ageGroup})` : ''}`
+                      : t('groups.selectGroup') + '...'}
+                  </Text>
+                  <MaterialCommunityIcons name={menuVisible ? "chevron-up" : "chevron-down"} size={24} color={Colors.textSecondary} />
+                </TouchableOpacity>
               </View>
 
-              {/* Generate Button */}
-              <Button
-                mode="contained"
-                onPress={handleGenerateCode}
-                loading={isGenerating}
-                disabled={!selectedGroup || isGenerating}
-                style={styles.generateButton}
-                icon="qrcode"
+              {/* Group Selection Modal */}
+              <Modal
+                visible={menuVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMenuVisible(false)}
               >
-                {t('invites.generateCode')}
-              </Button>
+                <TouchableOpacity
+                  style={styles.dropdownOverlay}
+                  activeOpacity={1}
+                  onPress={() => setMenuVisible(false)}
+                >
+                  <View style={styles.dropdownModal}>
+                    <Text style={styles.dropdownModalTitle}>{t('groups.selectGroup')}</Text>
+                    <ScrollView style={styles.dropdownList} showsVerticalScrollIndicator={false}>
+                      {groups.map((group) => (
+                        <TouchableOpacity
+                          key={group._id}
+                          style={[
+                            styles.dropdownItem,
+                            selectedGroup?._id === group._id && styles.dropdownItemSelected,
+                          ]}
+                          onPress={() => {
+                            setSelectedGroup(group);
+                            setGeneratedCode(null);
+                            setMenuVisible(false);
+                          }}
+                        >
+                          {group.color && (
+                            <View style={[styles.dropdownItemColor, { backgroundColor: group.color }]} />
+                          )}
+                          <Text style={[
+                            styles.dropdownItemText,
+                            selectedGroup?._id === group._id && styles.dropdownItemTextSelected,
+                          ]}>
+                            {group.name}{group.ageGroup ? ` (${group.ageGroup})` : ''}
+                          </Text>
+                          {selectedGroup?._id === group._id && (
+                            <MaterialCommunityIcons name="check" size={20} color={Colors.primary} />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </TouchableOpacity>
+              </Modal>
+
+              {/* Show existing code or generate button */}
+              {selectedGroup && existingCodeForGroup ? (
+                <View style={styles.existingCodeBox}>
+                  <View style={styles.existingCodeHeader}>
+                    <Text style={styles.existingCodeLabel}>{t('invites.inviteCode')}</Text>
+                    <Text style={styles.existingCodeValue}>{existingCodeForGroup.code}</Text>
+                  </View>
+                  <View style={styles.existingCodeActions}>
+                    <TouchableOpacity
+                      style={styles.codeActionButton}
+                      onPress={() => handleCopyCode(existingCodeForGroup.code, selectedGroup.name)}
+                    >
+                      <MaterialCommunityIcons name="content-copy" size={20} color={Colors.primary} />
+                      <Text style={styles.codeActionText}>{t('invites.copy') || 'Copy'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.codeActionButton}
+                      onPress={() => handleShareCode(existingCodeForGroup.code, selectedGroup.name)}
+                    >
+                      <MaterialCommunityIcons name="share-variant" size={20} color={Colors.primary} />
+                      <Text style={styles.codeActionText}>{t('invites.share') || 'Share'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.existingCodeInfo}>
+                    {existingCodeForGroup.usedCount}/{existingCodeForGroup.maxUses} {t('invites.used')} • {t('invites.expires')} {formatDate(existingCodeForGroup.expiresAt)}
+                  </Text>
+                </View>
+              ) : selectedGroup ? (
+                <Button
+                  mode="contained"
+                  onPress={handleGenerateCode}
+                  loading={isGenerating}
+                  disabled={isGenerating}
+                  style={styles.generateButton}
+                  icon="plus"
+                >
+                  {t('invites.generateCode')}
+                </Button>
+              ) : null}
             </>
           )}
         </Card.Content>
@@ -384,143 +485,188 @@ export default function InviteCodesScreen() {
         </Card>
       )}
 
-      {/* Existing Codes Section */}
-      <View style={styles.existingSection}>
-        <Text style={styles.sectionTitle}>{t('invites.existingCodes') || 'Existing Invite Codes'}</Text>
-
-        {inviteCodes.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <Card.Content style={styles.emptyContent}>
-              <MaterialCommunityIcons
-                name="qrcode"
-                size={48}
-                color={Colors.textSecondary}
-              />
-              <Text style={styles.emptyText}>{t('invites.noInvites')}</Text>
-              <Text style={styles.emptySubtext}>
-                {t('invites.noInvitesDescription')}
-              </Text>
-            </Card.Content>
-          </Card>
-        ) : (
-          inviteCodes.map((invite) => (
-            <Card
-              key={invite._id}
-              style={[
-                styles.inviteCard,
-                !invite.isValid && styles.inviteCardInactive,
-              ]}
+      {/* Existing Valid Codes Section */}
+      {validCodes.length > 0 && (
+        <View style={styles.existingSection}>
+          <View style={styles.existingHeader}>
+            <Text style={styles.sectionTitle}>{t('invites.existingCodes') || 'Active Invite Codes'}</Text>
+            <TouchableOpacity
+              style={styles.instructionButton}
+              onPress={showInstructions}
             >
-              <Card.Content>
-                <View style={styles.inviteHeader}>
-                  <View style={styles.inviteCodeContainer}>
-                    <Text style={styles.inviteCode}>{invite.code}</Text>
-                    <Chip
-                      mode="flat"
-                      style={[
-                        styles.statusChip,
-                        invite.isValid
-                          ? styles.statusChipActive
-                          : styles.statusChipInactive,
-                      ]}
-                      textStyle={styles.statusChipText}
-                    >
-                      {invite.isValid ? t('status.active') : t('status.inactive')}
-                    </Chip>
-                  </View>
-                  <View style={styles.inviteActions}>
-                    {invite.isValid && (
-                      <>
-                        <IconButton
-                          icon="content-copy"
-                          size={20}
-                          iconColor={Colors.textSecondary}
-                          onPress={() =>
-                            handleCopyCode(
-                              invite.code,
-                              invite.groupId?.name || 'Our Club'
-                            )
-                          }
-                        />
-                        <IconButton
-                          icon="share-variant"
-                          size={20}
-                          iconColor={Colors.textSecondary}
-                          onPress={() =>
-                            handleShareCode(
-                              invite.code,
-                              invite.groupId?.name || 'Our Club'
-                            )
-                          }
-                        />
-                      </>
-                    )}
-                  </View>
+              <MaterialCommunityIcons name="help-circle-outline" size={20} color={Colors.primary} />
+              <Text style={styles.instructionButtonText}>{t('invites.howToUse')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {validCodes.map((invite) => {
+            const groupColor = getGroupColor(invite.groupId, groups);
+            return (
+              <View key={invite._id} style={styles.compactInviteCard}>
+                {/* Color bar for group */}
+                <View style={[styles.compactColorBar, { backgroundColor: groupColor }]} />
+                <View style={styles.compactInviteLeft}>
+                  <Text style={styles.compactInviteCode}>{invite.code}</Text>
+                  <Text style={[styles.compactInviteGroup, { color: groupColor }]}>
+                    {invite.groupId?.name || 'No group'}
+                  </Text>
+                  <Text style={styles.compactInviteInfo}>
+                    {invite.usedCount}/{invite.maxUses} • {formatDate(invite.expiresAt)}
+                  </Text>
                 </View>
-
-                <Divider style={styles.inviteDivider} />
-
-                <View style={styles.inviteDetails}>
-                  <View style={styles.inviteDetail}>
-                    <MaterialCommunityIcons
-                      name="account-group"
-                      size={16}
-                      color={Colors.textSecondary}
-                    />
-                    <Text style={styles.inviteDetailText}>
-                      {invite.groupId?.name || 'No group'}
-                      {invite.groupId?.ageGroup && ` (${invite.groupId.ageGroup})`}
-                    </Text>
-                  </View>
-                  <View style={styles.inviteDetail}>
-                    <MaterialCommunityIcons
-                      name="account-multiple-check"
-                      size={16}
-                      color={Colors.textSecondary}
-                    />
-                    <Text style={styles.inviteDetailText}>
-                      {invite.usedCount} / {invite.maxUses} {t('invites.used')}
-                    </Text>
-                  </View>
-                  <View style={styles.inviteDetail}>
-                    <MaterialCommunityIcons
-                      name="calendar-clock"
-                      size={16}
-                      color={
-                        isExpired(invite.expiresAt)
-                          ? Colors.error
-                          : Colors.textSecondary
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.inviteDetailText,
-                        isExpired(invite.expiresAt) && { color: Colors.error },
-                      ]}
-                    >
-                      {isExpired(invite.expiresAt)
-                        ? t('status.expired')
-                        : `${t('invites.expires') || 'Expires'} ${formatDate(invite.expiresAt)}`}
-                    </Text>
-                  </View>
-                </View>
-
-                {invite.isValid && (
-                  <Button
-                    mode="text"
-                    textColor={Colors.error}
+                <View style={styles.compactInviteActions}>
+                  <IconButton
+                    icon="content-copy"
+                    size={18}
+                    iconColor={Colors.primary}
+                    onPress={() => handleCopyCode(invite.code, invite.groupId?.name || 'Our Club')}
+                    style={styles.compactIconButton}
+                  />
+                  <IconButton
+                    icon="share-variant"
+                    size={18}
+                    iconColor={Colors.primary}
+                    onPress={() => handleShareCode(invite.code, invite.groupId?.name || 'Our Club')}
+                    style={styles.compactIconButton}
+                  />
+                  <IconButton
+                    icon="close-circle-outline"
+                    size={18}
+                    iconColor={Colors.error}
                     onPress={() => handleDeactivateCode(invite.code)}
-                    style={styles.deactivateButton}
-                    compact
+                    style={styles.compactIconButton}
+                  />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Expired/Invalid Codes - Collapsible */}
+      {invalidCodes.length > 0 && (
+        <View style={styles.expiredSection}>
+          <TouchableOpacity
+            style={styles.expiredHeader}
+            onPress={toggleExpiredCodes}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.expiredHeaderText}>
+              {t('invites.expiredCodes') || 'Expired Codes'} ({invalidCodes.length})
+            </Text>
+            <MaterialCommunityIcons
+              name={showExpiredCodes ? 'chevron-up' : 'chevron-down'}
+              size={24}
+              color={Colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          {showExpiredCodes && (
+            <View style={styles.expiredList}>
+              {invalidCodes.map((invite) => (
+                <View key={invite._id} style={styles.expiredInviteCard}>
+                  <View style={styles.expiredInviteLeft}>
+                    <Text style={styles.expiredInviteCode}>{invite.code}</Text>
+                    <Text style={styles.expiredInviteGroup}>
+                      {invite.groupId?.name || 'No group'}
+                    </Text>
+                  </View>
+                  <Chip
+                    mode="flat"
+                    style={styles.expiredChip}
+                    textStyle={styles.expiredChipText}
                   >
-                    {t('invites.deactivate') || 'Deactivate'}
-                  </Button>
-                )}
-              </Card.Content>
-            </Card>
-          ))
-        )}
-      </View>
+                    {isExpired(invite.expiresAt) ? t('status.expired') : t('status.inactive')}
+                  </Chip>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Empty State */}
+      {inviteCodes.length === 0 && (
+        <Card style={styles.emptyCard}>
+          <Card.Content style={styles.emptyContent}>
+            <MaterialCommunityIcons
+              name="ticket-outline"
+              size={48}
+              color={Colors.textSecondary}
+            />
+            <Text style={styles.emptyText}>{t('invites.noInvites')}</Text>
+            <Text style={styles.emptySubtext}>
+              {t('invites.noInvitesDescription')}
+            </Text>
+          </Card.Content>
+        </Card>
+      )}
+
+      {/* Instructions Modal */}
+      <Modal
+        visible={showInstructionsModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowInstructionsModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowInstructionsModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="help-circle" size={28} color={Colors.primary} />
+              <Text style={styles.modalTitle}>{t('invites.howToUse') || 'How to use'}</Text>
+            </View>
+
+            <View style={styles.instructionsList}>
+              <View style={styles.instructionItem}>
+                <View style={styles.instructionNumber}>
+                  <Text style={styles.instructionNumberText}>1</Text>
+                </View>
+                <Text style={styles.instructionText}>
+                  {t('invites.step1') || 'Download the 4Sports app'}
+                </Text>
+              </View>
+
+              <View style={styles.instructionItem}>
+                <View style={styles.instructionNumber}>
+                  <Text style={styles.instructionNumberText}>2</Text>
+                </View>
+                <Text style={styles.instructionText}>
+                  {t('invites.step2') || 'Choose "I have an invite code"'}
+                </Text>
+              </View>
+
+              <View style={styles.instructionItem}>
+                <View style={styles.instructionNumber}>
+                  <Text style={styles.instructionNumberText}>3</Text>
+                </View>
+                <Text style={styles.instructionText}>
+                  {t('invites.step3') || 'Enter the code'}
+                </Text>
+              </View>
+
+              <View style={styles.instructionItem}>
+                <View style={styles.instructionNumber}>
+                  <Text style={styles.instructionNumberText}>4</Text>
+                </View>
+                <Text style={styles.instructionText}>
+                  {t('invites.step4') || 'Register and add your child'}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowInstructionsModal(false)}
+            >
+              <Text style={styles.modalCloseText}>{t('common.ok') || 'OK'}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -585,14 +731,56 @@ const styles = StyleSheet.create({
     color: Colors.text,
     flex: 1,
   },
-  menuContent: {
-    backgroundColor: Colors.surface,
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
   },
-  menuItemTitle: {
+  dropdownModal: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    width: '100%',
+    maxWidth: 340,
+    maxHeight: '70%',
+  },
+  dropdownModalTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  dropdownList: {
+    maxHeight: 300,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  dropdownItemSelected: {
+    backgroundColor: Colors.primary + '10',
+  },
+  dropdownItemColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: Spacing.sm,
+  },
+  dropdownItemText: {
+    flex: 1,
+    fontSize: FontSize.md,
     color: Colors.text,
   },
-  menuItemDisabled: {
-    color: Colors.textSecondary,
+  dropdownItemTextSelected: {
+    color: Colors.primary,
+    fontWeight: '600',
   },
   generateButton: {
     backgroundColor: Colors.primary,
@@ -664,6 +852,173 @@ const styles = StyleSheet.create({
   existingSection: {
     marginTop: Spacing.md,
   },
+  existingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+  },
+  instructionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  instructionButtonText: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: '500',
+  },
+  existingCodeBox: {
+    backgroundColor: Colors.primary + '15',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  existingCodeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  existingCodeLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+  },
+  existingCodeValue: {
+    fontSize: FontSize.xl,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    letterSpacing: 2,
+  },
+  existingCodeActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  codeActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  codeActionText: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: '500',
+  },
+  existingCodeInfo: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  compactInviteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    paddingLeft: Spacing.lg,
+    marginTop: Spacing.sm,
+    overflow: 'hidden',
+  },
+  compactColorBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 5,
+    borderTopLeftRadius: BorderRadius.md,
+    borderBottomLeftRadius: BorderRadius.md,
+  },
+  compactInviteLeft: {
+    flex: 1,
+  },
+  compactInviteCode: {
+    fontSize: FontSize.md,
+    fontWeight: 'bold',
+    color: Colors.text,
+    letterSpacing: 1,
+  },
+  compactInviteGroup: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  compactInviteInfo: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  compactInviteActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  compactIconButton: {
+    margin: 0,
+    width: 32,
+    height: 32,
+  },
+  expiredSection: {
+    marginTop: Spacing.lg,
+  },
+  expiredHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  expiredHeaderText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  expiredList: {
+    marginTop: Spacing.sm,
+  },
+  expiredInviteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.sm,
+    paddingLeft: Spacing.md,
+    marginTop: Spacing.xs,
+    opacity: 0.7,
+  },
+  expiredInviteLeft: {
+    flex: 1,
+  },
+  expiredInviteCode: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+  },
+  expiredInviteGroup: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  expiredChip: {
+    backgroundColor: Colors.error + '20',
+    height: 24,
+  },
+  expiredChipText: {
+    fontSize: FontSize.xs,
+    color: Colors.error,
+  },
   emptyCard: {
     backgroundColor: Colors.surface,
     marginTop: Spacing.md,
@@ -682,65 +1037,69 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
-  inviteCard: {
-    backgroundColor: Colors.surface,
-    marginTop: Spacing.sm,
-  },
-  inviteCardInactive: {
-    opacity: 0.6,
-  },
-  inviteHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  inviteCodeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  inviteCode: {
-    fontSize: FontSize.lg,
-    fontWeight: 'bold',
-    color: Colors.text,
-    letterSpacing: 2,
-  },
-  statusChip: {
-    height: 28,
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
   },
-  statusChipActive: {
-    backgroundColor: Colors.success + '30',
+  modalContent: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    width: '100%',
+    maxWidth: 340,
   },
-  statusChipInactive: {
-    backgroundColor: Colors.error + '30',
-  },
-  statusChipText: {
-    fontSize: FontSize.xs,
-    color: Colors.text,
-    lineHeight: FontSize.xs + 2,
-  },
-  inviteActions: {
-    flexDirection: 'row',
-  },
-  inviteDivider: {
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.sm,
-  },
-  inviteDetails: {
-    gap: Spacing.xs,
-  },
-  inviteDetail: {
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
-  inviteDetailText: {
+  modalTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  instructionsList: {
+    gap: Spacing.md,
+  },
+  instructionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+  },
+  instructionNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  instructionNumberText: {
+    color: '#fff',
+    fontWeight: '600',
     fontSize: FontSize.sm,
-    color: Colors.textSecondary,
   },
-  deactivateButton: {
-    alignSelf: 'flex-start',
-    marginTop: Spacing.sm,
+  instructionText: {
+    flex: 1,
+    fontSize: FontSize.md,
+    color: Colors.text,
+    lineHeight: 22,
+  },
+  modalCloseButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.sm,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontSize: FontSize.md,
+    fontWeight: '600',
   },
 });

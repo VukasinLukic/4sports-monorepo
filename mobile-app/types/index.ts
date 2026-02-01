@@ -117,6 +117,10 @@ export interface Member {
     relationship: string;
     phoneNumber: string;
   };
+  // Parent contact info
+  parentName?: string;
+  parentPhone?: string;
+  parentEmail?: string;
   createdAt: string;
   updatedAt: string;
 }

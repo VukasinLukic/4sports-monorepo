@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -306,11 +306,22 @@ export default function EvidenceScreen() {
     return date.toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit' });
   };
 
-  // Filter groups by search query
-  const filteredGroups = groupsWithMembers.filter(group =>
-    group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    group.members.some(m => m.fullName.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Filter members within groups by search query
+  const filteredGroups = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return groupsWithMembers;
+    }
+
+    const query = searchQuery.toLowerCase();
+    return groupsWithMembers
+      .map(group => ({
+        ...group,
+        members: group.members.filter(m =>
+          m.fullName.toLowerCase().includes(query)
+        ),
+      }))
+      .filter(group => group.members.length > 0); // Only show groups that have matching members
+  }, [groupsWithMembers, searchQuery]);
 
   const renderMonthFilter = () => {
     if (!showMonthFilter || activeTab !== 'membership') return null;
@@ -529,7 +540,7 @@ export default function EvidenceScreen() {
       {/* Search Bar with Filter */}
       <View style={styles.searchContainer}>
         <Searchbar
-          placeholder={t('common.search')}
+          placeholder={t('groups.searchMembers') || 'Search members...'}
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={styles.searchBar}
