@@ -43,6 +43,8 @@ export default {
     tryAgain: 'Pokušaj ponovo',
     goBack: 'Nazad',
     note: 'Napomena',
+    share: 'Podeli',
+    unknown: 'Nepoznato',
   },
 
   // Navigation & Tabs
@@ -133,6 +135,8 @@ export default {
     saveFailed: 'Čuvanje nije uspelo',
     deleteFailed: 'Brisanje nije uspelo',
     loadEventFailed: 'Učitavanje detalja događaja nije uspelo',
+    commentFailed: 'Objavljivanje komentara nije uspelo',
+    loadFailed: 'Učitavanje nije uspelo',
   },
 
   // Status labels
@@ -491,6 +495,16 @@ export default {
     postToGroup: 'Objavi u grupi',
   },
 
+  // Posts/Comments
+  posts: {
+    post: 'Objava',
+    comments: 'Komentari',
+    noComments: 'Nema komentara',
+    beFirst: 'Budite prvi koji će komentarisati!',
+    writeComment: 'Napišite komentar...',
+    shareMessage: 'Deljenje će uskoro biti dostupno',
+  },
+
   // Invites
   invites: {
     title: 'Pozivni kodovi',
@@ -733,6 +747,27 @@ export default {
     weeksAgo: 'nedelja',
     justNow: 'Upravo sada',
     months: 'Meseci',
+    in: 'Za',
+    days: 'dana',
+    weeks: 'ned.',
+    minutesShort: 'm',
+    hoursShort: 'h',
+    daysShort: 'd',
+  },
+
+  // RSVP
+  rsvp: {
+    nextEvent: 'Sledeći događaj',
+    coming: 'Dolazim',
+    notComing: 'Ne dolazim',
+    failed: 'Greška pri potvrdi prisustva',
+    confirmedAttendance: 'Potvrdili ste prisustvo',
+    declinedAttendance: 'Odbili ste prisustvo',
+    pendingAttendance: 'Niste još potvrdili prisustvo',
+    changeStatus: 'Možete promeniti odluku',
+    confirmedShort: 'Potvrdio dolazak',
+    declinedShort: 'Neće doći',
+    pendingShort: 'Čeka potvrdu',
   },
 
   // Confirmation dialogs

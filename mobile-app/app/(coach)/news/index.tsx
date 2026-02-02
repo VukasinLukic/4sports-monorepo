@@ -7,6 +7,7 @@ import { Colors } from '@/constants/Colors';
 import { Spacing, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import PostCard from '@/components/PostCard';
+import CommentBottomSheet from '@/components/CommentBottomSheet';
 import api from '@/services/api';
 import { Post } from '@/types';
 
@@ -23,6 +24,8 @@ export default function CoachNewsFeed() {
   const [posts, setPosts] = useState<PostWithAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [commentSheetVisible, setCommentSheetVisible] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -54,15 +57,25 @@ export default function CoachNewsFeed() {
 
   const handleLike = async (postId: string) => {
     try {
-      await api.post(`/posts/${postId}/like`);
+      await api.post('/posts/like', {
+        targetType: 'POST',
+        targetId: postId,
+      });
+      fetchData();
     } catch (error) {
       console.error('Error liking post:', error);
     }
   };
 
   const handleComment = (postId: string) => {
-    // TODO: Navigate to post detail/comments
-    console.log('Open comments for post:', postId);
+    setSelectedPostId(postId);
+    setCommentSheetVisible(true);
+  };
+
+  const handleCloseCommentSheet = () => {
+    setCommentSheetVisible(false);
+    setSelectedPostId(null);
+    fetchData();
   };
 
   const renderPost = ({ item }: { item: PostWithAuthor }) => (
@@ -127,6 +140,16 @@ export default function CoachNewsFeed() {
         onPress={() => router.push('/(coach)/news/create')}
         color={Colors.text}
       />
+
+      {/* Comment Bottom Sheet */}
+      {selectedPostId && (
+        <CommentBottomSheet
+          visible={commentSheetVisible}
+          onClose={handleCloseCommentSheet}
+          postId={selectedPostId}
+          basePath="/(coach)"
+        />
+      )}
     </View>
   );
 }

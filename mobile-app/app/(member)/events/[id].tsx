@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity } from 'react-native';
-import { Text, Card, ActivityIndicator, Chip, Button, SegmentedButtons, Avatar } from 'react-native-paper';
+import { Text, Card, ActivityIndicator, Chip, Button, Avatar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
@@ -191,15 +191,34 @@ export default function MemberEventDetailScreen() {
       <Text style={styles.title}>{event.title}</Text>
 
       {/* Tabs */}
-      <SegmentedButtons
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as TabType)}
-        buttons={[
-          { value: 'overview', label: t('events.overview') },
-          { value: 'participants', label: `${t('events.participants')} (${stats?.total || 0})` },
-        ]}
-        style={styles.tabs}
-      />
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'overview' && styles.tabButtonActive]}
+          onPress={() => setActiveTab('overview')}
+        >
+          <MaterialCommunityIcons
+            name="clipboard-text-outline"
+            size={18}
+            color={activeTab === 'overview' ? '#fff' : Colors.text}
+          />
+          <Text style={[styles.tabButtonText, activeTab === 'overview' && styles.tabButtonTextActive]}>
+            {t('events.overview')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'participants' && styles.tabButtonActive]}
+          onPress={() => setActiveTab('participants')}
+        >
+          <MaterialCommunityIcons
+            name="account-group"
+            size={18}
+            color={activeTab === 'participants' ? '#fff' : Colors.text}
+          />
+          <Text style={[styles.tabButtonText, activeTab === 'participants' && styles.tabButtonTextActive]}>
+            {t('events.participants')} ({stats?.total || 0})
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -209,79 +228,92 @@ export default function MemberEventDetailScreen() {
       >
         {activeTab === 'overview' ? (
           <>
-            {/* RSVP Status */}
-            {myRsvpStatus !== null && (
-              <Card style={[
-                styles.card,
-                styles.rsvpCard,
-                { borderLeftWidth: 4, borderLeftColor: myRsvpStatus === 'CONFIRMED' ? Colors.success : Colors.error }
-              ]}>
-                <Card.Content style={styles.rsvpContent}>
-                  <View style={styles.rsvpStatusRow}>
-                    <View style={styles.rsvpStatusInfo}>
-                      <MaterialCommunityIcons
-                        name={myRsvpStatus === 'CONFIRMED' ? 'check-circle' : 'close-circle'}
-                        size={24}
-                        color={myRsvpStatus === 'CONFIRMED' ? Colors.success : Colors.error}
-                      />
-                      <Text style={[
-                        styles.rsvpStatusText,
-                        { color: myRsvpStatus === 'CONFIRMED' ? Colors.success : Colors.error }
-                      ]}>
-                        {myRsvpStatus === 'CONFIRMED'
-                          ? t('rsvp.coming') || 'Dolazim'
-                          : t('rsvp.notComing') || 'Ne dolazim'}
-                      </Text>
-                    </View>
+            {/* RSVP Status - Always show, prominent */}
+            <Card style={[
+              styles.card,
+              styles.rsvpCard,
+              {
+                borderLeftWidth: 4,
+                borderLeftColor: myRsvpStatus === 'CONFIRMED' ? Colors.success :
+                                 myRsvpStatus === 'DECLINED' ? Colors.error : Colors.warning
+              }
+            ]}>
+              <Card.Content style={styles.rsvpContent}>
+                {/* Status Message */}
+                <View style={styles.rsvpStatusRow}>
+                  <MaterialCommunityIcons
+                    name={myRsvpStatus === 'CONFIRMED' ? 'check-circle' :
+                          myRsvpStatus === 'DECLINED' ? 'close-circle' : 'help-circle'}
+                    size={28}
+                    color={myRsvpStatus === 'CONFIRMED' ? Colors.success :
+                           myRsvpStatus === 'DECLINED' ? Colors.error : Colors.warning}
+                  />
+                  <View style={styles.rsvpTextContainer}>
+                    <Text style={[
+                      styles.rsvpStatusText,
+                      { color: myRsvpStatus === 'CONFIRMED' ? Colors.success :
+                               myRsvpStatus === 'DECLINED' ? Colors.error : Colors.warning }
+                    ]}>
+                      {myRsvpStatus === 'CONFIRMED'
+                        ? (t('rsvp.confirmedAttendance') || 'Potvrdili ste prisustvo')
+                        : myRsvpStatus === 'DECLINED'
+                        ? (t('rsvp.declinedAttendance') || 'Odbili ste prisustvo')
+                        : (t('rsvp.pendingAttendance') || 'Niste još potvrdili prisustvo')}
+                    </Text>
+                    <Text style={styles.rsvpHelpText}>
+                      {t('rsvp.changeStatus') || 'Možete promeniti odluku'}
+                    </Text>
                   </View>
+                </View>
 
-                  {/* Change RSVP Buttons */}
-                  <View style={styles.rsvpButtonsRow}>
-                    <TouchableOpacity
-                      style={[
-                        styles.rsvpButton,
-                        myRsvpStatus === 'CONFIRMED' && styles.rsvpButtonActive,
-                      ]}
-                      onPress={() => handleRsvp('CONFIRMED')}
-                      disabled={isSubmittingRsvp}
-                    >
-                      <MaterialCommunityIcons
-                        name="check"
-                        size={16}
-                        color={myRsvpStatus === 'CONFIRMED' ? '#fff' : Colors.success}
-                      />
-                      <Text style={[
-                        styles.rsvpButtonText,
-                        { color: myRsvpStatus === 'CONFIRMED' ? '#fff' : Colors.success }
-                      ]}>
-                        {t('rsvp.coming') || 'Dolazim'}
-                      </Text>
-                    </TouchableOpacity>
+                {/* Change RSVP Buttons */}
+                <View style={styles.rsvpButtonsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.rsvpButton,
+                      styles.rsvpButtonComing,
+                      myRsvpStatus === 'CONFIRMED' && styles.rsvpButtonActiveGreen,
+                    ]}
+                    onPress={() => handleRsvp('CONFIRMED')}
+                    disabled={isSubmittingRsvp}
+                  >
+                    <MaterialCommunityIcons
+                      name="check"
+                      size={18}
+                      color={myRsvpStatus === 'CONFIRMED' ? '#fff' : Colors.success}
+                    />
+                    <Text style={[
+                      styles.rsvpButtonText,
+                      { color: myRsvpStatus === 'CONFIRMED' ? '#fff' : Colors.success }
+                    ]}>
+                      {t('rsvp.coming') || 'Dolazim'}
+                    </Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={[
-                        styles.rsvpButton,
-                        myRsvpStatus === 'DECLINED' && styles.rsvpButtonActive,
-                      ]}
-                      onPress={() => handleRsvp('DECLINED')}
-                      disabled={isSubmittingRsvp}
-                    >
-                      <MaterialCommunityIcons
-                        name="close"
-                        size={16}
-                        color={myRsvpStatus === 'DECLINED' ? '#fff' : Colors.error}
-                      />
-                      <Text style={[
-                        styles.rsvpButtonText,
-                        { color: myRsvpStatus === 'DECLINED' ? '#fff' : Colors.error }
-                      ]}>
-                        {t('rsvp.notComing') || 'Ne dolazim'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </Card.Content>
-              </Card>
-            )}
+                  <TouchableOpacity
+                    style={[
+                      styles.rsvpButton,
+                      styles.rsvpButtonNotComing,
+                      myRsvpStatus === 'DECLINED' && styles.rsvpButtonActiveRed,
+                    ]}
+                    onPress={() => handleRsvp('DECLINED')}
+                    disabled={isSubmittingRsvp}
+                  >
+                    <MaterialCommunityIcons
+                      name="close"
+                      size={18}
+                      color={myRsvpStatus === 'DECLINED' ? '#fff' : Colors.error}
+                    />
+                    <Text style={[
+                      styles.rsvpButtonText,
+                      { color: myRsvpStatus === 'DECLINED' ? '#fff' : Colors.error }
+                    ]}>
+                      {t('rsvp.notComing') || 'Ne dolazim'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </Card.Content>
+            </Card>
 
             {/* Date & Time */}
             <Card style={styles.card}>
@@ -422,40 +454,66 @@ export default function MemberEventDetailScreen() {
               <Card style={styles.emptyCard}>
                 <Card.Content style={styles.emptyContent}>
                   <MaterialCommunityIcons name="account-group-outline" size={48} color={Colors.textSecondary} />
-                  <Text style={styles.emptyText}>{t('events.noParticipants') || 'No participants yet'}</Text>
+                  <Text style={styles.emptyText}>{t('events.noParticipants') || 'Još nema učesnika'}</Text>
                 </Card.Content>
               </Card>
             ) : (
-              participants.map((participant) => (
-                <Card key={participant._id} style={styles.participantCard}>
-                  <Card.Content style={styles.participantContent}>
-                    <Avatar.Text
-                      size={44}
-                      label={participant.memberId.fullName?.slice(0, 2).toUpperCase() || '??'}
-                      style={styles.participantAvatar}
-                    />
-                    <View style={styles.participantInfo}>
-                      <Text style={styles.participantName}>{participant.memberId.fullName}</Text>
-                      <View style={styles.participantBadges}>
-                        <Chip
-                          compact
-                          style={[styles.statusChip, { backgroundColor: getRsvpColor(participant.rsvpStatus) + '20' }]}
-                          textStyle={[styles.statusChipText, { color: getRsvpColor(participant.rsvpStatus) }]}
-                        >
-                          {t(`status.${participant.rsvpStatus?.toLowerCase()}`) || participant.rsvpStatus}
-                        </Chip>
-                        <Chip
-                          compact
-                          style={[styles.statusChip, { backgroundColor: getStatusColor(participant.status) + '20' }]}
-                          textStyle={[styles.statusChipText, { color: getStatusColor(participant.status) }]}
-                        >
-                          {t(`status.${participant.status?.toLowerCase()}`) || participant.status}
-                        </Chip>
+              participants.map((participant) => {
+                const eventStarted = event && new Date(event.startTime) <= new Date();
+                const rsvpColor = getRsvpColor(participant.rsvpStatus);
+                const statusColor = getStatusColor(participant.status);
+
+                // Get readable status text
+                const getRsvpText = () => {
+                  switch (participant.rsvpStatus) {
+                    case 'CONFIRMED': return t('rsvp.confirmedShort') || 'Potvrdio dolazak';
+                    case 'DECLINED': return t('rsvp.declinedShort') || 'Neće doći';
+                    default: return t('rsvp.pendingShort') || 'Čeka potvrdu';
+                  }
+                };
+
+                const getAttendanceText = () => {
+                  if (!eventStarted) return null; // Don't show attendance before event starts
+                  switch (participant.status) {
+                    case 'PRESENT': return t('status.present') || 'Prisutan';
+                    case 'LATE': return t('status.late') || 'Kasni';
+                    case 'ABSENT': return t('status.absent') || 'Odsutan';
+                    case 'EXCUSED': return t('status.excused') || 'Opravdano';
+                    default: return null;
+                  }
+                };
+
+                const attendanceText = getAttendanceText();
+
+                return (
+                  <Card key={participant._id} style={styles.participantCard}>
+                    <Card.Content style={styles.participantContent}>
+                      <Avatar.Text
+                        size={44}
+                        label={participant.memberId.fullName?.slice(0, 2).toUpperCase() || '??'}
+                        style={styles.participantAvatar}
+                      />
+                      <View style={styles.participantInfo}>
+                        <Text style={styles.participantName}>{participant.memberId.fullName}</Text>
+                        <Text style={[styles.participantStatusText, { color: rsvpColor }]}>
+                          {getRsvpText()}
+                        </Text>
+                        {attendanceText && (
+                          <Text style={[styles.participantStatusText, { color: statusColor, marginTop: 2 }]}>
+                            {attendanceText}
+                          </Text>
+                        )}
                       </View>
-                    </View>
-                  </Card.Content>
-                </Card>
-              ))
+                      <MaterialCommunityIcons
+                        name={participant.rsvpStatus === 'CONFIRMED' ? 'check-circle' :
+                              participant.rsvpStatus === 'DECLINED' ? 'close-circle' : 'clock-outline'}
+                        size={24}
+                        color={rsvpColor}
+                      />
+                    </Card.Content>
+                  </Card>
+                );
+              })
             )}
           </>
         )}
@@ -527,10 +585,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     marginTop: Spacing.sm,
   },
-  tabs: {
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: 4,
     marginHorizontal: Spacing.md,
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    gap: 6,
+  },
+  tabButtonActive: {
+    backgroundColor: Colors.success,
+  },
+  tabButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
+    color: Colors.text,
+  },
+  tabButtonTextActive: {
+    color: '#fff',
   },
   content: {
     padding: Spacing.md,
@@ -646,18 +728,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.text,
   },
-  participantBadges: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    marginTop: Spacing.xs,
-  },
-  statusChip: {
-    height: 24,
-    maxWidth: '48%',
-  },
-  statusChipText: {
-    fontSize: FontSize.xs,
-    lineHeight: FontSize.xs + 2,
+  participantStatusText: {
+    fontSize: FontSize.sm,
   },
   rsvpCard: {
     backgroundColor: Colors.surface,
@@ -669,16 +741,19 @@ const styles = StyleSheet.create({
   rsvpStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: Spacing.md,
   },
-  rsvpStatusInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
+  rsvpTextContainer: {
+    flex: 1,
   },
   rsvpStatusText: {
     fontSize: FontSize.md,
     fontWeight: '600',
+  },
+  rsvpHelpText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   rsvpButtonsRow: {
     flexDirection: 'row',
@@ -693,15 +768,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.sm,
     borderWidth: 1,
-    borderColor: Colors.border,
     gap: 6,
   },
-  rsvpButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+  rsvpButtonComing: {
+    backgroundColor: Colors.success + '15',
+    borderColor: Colors.success,
+  },
+  rsvpButtonNotComing: {
+    backgroundColor: Colors.error + '15',
+    borderColor: Colors.error,
+  },
+  rsvpButtonActiveGreen: {
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
+  },
+  rsvpButtonActiveRed: {
+    backgroundColor: Colors.error,
+    borderColor: Colors.error,
   },
   rsvpButtonText: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     fontWeight: '600',
   },
 });

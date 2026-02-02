@@ -40,7 +40,10 @@
       "Bash(timeout:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(del \"c:\\\\Users\\\\Nemanja\\\\Desktop\\\\4sports-monorepo\\\\mobile-app\\\\config\\\\firebase.ts\")"
+      "Bash(del \"c:\\\\Users\\\\Nemanja\\\\Desktop\\\\4sports-monorepo\\\\mobile-app\\\\config\\\\firebase.ts\")",
+      "Bash(find:*)",
+      "Bash(git show:*)",
+      "Bash(npx expo export:*)"
     ],
     "deny": [],
     "ask": []

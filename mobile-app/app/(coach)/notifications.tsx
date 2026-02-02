@@ -6,7 +6,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { Text, ActivityIndicator } from 'react-native-paper';
+import { Text, ActivityIndicator, Avatar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -15,6 +15,12 @@ import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 
+interface NotificationSender {
+  _id: string;
+  fullName: string;
+  profilePicture?: string;
+}
+
 interface Notification {
   _id: string;
   type: string;
@@ -22,6 +28,7 @@ interface Notification {
   message: string;
   isRead: boolean;
   createdAt: string;
+  senderId?: NotificationSender;
   data?: {
     eventId?: string;
     postId?: string;
@@ -86,11 +93,23 @@ export default function NotificationsScreen() {
     // Navigate based on notification type
     if (notification.data?.conversationId) {
       router.push(`/(coach)/chat/${notification.data.conversationId}` as any);
+    } else if (notification.data?.postId) {
+      router.push(`/(coach)/news/${notification.data.postId}` as any);
     } else if (notification.data?.eventId) {
       router.push(`/(coach)/events/${notification.data.eventId}` as any);
     } else if (notification.data?.memberId) {
       router.push(`/(coach)/members/${notification.data.memberId}` as any);
     }
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return '??';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
   };
 
   const getNotificationIcon = (type: string) => {
@@ -129,39 +148,61 @@ export default function NotificationsScreen() {
     return date.toLocaleDateString('sr-RS');
   };
 
-  const renderNotification = ({ item }: { item: Notification }) => (
-    <TouchableOpacity
-      style={[styles.notificationCard, !item.isRead && styles.unreadCard]}
-      onPress={() => handleNotificationPress(item)}
-      activeOpacity={0.7}
-    >
-      <View
-        style={[
-          styles.iconContainer,
-          { backgroundColor: item.isRead ? Colors.surface : Colors.primary + '20' },
-        ]}
+  const renderNotification = ({ item }: { item: Notification }) => {
+    const hasSender = item.senderId && typeof item.senderId === 'object';
+    const senderName = hasSender ? item.senderId!.fullName : undefined;
+    const senderAvatar = hasSender ? item.senderId!.profilePicture : undefined;
+
+    return (
+      <TouchableOpacity
+        style={[styles.notificationCard, !item.isRead && styles.unreadCard]}
+        onPress={() => handleNotificationPress(item)}
+        activeOpacity={0.7}
       >
-        <MaterialCommunityIcons
-          name={getNotificationIcon(item.type) as any}
-          size={24}
-          color={item.isRead ? Colors.textSecondary : Colors.primary}
-        />
-      </View>
-      <View style={styles.contentContainer}>
-        <Text
-          style={[styles.title, !item.isRead && styles.unreadTitle]}
-          numberOfLines={1}
-        >
-          {item.title}
-        </Text>
-        <Text style={styles.message} numberOfLines={2}>
-          {item.message}
-        </Text>
-        <Text style={styles.time}>{getTimeAgo(item.createdAt)}</Text>
-      </View>
-      {!item.isRead && <View style={styles.unreadDot} />}
-    </TouchableOpacity>
-  );
+        {/* Profile picture or icon */}
+        {hasSender ? (
+          senderAvatar ? (
+            <Avatar.Image size={44} source={{ uri: senderAvatar }} style={styles.avatarImage} />
+          ) : (
+            <Avatar.Text
+              size={44}
+              label={getInitials(senderName)}
+              style={styles.avatarText}
+            />
+          )
+        ) : (
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: item.isRead ? Colors.surface : Colors.primary + '20' },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={getNotificationIcon(item.type) as any}
+              size={24}
+              color={item.isRead ? Colors.textSecondary : Colors.primary}
+            />
+          </View>
+        )}
+
+        <View style={styles.contentContainer}>
+          <View style={styles.titleRow}>
+            <Text
+              style={[styles.title, !item.isRead && styles.unreadTitle]}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+            <Text style={styles.timeTopRight}>{getTimeAgo(item.createdAt)}</Text>
+          </View>
+          <Text style={styles.message} numberOfLines={2}>
+            {item.message}
+          </Text>
+        </View>
+        {!item.isRead && <View style={styles.unreadDot} />}
+      </TouchableOpacity>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -287,16 +328,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: Spacing.md,
   },
+  avatarImage: {
+    marginRight: Spacing.md,
+  },
+  avatarText: {
+    backgroundColor: Colors.primary,
+    marginRight: Spacing.md,
+  },
   contentContainer: {
     flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 2,
   },
   title: {
     fontSize: FontSize.md,
     color: Colors.text,
-    marginBottom: 2,
+    flex: 1,
+    marginRight: Spacing.sm,
   },
   unreadTitle: {
     fontWeight: '600',
+  },
+  timeTopRight: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
   },
   message: {
     fontSize: FontSize.sm,

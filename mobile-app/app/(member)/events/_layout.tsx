@@ -26,7 +26,7 @@ export default function MemberEventsLayout() {
       <Stack.Screen
         name="[id]"
         options={{
-          title: 'Event Details',
+          headerShown: false,
         }}
       />
     </Stack>

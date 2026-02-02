@@ -221,14 +221,14 @@ const styles = StyleSheet.create({
     fontSize: FontSize.lg,
     fontWeight: '600',
     color: Colors.text,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: 0,
     paddingBottom: Spacing.xs,
   },
   postContent: {
     fontSize: FontSize.md,
     color: Colors.text,
     lineHeight: 22,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: 0,
     paddingBottom: Spacing.sm,
   },
   mediaContainer: {

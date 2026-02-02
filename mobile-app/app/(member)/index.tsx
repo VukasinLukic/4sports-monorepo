@@ -177,10 +177,15 @@ export default function MemberHome() {
     const eventTypeColor = getEventTypeColor(event.type);
     const relativeTime = getRelativeTimeText(event.startTime, t);
 
+    // Extract group info like calendar.tsx does
+    const groupName = typeof (event as any).groupId === 'object' ? (event as any).groupId?.name : '';
+    const groupColor = typeof (event as any).groupId === 'object' ? (event as any).groupId?.color : Colors.primary;
+
     return (
       <TouchableOpacity
         key={event._id}
         onPress={() => router.push({ pathname: '/(member)/events/[id]', params: { id: event._id } })}
+        activeOpacity={0.7}
       >
         <Card style={[styles.eventCard, isToday && styles.eventCardToday]}>
           <Card.Content style={styles.eventCardContent}>
@@ -203,14 +208,14 @@ export default function MemberHome() {
               </View>
 
               {/* Group Name */}
-              {(event as any).groupName && (
+              {groupName ? (
                 <View style={styles.groupRow}>
-                  <View style={[styles.groupDot, { backgroundColor: (event as any).groupColor || Colors.primary }]} />
-                  <Text style={[styles.groupName, { color: (event as any).groupColor || Colors.primary }]}>
-                    {(event as any).groupName}
+                  <View style={[styles.groupDot, { backgroundColor: groupColor || Colors.primary }]} />
+                  <Text style={[styles.groupName, { color: groupColor || Colors.primary }]}>
+                    {groupName}
                   </Text>
                 </View>
-              )}
+              ) : null}
 
               {/* Location or relative time */}
               {event.location ? (
@@ -652,20 +657,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   dateColumn: {
-    width: 56,
+    width: 48,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
-    marginRight: Spacing.sm,
+    marginTop: Spacing.sm,
+    marginLeft: Spacing.sm,
   },
   dateDay: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   dateDayName: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#FFFFFF',
     textTransform: 'uppercase',
     marginTop: 1,
@@ -674,6 +680,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.sm,
     paddingLeft: Spacing.md,
+    justifyContent: 'center',
   },
   eventHeader: {
     flexDirection: 'row',

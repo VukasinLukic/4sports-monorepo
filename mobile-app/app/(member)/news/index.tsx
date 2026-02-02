@@ -2,10 +2,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, ActivityIndicator, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, FontSize } from '@/constants/Layout';
 import PostCard from '@/components/PostCard';
+import CommentBottomSheet from '@/components/CommentBottomSheet';
 import api from '@/services/api';
 import { Post } from '@/types';
 
@@ -21,6 +22,8 @@ export default function MemberNewsFeed() {
   const [posts, setPosts] = useState<PostWithAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [commentSheetVisible, setCommentSheetVisible] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -65,8 +68,22 @@ export default function MemberNewsFeed() {
   };
 
   const handleComment = (postId: string) => {
-    // TODO: Navigate to post detail/comments
-    console.log('Open comments for post:', postId);
+    setSelectedPostId(postId);
+    setCommentSheetVisible(true);
+  };
+
+  const handleCloseCommentSheet = () => {
+    setCommentSheetVisible(false);
+    setSelectedPostId(null);
+    // Refresh to get updated comment counts
+    fetchData();
+  };
+
+  const handlePostPress = (post: Post) => {
+    router.push({
+      pathname: '/(member)/news/[id]',
+      params: { id: post._id },
+    });
   };
 
   const renderPost = ({ item }: { item: PostWithAuthor }) => (
@@ -76,6 +93,7 @@ export default function MemberNewsFeed() {
       authorAvatar={item.author?.profilePicture}
       onLike={handleLike}
       onComment={handleComment}
+      onPress={handlePostPress}
     />
   );
 
@@ -124,6 +142,16 @@ export default function MemberNewsFeed() {
           />
         }
       />
+
+      {/* Comment Bottom Sheet */}
+      {selectedPostId && (
+        <CommentBottomSheet
+          visible={commentSheetVisible}
+          onClose={handleCloseCommentSheet}
+          postId={selectedPostId}
+          basePath="/(member)"
+        />
+      )}
     </View>
   );
 }

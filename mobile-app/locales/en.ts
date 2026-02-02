@@ -43,6 +43,8 @@ export default {
     tryAgain: 'Try Again',
     goBack: 'Go Back',
     note: 'Note',
+    share: 'Share',
+    unknown: 'Unknown',
   },
 
   // Navigation & Tabs
@@ -130,6 +132,8 @@ export default {
     saveFailed: 'Failed to save',
     deleteFailed: 'Failed to delete',
     loadEventFailed: 'Failed to load event details',
+    commentFailed: 'Failed to post comment',
+    loadFailed: 'Failed to load',
   },
 
   // Status labels
@@ -488,6 +492,16 @@ export default {
     postToGroup: 'Post to Group',
   },
 
+  // Posts/Comments
+  posts: {
+    post: 'Post',
+    comments: 'Comments',
+    noComments: 'No comments yet',
+    beFirst: 'Be the first to comment!',
+    writeComment: 'Write a comment...',
+    shareMessage: 'Sharing will be available soon',
+  },
+
   // Invites
   invites: {
     title: 'Invite Codes',
@@ -720,6 +734,27 @@ export default {
     weeksAgo: 'weeks ago',
     justNow: 'Just now',
     months: 'Months',
+    in: 'In',
+    days: 'days',
+    weeks: 'weeks',
+    minutesShort: 'm',
+    hoursShort: 'h',
+    daysShort: 'd',
+  },
+
+  // RSVP
+  rsvp: {
+    nextEvent: 'Next event',
+    coming: "I'm coming",
+    notComing: "I'm not coming",
+    failed: 'Failed to confirm attendance',
+    confirmedAttendance: 'You confirmed attendance',
+    declinedAttendance: 'You declined attendance',
+    pendingAttendance: 'You have not confirmed yet',
+    changeStatus: 'You can change your decision',
+    confirmedShort: 'Confirmed',
+    declinedShort: 'Not coming',
+    pendingShort: 'Pending',
   },
 
   // Confirmation dialogs

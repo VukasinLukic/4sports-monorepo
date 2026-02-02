@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, RefreshControl, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, RefreshControl, Linking, TouchableOpacity } from 'react-native';
 import { Text, Card, Avatar, Button, List, Divider, Switch, ActivityIndicator } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -37,28 +37,13 @@ export default function MemberProfile() {
       const memberData = memberResponse.data.data;
       setMember(memberData);
 
-      // Get club info from member
-      if (memberData?.clubs && memberData.clubs.length > 0) {
-        const activeClub = memberData.clubs.find((c: any) => c.status === 'ACTIVE');
-        if (activeClub?.clubId) {
-          // Handle both populated object and string ID
-          let clubId: string | null = null;
-          if (typeof activeClub.clubId === 'string') {
-            clubId = activeClub.clubId;
-          } else if (activeClub.clubId?._id) {
-            clubId = activeClub.clubId._id;
-          } else if (activeClub.clubId?.id) {
-            clubId = activeClub.clubId.id;
-          }
-
-          if (clubId) {
-            try {
-              const clubResponse = await api.get(`/clubs/${clubId}`);
-              setClubInfo(clubResponse.data.data);
-            } catch {
-              // Club info might not be available
-            }
-          }
+      // Fetch club info
+      if (user?.clubId) {
+        try {
+          const clubResponse = await api.get(`/clubs/${user.clubId}`);
+          setClubInfo(clubResponse.data.data);
+        } catch {
+          // Club info might not be available
         }
       }
     } catch (error) {
@@ -67,7 +52,7 @@ export default function MemberProfile() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [user?.clubId]);
 
   useEffect(() => {
     fetchData();
@@ -130,16 +115,21 @@ export default function MemberProfile() {
       .slice(0, 2);
   };
 
-  // Get group name from member
   const getGroupName = () => {
-    if (!member?.clubs || member.clubs.length === 0) return t('profile.notAssigned');
-    const activeClub = member.clubs.find(c => c.status === 'ACTIVE');
-    if (!activeClub) return t('profile.notAssigned');
-    const groupId = activeClub.groupId;
-    if (typeof groupId === 'object' && groupId?.name) {
-      return groupId.name;
+    if (member?.groupId) {
+      if (typeof member.groupId === 'object' && (member.groupId as any)?.name) {
+        return (member.groupId as any).name;
+      }
     }
-    return t('profile.notAssigned');
+    if (member?.clubs && member.clubs.length > 0) {
+      const activeClub = member.clubs.find((c: any) => c.status === 'ACTIVE') || member.clubs[0];
+      if (activeClub?.groupId) {
+        if (typeof activeClub.groupId === 'object' && (activeClub.groupId as any)?.name) {
+          return (activeClub.groupId as any).name;
+        }
+      }
+    }
+    return t('members.noGroup');
   };
 
   if (isLoading) {
@@ -166,71 +156,25 @@ export default function MemberProfile() {
       {/* Profile Header */}
       <Card style={styles.profileCard}>
         <Card.Content style={styles.profileContent}>
-          <Avatar.Text
-            size={80}
-            label={getInitials(member?.fullName || user?.fullName)}
-            style={styles.avatar}
-          />
-          <Text style={styles.userName}>{member?.fullName || user?.fullName || 'Member'}</Text>
-          <Text style={styles.userEmail}>{user?.email || ''}</Text>
-          <View style={styles.roleBadge}>
-            <MaterialCommunityIcons name="account" size={16} color={Colors.primary} />
-            <Text style={styles.roleText}>{t('roles.member')}</Text>
-          </View>
-        </Card.Content>
-      </Card>
-
-      {/* Member Info */}
-      <Card style={styles.infoCard}>
-        <Card.Content>
-          <Text style={styles.sectionTitle}>{t('members.memberDetails')}</Text>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="account-group" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>{t('members.group')}</Text>
-            <Text style={styles.infoValue}>{getGroupName()}</Text>
-          </View>
-          {member?.age && (
-            <>
-              <Divider style={styles.divider} />
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="cake-variant" size={20} color={Colors.textSecondary} />
-                <Text style={styles.infoLabel}>{t('members.age')}</Text>
-                <Text style={styles.infoValue}>{member.age}</Text>
+          <View style={styles.headerRow}>
+            <Avatar.Text
+              size={56}
+              label={getInitials(member?.fullName || user?.fullName)}
+              style={styles.avatar}
+            />
+            <View style={styles.profileInfo}>
+              <Text style={styles.userName}>{member?.fullName || user?.fullName || t('roles.member')}</Text>
+              <Text style={styles.userEmail}>{user?.email || ''}</Text>
+              <View style={styles.roleBadge}>
+                <MaterialCommunityIcons name="account" size={14} color={Colors.primary} />
+                <Text style={styles.roleText}>{t('roles.member')}</Text>
               </View>
-            </>
-          )}
-          {member?.gender && (
-            <>
-              <Divider style={styles.divider} />
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="human-male-female" size={20} color={Colors.textSecondary} />
-                <Text style={styles.infoLabel}>{t('members.gender')}</Text>
-                <Text style={styles.infoValue}>{member.gender}</Text>
-              </View>
-            </>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Contact Info */}
-      <Card style={styles.infoCard}>
-        <Card.Content>
-          <Text style={styles.sectionTitle}>{t('profile.contactInfo')}</Text>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="email-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>{t('auth.email')}</Text>
-            <Text style={styles.infoValue} numberOfLines={1}>{user?.email || '--'}</Text>
-          </View>
-          <Divider style={styles.divider} />
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="phone-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoLabel}>{t('auth.phoneNumber')}</Text>
-            <Text style={styles.infoValue}>{user?.phoneNumber || t('profile.notAssigned')}</Text>
+            </View>
           </View>
         </Card.Content>
       </Card>
 
-      {/* Club Info */}
+      {/* Club & Group Info */}
       <Card style={styles.infoCard}>
         <Card.Content>
           <Text style={styles.sectionTitle}>{t('profile.clubInfo')}</Text>
@@ -239,117 +183,54 @@ export default function MemberProfile() {
             <Text style={styles.infoLabel}>{t('profile.club')}</Text>
             <Text style={styles.infoValue}>{clubInfo?.name || t('profile.notAssigned')}</Text>
           </View>
+          <Divider style={styles.divider} />
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="account-group" size={20} color={Colors.textSecondary} />
+            <Text style={styles.infoLabel}>{t('members.group')}</Text>
+            <Text style={styles.infoValue}>{getGroupName()}</Text>
+          </View>
         </Card.Content>
       </Card>
 
-      {/* Body Metrics */}
+      {/* Contact Info */}
       <Card style={styles.infoCard}>
         <Card.Content>
-          <Text style={styles.sectionTitle}>Body Metrics</Text>
-          <View style={styles.metricsRow}>
-            <View style={styles.metricItem}>
-              <MaterialCommunityIcons name="human-male-height" size={28} color={Colors.primary} />
-              <Text style={styles.metricValue}>
-                {member?.bodyMetrics?.height || member?.height || '--'}
-              </Text>
-              <Text style={styles.metricLabel}>Height (cm)</Text>
-            </View>
-            <View style={styles.metricDivider} />
-            <View style={styles.metricItem}>
-              <MaterialCommunityIcons name="weight-kilogram" size={28} color={Colors.primary} />
-              <Text style={styles.metricValue}>
-                {member?.bodyMetrics?.weight || member?.weight || '--'}
-              </Text>
-              <Text style={styles.metricLabel}>Weight (kg)</Text>
-            </View>
+          <Text style={styles.sectionTitle}>{t('profile.contactInfo')}</Text>
+          <View style={styles.contactRow}>
+            <MaterialCommunityIcons name="email-outline" size={20} color={Colors.textSecondary} />
+            <Text style={styles.contactValue} numberOfLines={1}>{user?.email || '--'}</Text>
           </View>
-          {(member?.bodyMetrics?.height && member?.bodyMetrics?.weight) && (
-            <View style={styles.bmiContainer}>
-              <Text style={styles.bmiLabel}>BMI</Text>
-              <Text style={styles.bmiValue}>
-                {(member.bodyMetrics.weight / Math.pow(member.bodyMetrics.height / 100, 2)).toFixed(1)}
-              </Text>
-            </View>
+          <Divider style={styles.divider} />
+          <View style={styles.contactRow}>
+            <MaterialCommunityIcons name="phone-outline" size={20} color={Colors.textSecondary} />
+            <Text style={styles.contactValue}>{user?.phoneNumber || '--'}</Text>
+          </View>
+          {(member as any)?.parentPhone && (
+            <>
+              <Divider style={styles.divider} />
+              <View style={styles.contactRow}>
+                <MaterialCommunityIcons name="phone" size={20} color={Colors.textSecondary} />
+                <Text style={styles.contactLabel}>{t('members.parentPhone')}</Text>
+                <Text style={styles.contactValue}>{(member as any).parentPhone}</Text>
+              </View>
+            </>
           )}
         </Card.Content>
       </Card>
 
-      {/* Medical Info */}
-      {member?.medicalInfo && (
-        <Card style={styles.infoCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Medical Information</Text>
-            {member.medicalInfo.bloodType && (
-              <>
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="water" size={20} color={Colors.error} />
-                  <Text style={styles.infoLabel}>Blood Type</Text>
-                  <Text style={styles.infoValue}>{member.medicalInfo.bloodType}</Text>
-                </View>
-                <Divider style={styles.divider} />
-              </>
-            )}
-            {member.medicalInfo.allergies && (
-              <>
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="alert-circle-outline" size={20} color={Colors.warning} />
-                  <Text style={styles.infoLabel}>Allergies</Text>
-                  <Text style={styles.infoValue} numberOfLines={2}>{member.medicalInfo.allergies}</Text>
-                </View>
-                <Divider style={styles.divider} />
-              </>
-            )}
-            {member.medicalInfo.conditions && (
-              <>
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="medical-bag" size={20} color={Colors.info} />
-                  <Text style={styles.infoLabel}>Conditions</Text>
-                  <Text style={styles.infoValue} numberOfLines={2}>{member.medicalInfo.conditions}</Text>
-                </View>
-                <Divider style={styles.divider} />
-              </>
-            )}
-            {member.medicalInfo.expiryDate && (
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="calendar-clock" size={20} color={Colors.textSecondary} />
-                <Text style={styles.infoLabel}>Valid Until</Text>
-                <Text style={styles.infoValue}>
-                  {new Date(member.medicalInfo.expiryDate).toLocaleDateString()}
-                </Text>
-              </View>
-            )}
-            {!member.medicalInfo.bloodType && !member.medicalInfo.allergies && !member.medicalInfo.conditions && !member.medicalInfo.expiryDate && (
-              <Text style={styles.noDataText}>No medical information on file</Text>
-            )}
-          </Card.Content>
-        </Card>
-      )}
-
-      {/* Emergency Contact */}
-      {member?.emergencyContact && (
-        <Card style={styles.infoCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Emergency Contact</Text>
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="account-alert" size={20} color={Colors.error} />
-              <Text style={styles.infoLabel}>Name</Text>
-              <Text style={styles.infoValue}>{member.emergencyContact.name}</Text>
-            </View>
-            <Divider style={styles.divider} />
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="account-group" size={20} color={Colors.textSecondary} />
-              <Text style={styles.infoLabel}>Relationship</Text>
-              <Text style={styles.infoValue}>{member.emergencyContact.relationship}</Text>
-            </View>
-            <Divider style={styles.divider} />
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="phone" size={20} color={Colors.success} />
-              <Text style={styles.infoLabel}>Phone</Text>
-              <Text style={styles.infoValue}>{member.emergencyContact.phoneNumber}</Text>
-            </View>
-          </Card.Content>
-        </Card>
-      )}
+      {/* Switch Account - Prominent */}
+      <Card style={styles.switchAccountCard}>
+        <TouchableOpacity style={styles.switchAccountContent} onPress={() => setShowAccountSwitcher(true)}>
+          <View style={styles.switchAccountIcon}>
+            <MaterialCommunityIcons name="account-switch" size={24} color={Colors.primary} />
+          </View>
+          <View style={styles.switchAccountInfo}>
+            <Text style={styles.switchAccountTitle}>{t('profile.switchAccount')}</Text>
+            <Text style={styles.switchAccountDescription}>{t('profile.manageAccounts')}</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textSecondary} />
+        </TouchableOpacity>
+      </Card>
 
       {/* Settings Menu */}
       <Card style={styles.menuCard}>
@@ -361,19 +242,11 @@ export default function MemberProfile() {
           onPress={() => router.push('/profile/edit')}
         />
         <Divider />
-        <List.Item
-          title={t('profile.switchAccount')}
-          description={t('profile.manageAccounts')}
-          left={props => <List.Icon {...props} icon="account-switch" color={Colors.text} />}
-          right={props => <List.Icon {...props} icon="chevron-right" color={Colors.textSecondary} />}
-          titleStyle={styles.menuItemTitle}
-          descriptionStyle={styles.menuItemDescription}
-          onPress={() => setShowAccountSwitcher(true)}
-        />
-        <Divider />
-        <View style={styles.languagePickerContainer}>
-          <List.Icon icon="translate" color={Colors.text} />
-          <LanguagePicker />
+        <View style={styles.languageRow}>
+          <MaterialCommunityIcons name="translate" size={24} color={Colors.text} style={styles.languageIcon} />
+          <View style={styles.languagePickerWrapper}>
+            <LanguagePicker />
+          </View>
         </View>
         <Divider />
         <List.Item
@@ -422,7 +295,6 @@ export default function MemberProfile() {
         visible={showAccountSwitcher}
         onClose={() => setShowAccountSwitcher(false)}
         onAccountSwitch={(switchedUser) => {
-          // Navigation is handled by AccountSwitcher based on user role
           console.log('Switched to user:', switchedUser.email, 'role:', switchedUser.role);
         }}
       />
@@ -455,15 +327,21 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   profileContent: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   avatar: {
     backgroundColor: Colors.primary,
-    marginBottom: Spacing.md,
+  },
+  profileInfo: {
+    flex: 1,
+    marginLeft: Spacing.md,
   },
   userName: {
-    fontSize: FontSize.xl,
+    fontSize: FontSize.lg,
     fontWeight: 'bold',
     color: Colors.text,
   },
@@ -476,14 +354,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary + '20',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.round,
-    marginTop: Spacing.md,
-    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.xs,
+    gap: 4,
+    alignSelf: 'flex-start',
   },
   roleText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     fontWeight: '600',
     color: Colors.primary,
   },
@@ -515,9 +394,58 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     maxWidth: '40%',
   },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    gap: Spacing.md,
+  },
+  contactLabel: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+    flex: 1,
+  },
+  contactValue: {
+    flex: 1,
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
   divider: {
     backgroundColor: Colors.border,
     marginVertical: Spacing.sm,
+  },
+  switchAccountCard: {
+    backgroundColor: Colors.primary + '15',
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  switchAccountContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+  },
+  switchAccountIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  switchAccountInfo: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  switchAccountTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  switchAccountDescription: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   menuCard: {
     backgroundColor: Colors.surface,
@@ -530,11 +458,17 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: FontSize.xs,
   },
-  languagePickerContainer: {
+  languageRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  languageIcon: {
+    marginLeft: Spacing.md,
+  },
+  languagePickerWrapper: {
     flex: 1,
+    overflow: 'hidden',
   },
   logoutButton: {
     marginTop: Spacing.md,
@@ -545,58 +479,5 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.lg,
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-  },
-  metricItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  metricValue: {
-    fontSize: FontSize.xxl,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginTop: Spacing.xs,
-  },
-  metricLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-  },
-  metricDivider: {
-    width: 1,
-    height: 60,
-    backgroundColor: Colors.border,
-  },
-  bmiContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.primary + '10',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    marginTop: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  bmiLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-  },
-  bmiValue: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  noDataText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    paddingVertical: Spacing.md,
-    fontStyle: 'italic',
   },
 });

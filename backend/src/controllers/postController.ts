@@ -46,6 +46,7 @@ export const createPost = async (req: Request, res: Response) => {
         Notification.createNotification({
           clubId,
           recipientId: member._id,
+          senderId: req.user!._id,
           type: 'NEW_POST',
           title: 'Nova objava',
           message: `${req.user!.fullName} je objavio: ${title}`,
@@ -204,6 +205,7 @@ export const createComment = async (req: Request, res: Response) => {
         await Notification.createNotification({
           clubId: post.clubId,
           recipientId: post.authorId,
+          senderId: req.user!._id,
           type: 'NEW_COMMENT',
           title: 'Novi komentar',
           message: `${req.user!.fullName} je komentarisao vašu objavu`,

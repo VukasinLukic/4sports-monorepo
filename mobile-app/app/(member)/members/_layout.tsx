@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 
-export default function NewsLayout() {
+export default function MemberMembersLayout() {
   return (
     <Stack
       screenOptions={{
@@ -17,8 +17,12 @@ export default function NewsLayout() {
         },
       }}
     >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="[id]" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="[id]"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

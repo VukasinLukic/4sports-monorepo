@@ -4,6 +4,7 @@ export interface INotification extends Document {
   _id: mongoose.Types.ObjectId;
   clubId: mongoose.Types.ObjectId;
   recipientId: mongoose.Types.ObjectId;
+  senderId?: mongoose.Types.ObjectId;
   type: 'EVENT_REMINDER' | 'PAYMENT_DUE' | 'MEDICAL_EXPIRY' | 'NEW_POST' | 'NEW_COMMENT' | 'ATTENDANCE_MARKED' | 'INVITE_ACCEPTED' | 'GENERAL';
   title: string;
   message: string;
@@ -37,6 +38,7 @@ export interface INotificationModel extends Model<INotification> {
   createNotification(data: {
     clubId: mongoose.Types.ObjectId;
     recipientId: mongoose.Types.ObjectId;
+    senderId?: mongoose.Types.ObjectId;
     type: INotification['type'];
     title: string;
     message: string;
@@ -51,6 +53,7 @@ const notificationSchema = new Schema<INotification, INotificationModel>(
   {
     clubId: { type: Schema.Types.ObjectId, ref: 'Club', required: true },
     recipientId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    senderId: { type: Schema.Types.ObjectId, ref: 'User' },
     type: {
       type: String,
       enum: ['EVENT_REMINDER', 'PAYMENT_DUE', 'MEDICAL_EXPIRY', 'NEW_POST', 'NEW_COMMENT', 'ATTENDANCE_MARKED', 'INVITE_ACCEPTED', 'GENERAL'],
@@ -94,7 +97,9 @@ notificationSchema.statics.findByRecipient = async function (
     query.isRead = false;
   }
 
-  let queryBuilder = this.find(query).sort({ createdAt: -1 });
+  let queryBuilder = this.find(query)
+    .populate('senderId', 'fullName profilePicture')
+    .sort({ createdAt: -1 });
 
   if (options?.limit) {
     queryBuilder = queryBuilder.limit(options.limit);
@@ -132,6 +137,7 @@ notificationSchema.statics.getUnreadCount = async function (
 notificationSchema.statics.createNotification = async function (data: {
   clubId: mongoose.Types.ObjectId;
   recipientId: mongoose.Types.ObjectId;
+  senderId?: mongoose.Types.ObjectId;
   type: INotification['type'];
   title: string;
   message: string;
