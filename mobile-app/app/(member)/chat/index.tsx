@@ -16,7 +16,7 @@ import { useAuth } from '@/services/AuthContext';
 import { chatService, Conversation } from '@/services/chatService';
 import { Spacing, FontSize } from '@/constants/Layout';
 
-type FilterType = 'all' | 'members' | 'staff';
+type FilterType = 'all' | 'trainers' | 'teammates';
 
 // Extended conversation with unread counts per user
 interface ConversationWithUnread extends Conversation {
@@ -31,9 +31,9 @@ export default function ChatListScreen() {
   const [conversations, setConversations] = useState<ConversationWithUnread[]>([]);
 
   const filters: { key: FilterType; label: string; icon: string }[] = [
-    { key: 'all', label: 'All', icon: 'message-text' },
-    { key: 'members', label: 'Members', icon: 'account-group' },
-    { key: 'staff', label: 'Staff', icon: 'shield-account' },
+    { key: 'all', label: 'Svi', icon: 'message-text' },
+    { key: 'trainers', label: 'Treneri', icon: 'shield-account' },
+    { key: 'teammates', label: 'Saigraci', icon: 'account-group' },
   ];
 
   // Subscribe to conversations
@@ -69,15 +69,18 @@ export default function ChatListScreen() {
     }
 
     // Category filter
-    if (activeFilter === 'members') {
-      if (conv.type === 'staff-group') return false;
-      const roles = Object.values(conv.participantDetails).map((p) => p.role);
-      return roles.includes('MEMBER') || roles.includes('PARENT');
-    } else if (activeFilter === 'staff') {
+    if (activeFilter === 'trainers') {
+      // Show conversations with coaches and owners
       if (conv.type === 'staff-group') return true;
       const otherParticipants = Object.entries(conv.participantDetails)
         .filter(([id]) => id !== user?._id);
       return otherParticipants.some(([, p]) => ['COACH', 'OWNER'].includes(p.role));
+    } else if (activeFilter === 'teammates') {
+      // Show conversations with other members and parents (excluding staff groups)
+      if (conv.type === 'staff-group') return false;
+      const otherParticipants = Object.entries(conv.participantDetails)
+        .filter(([id]) => id !== user?._id);
+      return otherParticipants.some(([, p]) => ['MEMBER', 'PARENT'].includes(p.role));
     }
 
     return true;

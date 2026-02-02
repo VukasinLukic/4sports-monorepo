@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/services/AuthContext';
@@ -27,6 +27,12 @@ export default function TopHeader({ basePath }: TopHeaderProps) {
     fetchClubInfo();
     fetchUnreadNotifications();
   }, [user?.clubId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUnreadNotifications();
+    }, [])
+  );
 
   const fetchClubInfo = async () => {
     if (!user?.clubId) return;

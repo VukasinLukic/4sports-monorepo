@@ -142,16 +142,20 @@ export default function CoachProfile() {
       {/* Profile Header */}
       <Card style={styles.profileCard}>
         <Card.Content style={styles.profileContent}>
-          <Avatar.Text
-            size={80}
-            label={getInitials(user?.fullName)}
-            style={styles.avatar}
-          />
-          <Text style={styles.userName}>{user?.fullName || t('roles.coach')}</Text>
-          <Text style={styles.userEmail}>{user?.email || ''}</Text>
-          <View style={styles.roleBadge}>
-            <MaterialCommunityIcons name="whistle" size={16} color={Colors.primary} />
-            <Text style={styles.roleText}>{t('roles.' + (user?.role?.toLowerCase() || 'coach'))}</Text>
+          <View style={styles.headerRow}>
+            <Avatar.Text
+              size={56}
+              label={getInitials(user?.fullName)}
+              style={styles.avatar}
+            />
+            <View style={styles.profileInfo}>
+              <Text style={styles.userName}>{user?.fullName || t('roles.coach')}</Text>
+              <Text style={styles.userEmail}>{user?.email || ''}</Text>
+              <View style={styles.roleBadge}>
+                <MaterialCommunityIcons name="whistle" size={14} color={Colors.primary} />
+                <Text style={styles.roleText}>{t('roles.' + (user?.role?.toLowerCase() || 'coach'))}</Text>
+              </View>
+            </View>
           </View>
         </Card.Content>
       </Card>
@@ -300,15 +304,21 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   profileContent: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   avatar: {
     backgroundColor: Colors.primary,
-    marginBottom: Spacing.md,
+  },
+  profileInfo: {
+    flex: 1,
+    marginLeft: Spacing.md,
   },
   userName: {
-    fontSize: FontSize.xl,
+    fontSize: FontSize.lg,
     fontWeight: 'bold',
     color: Colors.text,
   },
@@ -321,14 +331,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary + '20',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.round,
-    marginTop: Spacing.md,
-    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.xs,
+    gap: 4,
+    alignSelf: 'flex-start',
   },
   roleText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     fontWeight: '600',
     color: Colors.primary,
   },

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Card, Avatar, ActivityIndicator, Chip } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, Alert } from 'react-native';
+import { Text, Card, Avatar, ActivityIndicator, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
@@ -8,7 +8,42 @@ import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
 import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
-import { PaymentStatus, Member, Event, EventType } from '@/types';
+import { Member, Event, Post } from '@/types';
+
+// Helper function to get event type color
+const getEventTypeColor = (type: string): string => {
+  const upperType = type?.toUpperCase() || '';
+  if (upperType === 'TRAINING' || upperType.includes('TRENING')) {
+    return Colors.eventTraining || Colors.primary;
+  }
+  if (upperType === 'MATCH' || upperType.includes('UTAKMICA') || upperType.includes('MEČ')) {
+    return Colors.eventCompetition || Colors.warning;
+  }
+  return Colors.eventMeeting || Colors.info;
+};
+
+// Check if event is today
+const isEventToday = (dateString: string): boolean => {
+  const eventDate = new Date(dateString);
+  const today = new Date();
+  return eventDate.toDateString() === today.toDateString();
+};
+
+// Get relative time text
+const getRelativeTimeText = (dateString: string, t: any): string => {
+  const eventDate = new Date(dateString);
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const eventStart = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+
+  const diffTime = eventStart.getTime() - todayStart.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return t('dateTime.today') || 'Danas';
+  if (diffDays === 1) return t('dateTime.tomorrow') || 'Sutra';
+  if (diffDays > 1 && diffDays <= 7) return `${t('time.in') || 'Za'} ${diffDays} ${t('time.days') || 'dana'}`;
+  return '';
+};
 
 export default function MemberHome() {
   const { user } = useAuth();
@@ -17,6 +52,13 @@ export default function MemberHome() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [latestPost, setLatestPost] = useState<(Post & { author?: { fullName: string; profilePicture?: string } }) | null>(null);
+  const [isLoadingNews, setIsLoadingNews] = useState(true);
+
+  // RSVP state
+  const [nextEvent, setNextEvent] = useState<Event | null>(null);
+  const [rsvpStatus, setRsvpStatus] = useState<'CONFIRMED' | 'DECLINED' | 'PENDING'>('PENDING');
+  const [isSubmittingRsvp, setIsSubmittingRsvp] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -26,10 +68,43 @@ export default function MemberHome() {
 
       // Fetch upcoming events
       try {
-        const eventsResponse = await api.get('/events/upcoming', { params: { limit: 5 } });
-        setUpcomingEvents(eventsResponse.data.data || []);
+        const eventsResponse = await api.get('/events/upcoming', { params: { limit: 10 } });
+        const events = eventsResponse.data.data || [];
+        setUpcomingEvents(events);
+
+        // Set next event for RSVP (first future event)
+        const futureEvents = events.filter((e: Event) => new Date(e.startTime) > new Date());
+        if (futureEvents.length > 0) {
+          setNextEvent(futureEvents[0]);
+          // Check current RSVP status
+          try {
+            const participantsRes = await api.get(`/events/${futureEvents[0]._id}/participants`);
+            const participants = participantsRes.data.data?.participants || [];
+            const myParticipation = participants.find((p: any) =>
+              p.memberId?._id === memberResponse.data.data._id || p.memberId === memberResponse.data.data._id
+            );
+            if (myParticipation?.rsvpStatus) {
+              setRsvpStatus(myParticipation.rsvpStatus);
+            } else {
+              setRsvpStatus('PENDING');
+            }
+          } catch {
+            setRsvpStatus('PENDING');
+          }
+        }
       } catch {
         setUpcomingEvents([]);
+      }
+
+      // Fetch latest post
+      try {
+        const postsResponse = await api.get('/posts?limit=1');
+        const posts = postsResponse.data.data || [];
+        if (posts.length > 0) {
+          setLatestPost(posts[0]);
+        }
+      } catch {
+        setLatestPost(null);
       }
     } catch (error) {
       console.error('Error fetching member data:', error);
@@ -37,6 +112,7 @@ export default function MemberHome() {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setIsLoadingNews(false);
     }
   }, []);
 
@@ -51,40 +127,108 @@ export default function MemberHome() {
     fetchData();
   };
 
-  const getPaymentStatusInfo = (status: PaymentStatus) => {
-    switch (status) {
-      case PaymentStatus.PAID:
-        return { color: Colors.success, label: t('status.paid'), icon: 'check-circle' as const };
-      case PaymentStatus.UNPAID:
-        return { color: Colors.error, label: t('status.unpaid'), icon: 'alert-circle' as const };
-      case PaymentStatus.PARTIAL:
-        return { color: Colors.warning, label: t('status.partial'), icon: 'clock' as const };
-      default:
-        return { color: Colors.textSecondary, label: t('status.pending'), icon: 'help-circle' as const };
+  // Handle RSVP
+  const handleRsvp = async (status: 'CONFIRMED' | 'DECLINED') => {
+    if (!nextEvent || !member?._id) return;
+
+    setIsSubmittingRsvp(true);
+    try {
+      await api.post(`/events/${nextEvent._id}/confirm`, {
+        memberId: member._id,
+        rsvpStatus: status,
+      });
+      setRsvpStatus(status);
+    } catch (error) {
+      console.error('RSVP error:', error);
+      Alert.alert(t('common.error'), t('rsvp.failed') || 'Greska pri potvrdi prisustva');
+    } finally {
+      setIsSubmittingRsvp(false);
     }
   };
 
-  const getMedicalStatusInfo = (status: string) => {
-    switch (status) {
-      case 'VALID':
-        return { color: Colors.success, label: t('status.valid'), icon: 'check-circle' as const };
-      case 'EXPIRED':
-        return { color: Colors.error, label: t('status.expired'), icon: 'alert-circle' as const };
-      case 'EXPIRING_SOON':
-        return { color: Colors.warning, label: t('status.expiring'), icon: 'clock' as const };
-      default:
-        return { color: Colors.textSecondary, label: t('status.pending'), icon: 'help-circle' as const };
-    }
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getInitials = (name?: string) => {
-    if (!name) return '??';
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const formatPostDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return t('time.justNow') || 'Upravo';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return date.toLocaleDateString();
+  };
+
+  // Split events
+  const todayEvents = upcomingEvents.filter(event => isEventToday(event.startTime));
+  const futureEvents = upcomingEvents.filter(event => !isEventToday(event.startTime));
+
+  const renderEventCard = (event: Event, isToday: boolean) => {
+    const eventDate = new Date(event.startTime);
+    const dayNumber = eventDate.getDate();
+    const dayName = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' });
+    const eventTypeColor = getEventTypeColor(event.type);
+    const relativeTime = getRelativeTimeText(event.startTime, t);
+
+    return (
+      <TouchableOpacity
+        key={event._id}
+        onPress={() => router.push({ pathname: '/(member)/events/[id]', params: { id: event._id } })}
+      >
+        <Card style={[styles.eventCard, isToday && styles.eventCardToday]}>
+          <Card.Content style={styles.eventCardContent}>
+            {/* Date Column */}
+            <View style={[
+              styles.dateColumn,
+              { backgroundColor: isToday ? Colors.success : eventTypeColor }
+            ]}>
+              <Text style={styles.dateDay}>{dayNumber}</Text>
+              <Text style={styles.dateDayName}>{dayName}</Text>
+            </View>
+
+            {/* Event Info */}
+            <View style={styles.eventInfo}>
+              <View style={styles.eventHeader}>
+                <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                <Text style={styles.eventTime}>
+                  {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                </Text>
+              </View>
+
+              {/* Group Name */}
+              {(event as any).groupName && (
+                <View style={styles.groupRow}>
+                  <View style={[styles.groupDot, { backgroundColor: (event as any).groupColor || Colors.primary }]} />
+                  <Text style={[styles.groupName, { color: (event as any).groupColor || Colors.primary }]}>
+                    {(event as any).groupName}
+                  </Text>
+                </View>
+              )}
+
+              {/* Location or relative time */}
+              {event.location ? (
+                <View style={styles.eventMeta}>
+                  <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
+                  <Text style={styles.eventLocation} numberOfLines={1}>{event.location}</Text>
+                </View>
+              ) : relativeTime ? (
+                <View style={styles.eventMeta}>
+                  <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
+                  <Text style={styles.eventLocation}>{relativeTime}</Text>
+                </View>
+              ) : null}
+            </View>
+          </Card.Content>
+        </Card>
+      </TouchableOpacity>
+    );
   };
 
   if (isLoading) {
@@ -95,21 +239,6 @@ export default function MemberHome() {
       </View>
     );
   }
-
-  const paymentInfo = member ? getPaymentStatusInfo(member.paymentStatus) : null;
-  const medicalInfo = member ? getMedicalStatusInfo(member.medicalCheckStatus) : null;
-
-  // Get group name from member
-  const getGroupName = () => {
-    if (!member?.clubs || member.clubs.length === 0) return t('profile.notAssigned');
-    const activeClub = member.clubs.find(c => c.status === 'ACTIVE');
-    if (!activeClub) return t('profile.notAssigned');
-    const groupId = activeClub.groupId;
-    if (typeof groupId === 'object' && groupId?.name) {
-      return groupId.name;
-    }
-    return t('profile.notAssigned');
-  };
 
   return (
     <ScrollView
@@ -129,155 +258,171 @@ export default function MemberHome() {
         <Text style={styles.userName}>{user?.fullName || member?.fullName || t('roles.member')}</Text>
       </View>
 
-      {/* Profile Card */}
-      {member && (
-        <Card style={styles.profileCard}>
-          <Card.Content style={styles.profileContent}>
-            <Avatar.Text
-              size={70}
-              label={getInitials(member.fullName)}
-              style={styles.avatar}
-            />
-            <View style={styles.profileInfo}>
-              <Text style={styles.memberName}>{member.fullName}</Text>
-              <Text style={styles.memberGroup}>{getGroupName()}</Text>
-              {member.age && <Text style={styles.memberAge}>{t('members.age')}: {member.age}</Text>}
-              <View style={styles.badgeRow}>
-                {paymentInfo && (
-                  <View style={[styles.badge, { backgroundColor: paymentInfo.color + '20' }]}>
-                    <MaterialCommunityIcons name={paymentInfo.icon} size={12} color={paymentInfo.color} />
-                    <Text style={[styles.badgeText, { color: paymentInfo.color }]}>{paymentInfo.label}</Text>
-                  </View>
-                )}
-                {medicalInfo && (
-                  <View style={[styles.badge, { backgroundColor: medicalInfo.color + '20' }]}>
-                    <MaterialCommunityIcons name="medical-bag" size={12} color={medicalInfo.color} />
-                    <Text style={[styles.badgeText, { color: medicalInfo.color }]}>{medicalInfo.label}</Text>
-                  </View>
-                )}
+      {/* RSVP Section - Next Event Confirmation */}
+      {nextEvent && (
+        <Card style={styles.rsvpCard}>
+          <Card.Content>
+            <Text style={styles.rsvpLabel}>{t('rsvp.nextEvent') || 'Sledeći događaj'}</Text>
+
+            <View style={styles.rsvpEventRow}>
+              {/* Date Box */}
+              <View style={[styles.rsvpDateBox, { backgroundColor: getEventTypeColor(nextEvent.type) }]}>
+                <Text style={styles.rsvpDateDay}>{new Date(nextEvent.startTime).getDate()}</Text>
+                <Text style={styles.rsvpDateMonth}>
+                  {new Date(nextEvent.startTime).toLocaleDateString('sr-RS', { weekday: 'short' })}
+                </Text>
               </View>
+
+              {/* Event Info */}
+              <View style={styles.rsvpEventInfo}>
+                <View style={styles.rsvpTypeRow}>
+                  <View style={[styles.rsvpTypeBadge, { backgroundColor: getEventTypeColor(nextEvent.type) + '20' }]}>
+                    <Text style={[styles.rsvpTypeText, { color: getEventTypeColor(nextEvent.type) }]}>
+                      {nextEvent.type}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.rsvpEventTitle} numberOfLines={1}>{nextEvent.title}</Text>
+                <Text style={styles.rsvpEventTime}>
+                  {getRelativeTimeText(nextEvent.startTime, t)} {formatTime(nextEvent.startTime)}
+                </Text>
+              </View>
+            </View>
+
+            {/* RSVP Buttons */}
+            <View style={styles.rsvpButtonsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.rsvpButton,
+                  styles.rsvpButtonComing,
+                  rsvpStatus === 'CONFIRMED' && styles.rsvpButtonActive,
+                ]}
+                onPress={() => handleRsvp('CONFIRMED')}
+                disabled={isSubmittingRsvp}
+              >
+                <MaterialCommunityIcons
+                  name="check"
+                  size={20}
+                  color={rsvpStatus === 'CONFIRMED' ? '#fff' : Colors.success}
+                />
+                <Text style={[
+                  styles.rsvpButtonText,
+                  { color: rsvpStatus === 'CONFIRMED' ? '#fff' : Colors.success }
+                ]}>
+                  {t('rsvp.coming') || 'Dolazim'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.rsvpButton,
+                  styles.rsvpButtonNotComing,
+                  rsvpStatus === 'DECLINED' && styles.rsvpButtonDeclined,
+                ]}
+                onPress={() => handleRsvp('DECLINED')}
+                disabled={isSubmittingRsvp}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={20}
+                  color={rsvpStatus === 'DECLINED' ? '#fff' : Colors.error}
+                />
+                <Text style={[
+                  styles.rsvpButtonText,
+                  { color: rsvpStatus === 'DECLINED' ? '#fff' : Colors.error }
+                ]}>
+                  {t('rsvp.notComing') || 'Ne dolazim'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </Card.Content>
         </Card>
       )}
 
-      {/* Quick Info Card */}
-      <Card style={styles.infoCard}>
-        <Card.Content style={styles.infoContent}>
-          <View style={styles.infoItem}>
-            <MaterialCommunityIcons name="calendar-today" size={24} color={Colors.info} />
-            <Text style={styles.infoNumber}>{upcomingEvents.length}</Text>
-            <Text style={styles.infoLabel}>{t('dashboard.upcomingEvents')}</Text>
-          </View>
-        </Card.Content>
-      </Card>
-
-      {/* Quick Actions */}
-      <View style={styles.quickActionsRow}>
-        <TouchableOpacity
-          style={styles.quickAction}
-          onPress={() => router.push('/(member)/payments')}
-        >
-          <View style={[styles.quickActionIcon, { backgroundColor: Colors.success + '20' }]}>
-            <MaterialCommunityIcons name="cash-multiple" size={24} color={Colors.success} />
-          </View>
-          <Text style={styles.quickActionText}>{t('payments.title')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickAction}
-          onPress={() => router.push('/(member)/attendance')}
-        >
-          <View style={[styles.quickActionIcon, { backgroundColor: Colors.info + '20' }]}>
-            <MaterialCommunityIcons name="calendar-check" size={24} color={Colors.info} />
-          </View>
-          <Text style={styles.quickActionText}>{t('attendance.title')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickAction}
-          onPress={() => router.push('/(member)/scan')}
-        >
-          <View style={[styles.quickActionIcon, { backgroundColor: Colors.primary + '20' }]}>
-            <MaterialCommunityIcons name="qrcode-scan" size={24} color={Colors.primary} />
-          </View>
-          <Text style={styles.quickActionText}>{t('attendance.checkIn')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Upcoming Events Preview */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
-        <TouchableOpacity onPress={() => router.push('/(member)/calendar')}>
-          <Text style={styles.seeAllText}>{t('common.seeAll')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {upcomingEvents.length === 0 ? (
-        <Card style={styles.eventPreviewCard}>
-          <Card.Content style={styles.emptyContent}>
-            <MaterialCommunityIcons name="calendar-blank" size={32} color={Colors.textSecondary} />
-            <Text style={styles.noEventsText}>{t('empty.noUpcomingEvents')}</Text>
+      {/* Latest News Section */}
+      <Text style={styles.sectionTitle}>{t('navigation.news')}</Text>
+      {isLoadingNews ? (
+        <Card style={styles.newsCard}>
+          <Card.Content style={styles.newsLoadingContent}>
+            <ActivityIndicator size="small" color={Colors.primary} />
           </Card.Content>
         </Card>
+      ) : latestPost ? (
+        <TouchableOpacity onPress={() => router.push('/(member)/news')}>
+          <Card style={styles.newsCard}>
+            <Card.Content style={styles.newsCardContent}>
+              <View style={styles.newsHeader}>
+                {latestPost.author?.profilePicture ? (
+                  <Avatar.Image size={36} source={{ uri: latestPost.author.profilePicture }} />
+                ) : (
+                  <Avatar.Text
+                    size={36}
+                    label={(latestPost.author?.fullName || 'U').slice(0, 2).toUpperCase()}
+                    style={styles.newsAvatar}
+                  />
+                )}
+                <View style={styles.newsHeaderInfo}>
+                  <Text style={styles.newsAuthor}>{latestPost.author?.fullName || t('roles.coach')}</Text>
+                  <Text style={styles.newsTimestamp}>{formatPostDate(latestPost.createdAt)}</Text>
+                </View>
+              </View>
+              {latestPost.title && <Text style={styles.newsTitle} numberOfLines={1}>{latestPost.title}</Text>}
+              <Text style={styles.newsContent} numberOfLines={2}>{latestPost.content}</Text>
+              {latestPost.images && latestPost.images.length > 0 && (
+                <Image source={{ uri: latestPost.images[0] }} style={styles.newsImage} resizeMode="cover" />
+              )}
+            </Card.Content>
+          </Card>
+          <TouchableOpacity style={styles.openNewsLink} onPress={() => router.push('/(member)/news')}>
+            <Text style={styles.openNewsText}>{t('dashboard.openNews') || 'Otvori vesti'}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={16} color={Colors.primary} />
+          </TouchableOpacity>
+        </TouchableOpacity>
       ) : (
-        upcomingEvents.slice(0, 3).map((event) => {
-          const eventDate = new Date(event.startTime);
-          const isToday = eventDate.toDateString() === new Date().toDateString();
-          const eventTypeColor = event.type === EventType.TRAINING ? Colors.primary :
-                                event.type === EventType.MATCH ? Colors.success : Colors.info;
-
-          return (
-            <TouchableOpacity
-              key={event._id}
-              onPress={() => router.push({ pathname: '/(member)/events/[id]', params: { id: event._id } })}
-              activeOpacity={0.7}
-            >
-              <Card style={[styles.eventCard, isToday && styles.todayEventCard]}>
-                <Card.Content style={styles.eventCardContent}>
-                  <View style={styles.eventDateBox}>
-                    <Text style={styles.eventDay}>{eventDate.getDate()}</Text>
-                    <Text style={styles.eventMonth}>
-                      {eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.eventInfo}>
-                    <View style={styles.eventTitleRow}>
-                      <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-                      {isToday && (
-                        <Chip style={styles.todayChip} textStyle={styles.todayChipText}>{t('dateTime.today')}</Chip>
-                      )}
-                    </View>
-                    <View style={styles.eventMeta}>
-                      <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
-                      <Text style={styles.eventMetaText}>
-                        {eventDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                      <View style={[styles.eventTypeDot, { backgroundColor: eventTypeColor }]} />
-                      <Text style={[styles.eventTypeText, { color: eventTypeColor }]}>{event.type}</Text>
-                    </View>
-                    {event.location && (
-                      <View style={styles.eventMeta}>
-                        <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
-                        <Text style={styles.eventMetaText} numberOfLines={1}>{event.location}</Text>
-                      </View>
-                    )}
-                  </View>
-                </Card.Content>
-              </Card>
-            </TouchableOpacity>
-          );
-        })
+        <Card style={styles.newsCard}>
+          <Card.Content style={styles.emptyNewsContent}>
+            <MaterialCommunityIcons name="newspaper-variant-outline" size={32} color={Colors.textSecondary} />
+            <Text style={styles.emptyNewsText}>{t('news.noPosts') || 'Nema objava'}</Text>
+          </Card.Content>
+        </Card>
       )}
 
-      {/* Notifications Preview */}
-      <Text style={styles.sectionTitle}>{t('profile.recentNotifications')}</Text>
-      <Card style={styles.notificationCard}>
-        <Card.Content style={styles.notificationContent}>
-          <MaterialCommunityIcons name="bell-outline" size={24} color={Colors.textSecondary} />
-          <Text style={styles.noNotificationsText}>{t('profile.noNewNotifications')}</Text>
-        </Card.Content>
-      </Card>
+      {/* Today's Events */}
+      {todayEvents.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>{t('dashboard.todaysEvents') || "Današnji događaji"}</Text>
+          <View style={styles.eventsContainer}>
+            {todayEvents.map((event) => renderEventCard(event, true))}
+          </View>
+        </>
+      )}
+
+      {/* Upcoming Events */}
+      {futureEvents.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
+          <View style={styles.eventsContainer}>
+            {futureEvents.slice(0, 5).map((event) => renderEventCard(event, false))}
+          </View>
+          <Button
+            mode="text"
+            onPress={() => router.push('/(member)/calendar')}
+            style={styles.viewAllButton}
+          >
+            {t('events.viewAllEvents') || 'Prikaži sve događaje'}
+          </Button>
+        </>
+      ) : todayEvents.length === 0 && (
+        <>
+          <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
+          <Card style={styles.emptyCard}>
+            <Card.Content style={styles.emptyContent}>
+              <MaterialCommunityIcons name="calendar-blank" size={48} color={Colors.textSecondary} />
+              <Text style={styles.emptyText}>{t('empty.noUpcomingEvents') || 'Nema predstojećih događaja'}</Text>
+            </Card.Content>
+          </Card>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -306,175 +451,234 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   greeting: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     color: Colors.textSecondary,
   },
   userName: {
-    fontSize: FontSize.xxl,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  profileCard: {
-    backgroundColor: Colors.surface,
-    marginBottom: Spacing.lg,
-  },
-  profileContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatar: {
-    backgroundColor: Colors.primary,
-  },
-  profileInfo: {
-    flex: 1,
-    marginLeft: Spacing.md,
-  },
-  memberName: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  memberGroup: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  memberAge: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    marginTop: Spacing.sm,
-    gap: Spacing.xs,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-    gap: 4,
-  },
-  badgeText: {
-    fontSize: FontSize.xs,
-    fontWeight: '500',
-  },
-  infoCard: {
-    backgroundColor: Colors.surface,
-    marginBottom: Spacing.lg,
-  },
-  infoContent: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-  },
-  infoItem: {
-    alignItems: 'center',
-  },
-  infoNumber: {
     fontSize: FontSize.xl,
     fontWeight: 'bold',
     color: Colors.text,
-    marginTop: Spacing.xs,
-  },
-  infoLabel: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-  },
-  quickAction: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  quickActionText: {
-    fontSize: FontSize.sm,
-    color: Colors.text,
-    fontWeight: '500',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
   },
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: '600',
     color: Colors.text,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
   },
-  seeAllText: {
+  // RSVP Section
+  rsvpCard: {
+    backgroundColor: Colors.surface,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  rsvpLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  rsvpEventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  rsvpDateBox: {
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginRight: Spacing.md,
+  },
+  rsvpDateDay: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  rsvpDateMonth: {
+    fontSize: 11,
+    color: '#fff',
+    textTransform: 'uppercase',
+  },
+  rsvpEventInfo: {
+    flex: 1,
+  },
+  rsvpTypeRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  rsvpTypeBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.xs,
+  },
+  rsvpTypeText: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+  },
+  rsvpEventTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  rsvpEventTime: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  rsvpButtonsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  rsvpButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    gap: Spacing.xs,
+  },
+  rsvpButtonComing: {
+    backgroundColor: Colors.success + '15',
+    borderWidth: 1,
+    borderColor: Colors.success,
+  },
+  rsvpButtonNotComing: {
+    backgroundColor: Colors.error + '15',
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
+  rsvpButtonActive: {
+    backgroundColor: Colors.success,
+  },
+  rsvpButtonDeclined: {
+    backgroundColor: Colors.error,
+  },
+  rsvpButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  // News Section
+  newsCard: {
+    backgroundColor: Colors.surface,
+    marginBottom: Spacing.xs,
+  },
+  newsCardContent: {
+    padding: Spacing.sm,
+  },
+  newsLoadingContent: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  newsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  newsAvatar: {
+    backgroundColor: Colors.primary,
+  },
+  newsHeaderInfo: {
+    marginLeft: Spacing.sm,
+    flex: 1,
+  },
+  newsAuthor: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  newsTimestamp: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+  },
+  newsTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  newsContent: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  newsImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.sm,
+  },
+  emptyNewsContent: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  emptyNewsText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
+  openNewsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  openNewsText: {
     fontSize: FontSize.sm,
     color: Colors.primary,
     fontWeight: '500',
   },
-  eventPreviewCard: {
-    backgroundColor: Colors.surface,
-    marginBottom: Spacing.md,
-  },
-  emptyContent: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  noEventsText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+  // Events
+  eventsContainer: {
+    marginBottom: Spacing.sm,
   },
   eventCard: {
     backgroundColor: Colors.surface,
     marginBottom: Spacing.sm,
+    overflow: 'hidden',
   },
-  todayEventCard: {
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
+  eventCardToday: {
+    borderWidth: 2,
+    borderColor: Colors.success,
   },
   eventCardContent: {
     flexDirection: 'row',
+    padding: 0,
     alignItems: 'flex-start',
   },
-  eventDateBox: {
+  dateColumn: {
+    width: 56,
     alignItems: 'center',
-    backgroundColor: Colors.primary + '15',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
-    marginRight: Spacing.md,
-    minWidth: 50,
+    marginRight: Spacing.sm,
   },
-  eventDay: {
-    fontSize: FontSize.xl,
+  dateDay: {
+    fontSize: 22,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: '#FFFFFF',
   },
-  eventMonth: {
-    fontSize: FontSize.xs,
-    color: Colors.primary,
-    fontWeight: '600',
+  dateDayName: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    marginTop: 1,
   },
   eventInfo: {
     flex: 1,
+    padding: Spacing.sm,
+    paddingLeft: Spacing.md,
   },
-  eventTitleRow: {
+  eventHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
+    alignItems: 'flex-start',
   },
   eventTitle: {
     fontSize: FontSize.md,
@@ -483,47 +687,50 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Spacing.sm,
   },
-  todayChip: {
-    backgroundColor: Colors.primary + '20',
-    height: 22,
+  eventTime: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
   },
-  todayChipText: {
-    fontSize: 10,
-    color: Colors.primary,
-    fontWeight: '600',
+  groupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  groupDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: Spacing.xs,
+  },
+  groupName: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
   },
   eventMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: 2,
+    marginTop: Spacing.xs,
+    gap: 4,
   },
-  eventMetaText: {
+  eventLocation: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
+    flex: 1,
   },
-  eventTypeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginLeft: Spacing.sm,
-  },
-  eventTypeText: {
-    fontSize: FontSize.xs,
-    fontWeight: '500',
-  },
-  notificationCard: {
+  emptyCard: {
     backgroundColor: Colors.surface,
     marginBottom: Spacing.md,
   },
-  notificationContent: {
-    flexDirection: 'row',
+  emptyContent: {
     alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xl,
   },
-  noNotificationsText: {
-    fontSize: FontSize.sm,
+  emptyText: {
+    fontSize: FontSize.md,
     color: Colors.textSecondary,
+    marginTop: Spacing.sm,
+  },
+  viewAllButton: {
+    marginTop: Spacing.xs,
   },
 });

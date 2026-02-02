@@ -154,15 +154,19 @@ export default function ClubInfoScreen() {
     >
       <Card style={styles.clubCard}>
         <Card.Content style={styles.clubContent}>
-          <View style={styles.clubLogo}>
-            {clubInfo?.logo ? (
-              <Image source={{ uri: clubInfo.logo }} style={styles.logoImage} />
-            ) : (
-              <MaterialCommunityIcons name="shield-outline" size={48} color={Colors.primary} />
-            )}
+          <View style={styles.clubHeader}>
+            <View style={styles.clubLogo}>
+              {clubInfo?.logo ? (
+                <Image source={{ uri: clubInfo.logo }} style={styles.logoImage} />
+              ) : (
+                <MaterialCommunityIcons name="shield-outline" size={32} color={Colors.primary} />
+              )}
+            </View>
+            <View style={styles.clubInfo}>
+              <Text style={styles.clubName}>{clubInfo?.name || t('profile.club')}</Text>
+              {clubInfo?.description && <Text style={styles.clubDescription}>{clubInfo.description}</Text>}
+            </View>
           </View>
-          <Text style={styles.clubName}>{clubInfo?.name || t('profile.club')}</Text>
-          {clubInfo?.description && <Text style={styles.clubDescription}>{clubInfo.description}</Text>}
         </Card.Content>
       </Card>
 
@@ -215,11 +219,13 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   loadingText: { fontSize: FontSize.md, color: Colors.textSecondary, marginTop: Spacing.md },
   clubCard: { backgroundColor: Colors.surface, marginBottom: Spacing.md },
-  clubContent: { alignItems: 'center', paddingVertical: Spacing.lg },
-  clubLogo: { width: 96, height: 96, borderRadius: BorderRadius.lg, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.md },
-  logoImage: { width: 96, height: 96, borderRadius: BorderRadius.lg },
-  clubName: { fontSize: FontSize.xxl, fontWeight: 'bold', color: Colors.text, textAlign: 'center' },
-  clubDescription: { fontSize: FontSize.md, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.sm, paddingHorizontal: Spacing.lg },
+  clubContent: { paddingVertical: Spacing.sm },
+  clubHeader: { flexDirection: 'row', alignItems: 'flex-start' },
+  clubLogo: { width: 64, height: 64, borderRadius: BorderRadius.md, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md },
+  logoImage: { width: 64, height: 64, borderRadius: BorderRadius.md },
+  clubInfo: { flex: 1 },
+  clubName: { fontSize: FontSize.lg, fontWeight: 'bold', color: Colors.text },
+  clubDescription: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: Spacing.xs },
   infoCard: { backgroundColor: Colors.surface, marginBottom: Spacing.md },
   sectionTitle: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textSecondary, marginBottom: Spacing.md, textTransform: 'uppercase', letterSpacing: 0.5 },
   infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.md },

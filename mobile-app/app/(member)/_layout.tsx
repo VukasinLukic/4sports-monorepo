@@ -2,132 +2,152 @@ import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import TopHeader from '@/components/TopHeader';
 import { useChat } from '@/services/ChatContext';
 
 export default function MemberLayout() {
   const { totalUnreadCount } = useChat();
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: Colors.border,
-        },
-        headerStyle: {
-          backgroundColor: Colors.background,
-        },
-        headerTintColor: Colors.text,
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" size={size} color={color} />
-          ),
-          headerTitle: '4Sports',
+    <>
+      <TopHeader basePath="/(member)" />
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors.primary,
+          tabBarInactiveTintColor: Colors.textSecondary,
+          tabBarStyle: {
+            backgroundColor: Colors.surface,
+            borderTopColor: Colors.border,
+            borderTopWidth: 1,
+            paddingBottom: 8,
+            paddingTop: 8,
+            height: 65,
+          },
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: '500',
+          },
+          headerShown: false,
         }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          title: 'Calendar',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar-month" size={size} color={color} />
-          ),
-          headerTitle: 'Calendar',
-        }}
-      />
-      <Tabs.Screen
-        name="scan"
-        options={{
-          title: 'Check In',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="qrcode-scan" size={size} color={color} />
-          ),
-          headerTitle: 'Scan QR Code',
-        }}
-      />
-      <Tabs.Screen
-        name="news"
-        options={{
-          title: 'News',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="newspaper-variant" size={size} color={color} />
-          ),
-          headerTitle: 'News Feed',
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'Chat',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="message" size={size} color={color} />
-          ),
-          headerTitle: 'Messages',
-          tabBarBadge: totalUnreadCount > 0 ? (totalUnreadCount > 99 ? '99+' : totalUnreadCount) : undefined,
-          tabBarBadgeStyle: styles.tabBadge,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" size={size} color={color} />
-          ),
-          headerTitle: 'My Profile',
-        }}
-      />
-      {/* Hidden screens - accessible via navigation */}
-      <Tabs.Screen
-        name="events"
-        options={{
-          title: 'Events',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar" size={size} color={color} />
-          ),
-          headerTitle: 'Events',
-          href: null, // Hidden from tab bar
-        }}
-      />
-      <Tabs.Screen
-        name="payments"
-        options={{
-          title: 'Payments',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cash" size={size} color={color} />
-          ),
-          headerTitle: 'My Payments',
-          href: null, // Hidden from tab bar
-        }}
-      />
-      <Tabs.Screen
-        name="attendance"
-        options={{
-          title: 'Attendance',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar-check" size={size} color={color} />
-          ),
-          headerTitle: 'My Attendance',
-          href: null, // Hidden from tab bar
-        }}
-      />
-      <Tabs.Screen
-        name="club"
-        options={{
-          href: null,
-        }}
-      />
-    </Tabs>
+      >
+        {/* Tab 1: Evidencija */}
+        <Tabs.Screen
+          name="evidencija"
+          options={{
+            title: 'Evidencija',
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons
+                name="clipboard-check-outline"
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        {/* Tab 2: Check In */}
+        <Tabs.Screen
+          name="scan"
+          options={{
+            title: 'Check In',
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons
+                name="qrcode-scan"
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        {/* Tab 3: Home (center) */}
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="home" size={size} color={color} />
+            ),
+          }}
+        />
+
+        {/* Tab 4: Kalendar */}
+        <Tabs.Screen
+          name="calendar"
+          options={{
+            title: 'Kalendar',
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons
+                name="calendar-month"
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        {/* Tab 5: Chat */}
+        <Tabs.Screen
+          name="chat"
+          options={{
+            title: 'Chat',
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons
+                name="message-outline"
+                size={size}
+                color={color}
+              />
+            ),
+            tabBarBadge: totalUnreadCount > 0 ? (totalUnreadCount > 99 ? '99+' : totalUnreadCount) : undefined,
+            tabBarBadgeStyle: styles.tabBadge,
+          }}
+        />
+
+        {/* Hidden screens - accessible via navigation but not in tab bar */}
+        <Tabs.Screen
+          name="profile"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="news"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="events"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="payments"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="attendance"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="notifications"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="club"
+          options={{
+            href: null,
+          }}
+        />
+      </Tabs>
+    </>
   );
 }
 

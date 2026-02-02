@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
-import { Text, Card, ActivityIndicator } from 'react-native-paper';
+import { Text, Card, Chip, ActivityIndicator, Menu, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
@@ -8,14 +8,62 @@ import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import EventCalendar from '@/components/EventCalendar';
 import api from '@/services/api';
-import { Event, EventType } from '@/types';
+import { Event, Group } from '@/types';
+
+type FilterType = 'all' | 'training' | 'competition';
+
+// Helper function to get relative time text
+const getRelativeTimeText = (eventDate: Date, t: any): string => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+
+  const diffTime = eventDay.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return t('dateTime.today') || 'Danas';
+  if (diffDays === 1) return t('dateTime.tomorrow') || 'Sutra';
+  if (diffDays === -1) return 'Juče';
+  if (diffDays > 1 && diffDays <= 7) return `${t('time.in') || 'Za'} ${diffDays} ${t('time.days') || 'dana'}`;
+  if (diffDays > 7) return `${t('time.in') || 'Za'} ${Math.floor(diffDays / 7)} ${t('time.weeks') || 'ned.'}`;
+
+  return '';
+};
+
+// Helper function to get event type color for any type string
+const getEventTypeColorFromString = (type: string): string => {
+  const upperType = type?.toUpperCase() || '';
+  if (upperType === 'TRAINING' || upperType.includes('TRENING')) {
+    return Colors.eventTraining || Colors.primary;
+  }
+  if (upperType === 'MATCH' || upperType.includes('UTAKMICA') || upperType.includes('MEČ')) {
+    return Colors.eventCompetition || Colors.warning;
+  }
+  if (upperType === 'OTHER') {
+    return Colors.eventMeeting || Colors.info;
+  }
+  return Colors.primary;
+};
 
 export default function MemberCalendar() {
   const { t } = useLanguage();
   const [events, setEvents] = useState<Event[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterType>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [groupMenuVisible, setGroupMenuVisible] = useState(false);
+
+  const fetchGroups = useCallback(async () => {
+    try {
+      const response = await api.get('/groups');
+      setGroups(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+    }
+  }, []);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -38,14 +86,21 @@ export default function MemberCalendar() {
   }, []);
 
   useEffect(() => {
+    fetchGroups();
     fetchEvents();
-  }, [fetchEvents]);
+  }, [fetchGroups, fetchEvents]);
 
   useFocusEffect(
     useCallback(() => {
       fetchEvents();
     }, [fetchEvents])
   );
+
+  const getSelectedGroupName = () => {
+    if (!selectedGroupId) return t('groups.allGroups') || 'Sve grupe';
+    const group = groups.find(g => g._id === selectedGroupId);
+    return group?.name || t('groups.allGroups') || 'Sve grupe';
+  };
 
   const onRefresh = () => {
     setIsRefreshing(true);
@@ -56,57 +111,57 @@ export default function MemberCalendar() {
     setSelectedDate(date === selectedDate ? null : date);
   };
 
-  const getEventTypeColor = (type: EventType) => {
-    switch (type) {
-      case EventType.TRAINING:
-        return Colors.eventTraining;
-      case EventType.MATCH:
-        return Colors.eventCompetition;
-      case EventType.OTHER:
-        return Colors.eventMeeting;
-      default:
-        return Colors.primary;
+  // Filter events by type
+  const filteredEvents = events.filter(event => {
+    const upperType = event.type?.toUpperCase() || '';
+
+    // Filter by group
+    if (selectedGroupId) {
+      const eventGroupId = typeof event.groupId === 'object' ? event.groupId._id : event.groupId;
+      if (eventGroupId !== selectedGroupId) return false;
+    }
+
+    // Filter by type
+    if (filter === 'training') {
+      return upperType === 'TRAINING' || upperType.includes('TRENING');
+    }
+    if (filter === 'competition') {
+      return upperType === 'MATCH' || upperType.includes('UTAKMICA') || upperType.includes('MEČ');
+    }
+    return true;
+  });
+
+  // Filter by selected date if any
+  const getEventDate = (event: Event) => event.date || event.startTime;
+
+  const displayedEvents = selectedDate
+    ? filteredEvents.filter(event => {
+        const eventDate = getEventDate(event);
+        return eventDate && eventDate.startsWith(selectedDate);
+      })
+    : filteredEvents.filter(event => {
+        const eventDate = getEventDate(event);
+        return eventDate && new Date(eventDate) >= new Date(new Date().setHours(0, 0, 0, 0));
+      });
+
+  // Sort by date
+  const sortedEvents = displayedEvents.sort(
+    (a, b) => new Date(getEventDate(a) || '').getTime() - new Date(getEventDate(b) || '').getTime()
+  );
+
+  const navigateToEvent = (eventId: string) => {
+    router.push({ pathname: '/(member)/events/[id]', params: { id: eventId } });
+  };
+
+  const formatEventTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
     }
   };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString(undefined, {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  // Filter events for selected date
-  const selectedDateEvents = selectedDate
-    ? events.filter(event => {
-        const eventDate = event.date || event.startTime;
-        return eventDate?.split('T')[0] === selectedDate;
-      })
-    : [];
-
-  // Get upcoming events (next 7 days)
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const nextWeek = new Date(today);
-  nextWeek.setDate(nextWeek.getDate() + 7);
-
-  const upcomingEvents = events
-    .filter(event => {
-      const eventDate = new Date(event.date || event.startTime);
-      eventDate.setHours(0, 0, 0, 0);
-      return eventDate >= today && eventDate <= nextWeek;
-    })
-    .sort((a, b) => new Date(a.date || a.startTime).getTime() - new Date(b.date || b.startTime).getTime());
 
   if (isLoading) {
     return (
@@ -136,138 +191,156 @@ export default function MemberCalendar() {
           onDayPress={handleDayPress}
         />
 
-        {/* Legend */}
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: Colors.eventTraining }]} />
-            <Text style={styles.legendText}>{t('eventTypes.training')}</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: Colors.eventCompetition }]} />
-            <Text style={styles.legendText}>{t('eventTypes.match')}</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: Colors.eventMeeting }]} />
-            <Text style={styles.legendText}>{t('eventTypes.other')}</Text>
-          </View>
+        {/* Group Filter */}
+        <View style={styles.groupFilterContainer}>
+          <Menu
+            visible={groupMenuVisible}
+            onDismiss={() => setGroupMenuVisible(false)}
+            anchor={
+              <Button
+                mode="outlined"
+                onPress={() => setGroupMenuVisible(true)}
+                icon="filter-variant"
+                textColor={Colors.text}
+                style={styles.groupFilterButton}
+              >
+                {getSelectedGroupName()}
+              </Button>
+            }
+            contentStyle={styles.menuContent}
+          >
+            <Menu.Item
+              onPress={() => {
+                setSelectedGroupId(null);
+                setGroupMenuVisible(false);
+              }}
+              title={t('groups.allGroups') || 'Sve grupe'}
+              leadingIcon={selectedGroupId === null ? 'check' : undefined}
+            />
+            {groups.map(group => (
+              <Menu.Item
+                key={group._id}
+                onPress={() => {
+                  setSelectedGroupId(group._id);
+                  setGroupMenuVisible(false);
+                }}
+                title={group.name}
+                leadingIcon={selectedGroupId === group._id ? 'check' : undefined}
+              />
+            ))}
+          </Menu>
         </View>
 
-        {/* Selected Date Events */}
-        {selectedDate && (
-          <>
-            <Text style={styles.sectionTitle}>
-              {formatDate(selectedDate)}
-            </Text>
-            {selectedDateEvents.length === 0 ? (
-              <Card style={styles.emptyCard}>
-                <Card.Content style={styles.emptyContent}>
-                  <MaterialCommunityIcons name="calendar-blank" size={32} color={Colors.textSecondary} />
-                  <Text style={styles.emptyText}>{t('empty.noEventsOnDay')}</Text>
-                </Card.Content>
-              </Card>
-            ) : (
-              selectedDateEvents.map(event => (
-                <TouchableOpacity
-                  key={event._id}
-                  onPress={() => router.push({ pathname: '/(member)/events/[id]', params: { id: event._id } })}
-                  activeOpacity={0.7}
-                >
-                  <Card style={styles.eventCard}>
-                    <Card.Content>
+        {/* Type Filter Chips */}
+        <View style={styles.filterRow}>
+          <Chip
+            selected={filter === 'all'}
+            style={[styles.filterChip, filter === 'all' && styles.filterChipSelected]}
+            textStyle={styles.filterChipText}
+            selectedColor={Colors.primary}
+            onPress={() => setFilter('all')}
+          >
+            {t('common.all') || 'Sve'}
+          </Chip>
+          <Chip
+            selected={filter === 'training'}
+            style={[styles.filterChip, filter === 'training' && styles.filterChipSelected]}
+            textStyle={styles.filterChipText}
+            selectedColor={Colors.eventTraining}
+            onPress={() => setFilter('training')}
+          >
+            {t('eventTypes.training') || 'Trening'}
+          </Chip>
+          <Chip
+            selected={filter === 'competition'}
+            style={[styles.filterChip, filter === 'competition' && styles.filterChipSelected]}
+            textStyle={styles.filterChipText}
+            selectedColor={Colors.eventCompetition}
+            onPress={() => setFilter('competition')}
+          >
+            {t('eventTypes.match') || 'Utakmica'}
+          </Chip>
+        </View>
+
+        {/* Events List Section */}
+        <Text style={styles.sectionTitle}>
+          {selectedDate
+            ? `${t('events.eventsOn') || 'Događaji'} ${new Date(selectedDate).toLocaleDateString()}`
+            : t('dashboard.upcomingEvents') || 'Predstojeći događaji'}
+        </Text>
+
+        {sortedEvents.length === 0 ? (
+          <Card style={styles.emptyCard}>
+            <Card.Content style={styles.emptyContent}>
+              <MaterialCommunityIcons name="calendar-blank-outline" size={48} color={Colors.textSecondary} />
+              <Text style={styles.emptyText}>
+                {selectedDate
+                  ? t('empty.noEventsOnDay') || 'Nema događaja za ovaj dan'
+                  : t('empty.noUpcomingEvents') || 'Nema predstojećih događaja'}
+              </Text>
+            </Card.Content>
+          </Card>
+        ) : (
+          sortedEvents.map(event => {
+            const eventDate = new Date(event.date || event.startTime);
+            const dayNumber = eventDate.getDate();
+            const dayName = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' });
+            const groupName = typeof event.groupId === 'object' ? event.groupId.name : '';
+            const groupColor = typeof event.groupId === 'object' ? event.groupId.color : Colors.primary;
+            const relativeTime = getRelativeTimeText(eventDate, t);
+
+            return (
+              <TouchableOpacity
+                key={event._id}
+                onPress={() => navigateToEvent(event._id)}
+                activeOpacity={0.7}
+              >
+                <Card style={styles.eventCard}>
+                  <Card.Content style={styles.eventCardContent}>
+                    {/* Date Column */}
+                    <View style={[styles.dateColumn, { backgroundColor: getEventTypeColorFromString(event.type) }]}>
+                      <Text style={styles.dateDay}>{dayNumber}</Text>
+                      <Text style={styles.dateDayName}>{dayName}</Text>
+                    </View>
+
+                    {/* Event Info */}
+                    <View style={styles.eventInfo}>
                       <View style={styles.eventHeader}>
-                        <View style={[styles.eventTypeBadge, { backgroundColor: getEventTypeColor(event.type) + '20' }]}>
-                          <Text style={[styles.eventTypeText, { color: getEventTypeColor(event.type) }]}>
-                            {event.type}
-                          </Text>
-                        </View>
-                        {event.isMandatory && (
-                          <Text style={styles.mandatoryBadge}>{t('events.mandatory')}</Text>
-                        )}
-                      </View>
-                      <Text style={styles.eventTitle}>{event.title}</Text>
-                      <View style={styles.eventMeta}>
-                        <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
-                        <Text style={styles.eventMetaText}>
-                          {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                        <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                        <Text style={styles.eventTime}>
+                          {formatEventTime(event.startTime)} - {formatEventTime(event.endTime)}
                         </Text>
                       </View>
-                      {event.location && (
+
+                      {/* Group Name */}
+                      {groupName && (
+                        <View style={styles.groupRow}>
+                          <View style={[styles.groupDot, { backgroundColor: groupColor || Colors.primary }]} />
+                          <Text style={[styles.groupName, { color: groupColor || Colors.primary }]}>{groupName}</Text>
+                        </View>
+                      )}
+
+                      {/* Location or relative time */}
+                      {event.location ? (
                         <View style={styles.eventMeta}>
                           <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={styles.eventMetaText}>{event.location}</Text>
+                          <Text style={styles.eventLocation} numberOfLines={1}>{event.location}</Text>
                         </View>
-                      )}
-                      {event.description && (
-                        <Text style={styles.eventDescription} numberOfLines={2}>
-                          {event.description}
-                        </Text>
-                      )}
-                    </Card.Content>
-                  </Card>
-                </TouchableOpacity>
-              ))
-            )}
-          </>
-        )}
-
-        {/* Upcoming Events Section */}
-        {!selectedDate && (
-          <>
-            <Text style={styles.sectionTitle}>{t('dashboard.upcomingEvents')}</Text>
-            {upcomingEvents.length === 0 ? (
-              <Card style={styles.emptyCard}>
-                <Card.Content style={styles.emptyContent}>
-                  <MaterialCommunityIcons name="calendar-blank-outline" size={48} color={Colors.textSecondary} />
-                  <Text style={styles.emptyText}>{t('empty.noUpcomingEvents')}</Text>
-                  <Text style={styles.emptySubtext}>{t('empty.eventsScheduledWillAppear')}</Text>
-                </Card.Content>
-              </Card>
-            ) : (
-              upcomingEvents.map(event => {
-                const eventDate = new Date(event.date || event.startTime);
-                return (
-                  <TouchableOpacity
-                    key={event._id}
-                    onPress={() => router.push({ pathname: '/(member)/events/[id]', params: { id: event._id } })}
-                    activeOpacity={0.7}
-                  >
-                    <Card style={styles.eventCard}>
-                      <Card.Content style={styles.eventCardContent}>
-                        <View style={styles.eventDate}>
-                          <Text style={styles.eventDay}>{eventDate.getDate()}</Text>
-                          <Text style={styles.eventMonth}>
-                            {eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
-                          </Text>
+                      ) : relativeTime ? (
+                        <View style={styles.eventMeta}>
+                          <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
+                          <Text style={styles.eventLocation}>{relativeTime}</Text>
                         </View>
-                        <View style={styles.eventDetails}>
-                          <View style={[styles.eventTypeBadge, { backgroundColor: getEventTypeColor(event.type) + '20' }]}>
-                            <Text style={[styles.eventTypeText, { color: getEventTypeColor(event.type) }]}>
-                              {event.type}
-                            </Text>
-                          </View>
-                          <Text style={styles.eventTitle}>{event.title}</Text>
-                          <View style={styles.eventMeta}>
-                            <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
-                            <Text style={styles.eventMetaText}>
-                              {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                            </Text>
-                          </View>
-                          {event.location && (
-                            <View style={styles.eventMeta}>
-                              <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
-                              <Text style={styles.eventMetaText}>{event.location}</Text>
-                            </View>
-                          )}
-                        </View>
-                      </Card.Content>
-                    </Card>
-                  </TouchableOpacity>
-                );
-              })
-            )}
-          </>
+                      ) : null}
+                    </View>
+                  </Card.Content>
+                </Card>
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
+      {/* NO FAB - Members cannot create events */}
     </View>
   );
 }
@@ -276,10 +349,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  content: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
   },
   centerContainer: {
     flex: 1,
@@ -292,33 +361,39 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.md,
   },
-  legendRow: {
+  content: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xxl,
+  },
+  groupFilterContainer: {
+    marginTop: Spacing.md,
+  },
+  groupFilterButton: {
+    borderColor: Colors.border,
+  },
+  menuContent: {
+    backgroundColor: Colors.surface,
+  },
+  filterRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
     marginTop: Spacing.md,
     marginBottom: Spacing.md,
-    gap: Spacing.lg,
+    gap: Spacing.sm,
   },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
+  filterChip: {
+    backgroundColor: Colors.surface,
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  filterChipSelected: {
+    backgroundColor: Colors.primary + '30',
   },
-  legendText: {
+  filterChipText: {
     fontSize: FontSize.sm,
-    color: Colors.textSecondary,
   },
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: '600',
     color: Colors.text,
     marginBottom: Spacing.md,
-    marginTop: Spacing.sm,
   },
   emptyCard: {
     backgroundColor: Colors.surface,
@@ -332,84 +407,84 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.textSecondary,
     marginTop: Spacing.sm,
-  },
-  emptySubtext: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
     textAlign: 'center',
   },
   eventCard: {
     backgroundColor: Colors.surface,
     marginBottom: Spacing.sm,
+    overflow: 'hidden',
   },
   eventCardContent: {
     flexDirection: 'row',
+    padding: 0,
+    alignItems: 'flex-start',
   },
-  eventDate: {
+  dateColumn: {
+    width: 48,
     alignItems: 'center',
-    backgroundColor: Colors.primary + '20',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
-    marginRight: Spacing.md,
-    minWidth: 50,
+    marginTop: Spacing.sm,
+    marginLeft: Spacing.sm,
   },
-  eventDay: {
-    fontSize: FontSize.xl,
+  dateDay: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: '#FFFFFF',
   },
-  eventMonth: {
-    fontSize: FontSize.xs,
-    color: Colors.primary,
-    fontWeight: '600',
+  dateDayName: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    marginTop: 1,
   },
-  eventDetails: {
+  eventInfo: {
     flex: 1,
+    padding: Spacing.sm,
+    paddingLeft: Spacing.md,
+    justifyContent: 'center',
   },
   eventHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  eventTypeBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-    marginBottom: Spacing.xs,
-  },
-  eventTypeText: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-  },
-  mandatoryBadge: {
-    fontSize: FontSize.xs,
-    color: Colors.error,
-    fontWeight: '600',
+    alignItems: 'flex-start',
   },
   eventTitle: {
     fontSize: FontSize.md,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: Spacing.sm,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  eventTime: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+  },
+  groupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  groupDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: Spacing.xs,
+  },
+  groupName: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
   },
   eventMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: 4,
+    marginTop: Spacing.xs,
+    gap: 4,
   },
-  eventMetaText: {
-    fontSize: FontSize.sm,
+  eventLocation: {
+    fontSize: FontSize.xs,
     color: Colors.textSecondary,
-  },
-  eventDescription: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: Spacing.sm,
-    fontStyle: 'italic',
+    flex: 1,
   },
 });
