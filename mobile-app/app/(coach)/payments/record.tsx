@@ -69,8 +69,9 @@ export default function RecordPaymentScreen() {
     return null;
   }, [member]);
 
-  // Monthly fee - TODO: Get from club settings
-  const monthlyFee = 3000;
+  // Monthly fee - use member's individual fee if available, otherwise default
+  const DEFAULT_MONTHLY_FEE = 3000;
+  const monthlyFee = member?.membershipFee || DEFAULT_MONTHLY_FEE;
 
   // Get months with payment status (only months since member joined)
   const monthOptions = useMemo(() => {

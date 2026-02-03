@@ -121,6 +121,8 @@ export interface Member {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
+  // Membership fee (per member, allows for individual pricing/discounts)
+  membershipFee?: number;
   createdAt: string;
   updatedAt: string;
 }

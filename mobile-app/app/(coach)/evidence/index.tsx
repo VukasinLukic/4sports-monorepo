@@ -9,6 +9,8 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {
   Text,
@@ -17,13 +19,16 @@ import {
   Avatar,
   Checkbox,
   IconButton,
+  TextInput,
+  Button,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
-import { Group, Member } from '@/types';
+import { Group, Member, PaymentMethod } from '@/types';
+import { useRecordPayment } from '@/hooks/useMembers';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -42,6 +47,7 @@ interface MemberWithStatus extends Member {
   isPaid: boolean;
   isValidMedical: boolean;
   lastActive?: string;
+  membershipFee?: number; // For dynamic fee support
 }
 
 export default function EvidenceScreen() {
@@ -57,6 +63,17 @@ export default function EvidenceScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
+
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedMemberForPayment, setSelectedMemberForPayment] = useState<MemberWithStatus | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
+  const [paymentNote, setPaymentNote] = useState('');
+  const { mutate: recordPayment, isPending: isRecordingPayment } = useRecordPayment();
+
+  // Default membership fee (will be dynamic when membershipFee is added to Member)
+  const DEFAULT_MEMBERSHIP_FEE = 3000;
 
   // Overall stats
   const totalPaid = groupsWithMembers.reduce((sum, g) => sum + g.paidCount, 0);
@@ -153,26 +170,30 @@ export default function EvidenceScreen() {
   };
 
   const handleMarkMember = async (member: MemberWithStatus) => {
+    if (activeTab === 'membership') {
+      // Open payment modal instead of directly marking
+      const fee = member.membershipFee || DEFAULT_MEMBERSHIP_FEE;
+      setSelectedMemberForPayment(member);
+      setPaymentAmount(fee.toString());
+      setPaymentMethod(PaymentMethod.CASH);
+      setPaymentNote('');
+      setShowPaymentModal(true);
+      return;
+    }
+
+    // Medical tab - keep existing behavior
     const actionKey = `mark-${member._id}`;
     if (loadingActions.has(actionKey)) return;
 
     setLoadingActions(prev => new Set(prev).add(actionKey));
 
     try {
-      if (activeTab === 'membership') {
-        await api.post(`/evidence/membership/${member._id}`, {
-          month: selectedMonth,
-          year: selectedYear,
-          paymentMethod: 'CASH',
-        });
-      } else {
-        const expiryDate = new Date();
-        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-        await api.post(`/evidence/medical/${member._id}`, {
-          lastCheckDate: new Date().toISOString(),
-          expiryDate: expiryDate.toISOString(),
-        });
-      }
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+      await api.post(`/evidence/medical/${member._id}`, {
+        lastCheckDate: new Date().toISOString(),
+        expiryDate: expiryDate.toISOString(),
+      });
       fetchData();
     } catch (error) {
       console.error('Error marking member:', error);
@@ -184,6 +205,55 @@ export default function EvidenceScreen() {
         return newSet;
       });
     }
+  };
+
+  // Handle payment submission from modal
+  const handleSubmitPayment = () => {
+    if (!selectedMemberForPayment) return;
+
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert(t('common.error'), t('validation.validAmount') || 'Unesite validan iznos');
+      return;
+    }
+
+    const months = [
+      'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
+      'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar',
+    ];
+
+    recordPayment(
+      {
+        memberId: selectedMemberForPayment._id,
+        amount,
+        paymentMethod,
+        paymentDate: new Date().toISOString().split('T')[0],
+        note: paymentNote.trim() || `${months[selectedMonth - 1]} ${selectedYear}`,
+        period: {
+          month: selectedMonth,
+          year: selectedYear,
+        },
+      },
+      {
+        onSuccess: () => {
+          setShowPaymentModal(false);
+          setSelectedMemberForPayment(null);
+          fetchData();
+          Alert.alert(t('common.success'), t('payments.recordedSuccess') || 'Uplata je uspešno evidentirana!');
+        },
+        onError: (error: any) => {
+          Alert.alert(
+            t('common.error'),
+            error.response?.data?.message || t('payments.recordFailed') || 'Greška pri evidenciji uplate.'
+          );
+        },
+      }
+    );
+  };
+
+  const closePaymentModal = () => {
+    setShowPaymentModal(false);
+    setSelectedMemberForPayment(null);
   };
 
   const handleRemindMember = async (member: MemberWithStatus) => {
@@ -652,6 +722,149 @@ export default function EvidenceScreen() {
           </>
         )}
       </TouchableOpacity>
+
+      {/* Payment Modal */}
+      <Modal
+        visible={showPaymentModal}
+        transparent
+        animationType="slide"
+        onRequestClose={closePaymentModal}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('payments.recordPayment') || 'Evidentiraj uplatu'}</Text>
+              <TouchableOpacity onPress={closePaymentModal} style={styles.modalCloseButton}>
+                <MaterialCommunityIcons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Member Info */}
+            {selectedMemberForPayment && (
+              <View style={styles.modalMemberInfo}>
+                {selectedMemberForPayment.profileImage || selectedMemberForPayment.profilePicture ? (
+                  <Avatar.Image
+                    size={48}
+                    source={{ uri: selectedMemberForPayment.profileImage || selectedMemberForPayment.profilePicture }}
+                  />
+                ) : (
+                  <Avatar.Text
+                    size={48}
+                    label={selectedMemberForPayment.fullName.charAt(0).toUpperCase()}
+                    style={{ backgroundColor: Colors.primary }}
+                  />
+                )}
+                <View style={styles.modalMemberDetails}>
+                  <Text style={styles.modalMemberName}>{selectedMemberForPayment.fullName}</Text>
+                  <Text style={styles.modalMemberPeriod}>
+                    {getMonthName(selectedMonth)} {selectedYear}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Amount Input */}
+            <Text style={styles.modalLabel}>{t('payments.amount') || 'Iznos'} *</Text>
+            <TextInput
+              value={paymentAmount}
+              onChangeText={setPaymentAmount}
+              mode="outlined"
+              keyboardType="decimal-pad"
+              style={styles.modalInput}
+              outlineColor={Colors.border}
+              activeOutlineColor={Colors.primary}
+              textColor={Colors.text}
+              right={<TextInput.Affix text="RSD" textStyle={styles.currencyAffix} />}
+            />
+
+            {/* Payment Method Toggle */}
+            <Text style={styles.modalLabel}>{t('payments.method') || 'Način plaćanja'} *</Text>
+            <View style={styles.paymentMethodToggle}>
+              <TouchableOpacity
+                style={[
+                  styles.methodButton,
+                  styles.methodButtonLeft,
+                  paymentMethod === PaymentMethod.CASH && styles.methodButtonActive,
+                ]}
+                onPress={() => setPaymentMethod(PaymentMethod.CASH)}
+              >
+                <MaterialCommunityIcons
+                  name="cash"
+                  size={20}
+                  color={paymentMethod === PaymentMethod.CASH ? '#fff' : Colors.textSecondary}
+                />
+                <Text style={[
+                  styles.methodButtonText,
+                  paymentMethod === PaymentMethod.CASH && styles.methodButtonTextActive,
+                ]}>
+                  {t('payments.cash') || 'Gotovina'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.methodButton,
+                  styles.methodButtonRight,
+                  paymentMethod === PaymentMethod.BANK_TRANSFER && styles.methodButtonActive,
+                ]}
+                onPress={() => setPaymentMethod(PaymentMethod.BANK_TRANSFER)}
+              >
+                <MaterialCommunityIcons
+                  name="bank"
+                  size={20}
+                  color={paymentMethod === PaymentMethod.BANK_TRANSFER ? '#fff' : Colors.textSecondary}
+                />
+                <Text style={[
+                  styles.methodButtonText,
+                  paymentMethod === PaymentMethod.BANK_TRANSFER && styles.methodButtonTextActive,
+                ]}>
+                  {t('payments.bankTransfer') || 'Prenos'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Note Input */}
+            <Text style={styles.modalLabel}>{t('common.note') || 'Napomena'} ({t('common.optional') || 'opciono'})</Text>
+            <TextInput
+              value={paymentNote}
+              onChangeText={setPaymentNote}
+              mode="outlined"
+              style={styles.modalInput}
+              outlineColor={Colors.border}
+              activeOutlineColor={Colors.primary}
+              textColor={Colors.text}
+              placeholder={t('payments.notePlaceholder') || 'npr. Članarina za januar'}
+              placeholderTextColor={Colors.textSecondary}
+            />
+
+            {/* Submit Button */}
+            <Button
+              mode="contained"
+              onPress={handleSubmitPayment}
+              loading={isRecordingPayment}
+              disabled={isRecordingPayment}
+              style={styles.modalSubmitButton}
+              icon="check"
+              buttonColor={Colors.success}
+            >
+              {t('payments.recordPayment') || 'Evidentiraj uplatu'}
+            </Button>
+
+            {/* Cancel Button */}
+            <Button
+              mode="outlined"
+              onPress={closePaymentModal}
+              style={styles.modalCancelButton}
+              textColor={Colors.textSecondary}
+            >
+              {t('common.cancel') || 'Otkaži'}
+            </Button>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -948,5 +1161,114 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '600',
     color: '#fff',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxl,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  modalTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  modalCloseButton: {
+    padding: Spacing.xs,
+  },
+  modalMemberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  modalMemberDetails: {
+    marginLeft: Spacing.md,
+    flex: 1,
+  },
+  modalMemberName: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  modalMemberPeriod: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    marginTop: 2,
+  },
+  modalLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  modalInput: {
+    backgroundColor: Colors.surface,
+  },
+  currencyAffix: {
+    color: Colors.textSecondary,
+    opacity: 0.6,
+  },
+  paymentMethodToggle: {
+    flexDirection: 'row',
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+  },
+  methodButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  methodButtonLeft: {
+    borderTopLeftRadius: BorderRadius.md,
+    borderBottomLeftRadius: BorderRadius.md,
+    borderRightWidth: 0,
+  },
+  methodButtonRight: {
+    borderTopRightRadius: BorderRadius.md,
+    borderBottomRightRadius: BorderRadius.md,
+  },
+  methodButtonActive: {
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
+  },
+  methodButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  methodButtonTextActive: {
+    color: '#fff',
+  },
+  modalSubmitButton: {
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.xs,
+  },
+  modalCancelButton: {
+    marginTop: Spacing.sm,
+    borderColor: Colors.border,
   },
 });

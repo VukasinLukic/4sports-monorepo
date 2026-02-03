@@ -144,7 +144,8 @@ export default function MemberDetailsScreen() {
 
   // Calculate membership stats
   const calculateMembershipStats = () => {
-    const monthlyFee = 3000; // TODO: Get from club settings
+    const DEFAULT_MONTHLY_FEE = 3000;
+    const monthlyFee = member?.membershipFee || DEFAULT_MONTHLY_FEE;
     const joinDate = member?.createdAt ? new Date(member.createdAt) : new Date();
     const now = new Date();
 

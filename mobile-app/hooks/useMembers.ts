@@ -112,6 +112,10 @@ interface RecordPaymentData {
   paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'CARD';
   paymentDate?: string;
   note?: string;
+  period?: {
+    month: number;
+    year: number;
+  };
 }
 
 export function useRecordPayment() {

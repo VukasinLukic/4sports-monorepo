@@ -5,7 +5,7 @@ import Member from '../models/Member';
 export const createPayment = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
-    const { memberId, type, amount, description, dueDate, paymentMethod, paymentDate, note } = req.body;
+    const { memberId, type, amount, description, dueDate, paymentMethod, paymentDate, note, period } = req.body;
     const clubId = req.user.clubId;
     if (!clubId) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
 
@@ -21,10 +21,17 @@ export const createPayment = async (req: Request, res: Response) => {
     const isPaid = !!paymentMethod;
     const now = new Date();
 
-    // Use paymentDate for period if provided, otherwise use current date
-    const periodDate = paymentDate ? new Date(paymentDate) : now;
-    const periodMonth = periodDate.getMonth() + 1;
-    const periodYear = periodDate.getFullYear();
+    // Use explicit period if provided, otherwise derive from paymentDate or current date
+    let periodMonth: number;
+    let periodYear: number;
+    if (period && period.month && period.year) {
+      periodMonth = period.month;
+      periodYear = period.year;
+    } else {
+      const periodDate = paymentDate ? new Date(paymentDate) : now;
+      periodMonth = periodDate.getMonth() + 1;
+      periodYear = periodDate.getFullYear();
+    }
 
     const paymentData: any = {
       clubId,
