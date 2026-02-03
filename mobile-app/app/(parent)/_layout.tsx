@@ -3,8 +3,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 
 export default function ParentLayout() {
+
   return (
     <Tabs
+      initialRouteName="index"
+      backBehavior="initialRoute"
       screenOptions={{
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textSecondary,

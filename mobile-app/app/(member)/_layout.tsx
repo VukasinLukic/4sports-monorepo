@@ -12,6 +12,8 @@ export default function MemberLayout() {
     <>
       <TopHeader basePath="/(member)" />
       <Tabs
+        initialRouteName="index"
+        backBehavior="initialRoute"
         screenOptions={{
           tabBarActiveTintColor: Colors.primary,
           tabBarInactiveTintColor: Colors.textSecondary,
@@ -148,6 +150,12 @@ export default function MemberLayout() {
         />
         <Tabs.Screen
           name="members"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="users"
           options={{
             href: null,
           }}

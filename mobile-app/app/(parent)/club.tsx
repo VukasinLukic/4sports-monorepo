@@ -82,8 +82,16 @@ export default function ClubInfoScreen() {
     if (email) Linking.openURL(`mailto:${email}`);
   };
 
-  const handleChatWithUser = (userId: string) => {
-    router.push({ pathname: '/(parent)/chat/[id]', params: { id: userId } });
+  const handleChatWithUser = async (userId: string) => {
+    try {
+      const response = await api.post('/chat/conversations', {
+        participantIds: [userId],
+      });
+      const conversationId = response.data.data.conversationId || response.data.data._id;
+      router.push(`/(parent)/chat/${conversationId}` as any);
+    } catch (error) {
+      console.error('Error starting chat:', error);
+    }
   };
 
   const renderPersonCard = (person: CoachInfo, isOwner: boolean = false) => (

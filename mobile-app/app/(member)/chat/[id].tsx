@@ -14,7 +14,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/services/AuthContext';
@@ -124,6 +124,27 @@ export default function ChatScreen() {
     return () => unsubscribe();
   }, [conversationId, user?._id]);
 
+  // Get other participant info for 1-on-1 chats
+  const getOtherParticipant = () => {
+    if (!conversation || !user?._id) return null;
+
+    if (conversation.type === 'group' || conversation.type === 'staff-group') {
+      return null;
+    }
+
+    const otherParticipantId = conversation.participantIds.find(
+      (id) => id !== user._id
+    );
+    if (otherParticipantId && conversation.participantDetails[otherParticipantId]) {
+      return {
+        id: otherParticipantId,
+        ...conversation.participantDetails[otherParticipantId],
+      };
+    }
+
+    return null;
+  };
+
   // Get chat title
   const getChatTitle = () => {
     if (!conversation || !user?._id) return 'Chat';
@@ -132,16 +153,26 @@ export default function ChatScreen() {
       return conversation.groupName || 'Group Chat';
     }
 
-    // For 1-on-1, show other participant's name
-    const otherParticipantId = conversation.participantIds.find(
-      (id) => id !== user._id
-    );
-    if (otherParticipantId && conversation.participantDetails[otherParticipantId]) {
-      return conversation.participantDetails[otherParticipantId].name;
-    }
-
-    return 'Chat';
+    const otherParticipant = getOtherParticipant();
+    return otherParticipant?.name || 'Chat';
   };
+
+  // Navigate to other participant's profile
+  const handleHeaderPress = () => {
+    const otherParticipant = getOtherParticipant();
+    if (!otherParticipant) return;
+
+    // If role is COACH or OWNER, navigate to users/[id]
+    // Otherwise navigate to members/[id] (need to fetch member by userId)
+    if (otherParticipant.role === 'COACH' || otherParticipant.role === 'OWNER') {
+      router.push(`/(member)/users/${otherParticipant.id}` as any);
+    } else {
+      // For members, we need to navigate via userId
+      router.push(`/(member)/users/${otherParticipant.id}` as any);
+    }
+  };
+
+  const otherParticipant = getOtherParticipant();
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -273,8 +304,48 @@ export default function ChatScreen() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: getChatTitle(),
-          headerBackTitle: 'Back',
+          headerLeft: () => (
+            <TouchableOpacity
+              style={styles.headerBackButton}
+              onPress={() => router.replace('/(member)/chat')}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.text} />
+            </TouchableOpacity>
+          ),
+          headerTitle: () => (
+            <TouchableOpacity
+              style={styles.headerTitleContainer}
+              onPress={handleHeaderPress}
+              disabled={!otherParticipant}
+            >
+              {otherParticipant ? (
+                <>
+                  <View style={styles.headerAvatar}>
+                    {otherParticipant.avatar ? (
+                      <Image
+                        source={{ uri: otherParticipant.avatar }}
+                        style={styles.headerAvatarImage}
+                      />
+                    ) : (
+                      <Text style={styles.headerAvatarText}>
+                        {otherParticipant.name?.substring(0, 1).toUpperCase() || '?'}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.headerTextContainer}>
+                    <Text style={styles.headerName} numberOfLines={1}>
+                      {otherParticipant.name}
+                    </Text>
+                    <Text style={styles.headerStatus}>
+                      {otherParticipant.role === 'COACH' ? 'Trener' : otherParticipant.role === 'OWNER' ? 'Vlasnik' : 'Član'}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.headerName}>{getChatTitle()}</Text>
+              )}
+            </TouchableOpacity>
+          ),
         }}
       />
 
@@ -375,6 +446,45 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  headerBackButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  headerAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  headerAvatarText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  headerTextContainer: {
+    justifyContent: 'center',
+  },
+  headerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  headerStatus: {
+    fontSize: 12,
+    color: Colors.textSecondary,
   },
   loadingContainer: {
     flex: 1,

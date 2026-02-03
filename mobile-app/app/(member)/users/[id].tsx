@@ -78,11 +78,12 @@ export default function UserProfileScreen() {
 
   const handleStartChat = async () => {
     if (!userId) return;
+
     try {
       const response = await api.post('/chat/conversations', {
-        participantId: userId,
+        participantIds: [userId],
       });
-      const conversationId = response.data.data._id;
+      const conversationId = response.data.data.conversationId || response.data.data._id;
       router.push(`/(member)/chat/${conversationId}` as any);
     } catch (error) {
       console.error('Error starting chat:', error);
@@ -188,9 +189,11 @@ export default function UserProfileScreen() {
       </ScrollView>
 
       {/* Fixed Chat Button */}
-      <TouchableOpacity style={styles.chatFab} onPress={handleStartChat}>
-        <MaterialCommunityIcons name="message-text" size={24} color="#fff" />
-      </TouchableOpacity>
+      {userId && user && (
+        <TouchableOpacity style={styles.chatFab} onPress={handleStartChat}>
+          <MaterialCommunityIcons name="message-text" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

@@ -78,9 +78,9 @@ export default function MemberProfileScreen() {
     if (!member?.userId) return;
     try {
       const response = await api.post('/chat/conversations', {
-        participantId: member.userId,
+        participantIds: [member.userId],
       });
-      const conversationId = response.data.data._id;
+      const conversationId = response.data.data.conversationId || response.data.data._id;
       router.push(`/(member)/chat/${conversationId}` as any);
     } catch (error) {
       console.error('Error starting chat:', error);

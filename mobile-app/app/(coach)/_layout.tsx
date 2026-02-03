@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import TopHeader from '@/components/TopHeader';
@@ -12,6 +12,8 @@ export default function CoachLayout() {
     <>
       <TopHeader basePath="/(coach)" />
       <Tabs
+        initialRouteName="index"
+        backBehavior="initialRoute"
         screenOptions={{
           tabBarActiveTintColor: Colors.primary,
           tabBarInactiveTintColor: Colors.textSecondary,
@@ -160,6 +162,12 @@ export default function CoachLayout() {
         />
         <Tabs.Screen
           name="club"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="users"
           options={{
             href: null,
           }}
