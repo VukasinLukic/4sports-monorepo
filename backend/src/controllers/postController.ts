@@ -83,7 +83,23 @@ export const getClubPosts = async (req: Request, res: Response) => {
     }
 
     const posts = await Post.findByClub(clubId, visibilityFilter);
-    return res.status(200).json({ success: true, data: posts });
+
+    // Get user's likes for these posts
+    const postIds = posts.map((p: any) => p._id);
+    const userLikes = await Like.find({
+      userId: req.user._id,
+      targetType: 'POST',
+      targetId: { $in: postIds },
+    });
+    const likedPostIds = new Set(userLikes.map((l) => l.targetId.toString()));
+
+    // Add isLiked flag to each post
+    const postsWithLikeStatus = posts.map((post: any) => ({
+      ...post.toObject(),
+      isLiked: likedPostIds.has(post._id.toString()),
+    }));
+
+    return res.status(200).json({ success: true, data: postsWithLikeStatus });
   } catch (error: any) {
     console.error('❌ Get Posts Error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch posts' } });
@@ -95,7 +111,7 @@ export const getPostById = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
     const { id } = req.params;
 
-    const post = await Post.findById(id).populate('authorId', 'firstName lastName profilePicture');
+    const post = await Post.findById(id).populate('authorId', 'fullName profilePicture');
     if (!post) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Post not found' } });
 
     // Check visibility access
@@ -230,7 +246,23 @@ export const getPostComments = async (req: Request, res: Response) => {
     const { postId } = req.params;
 
     const comments = await Comment.findByPost(postId as any);
-    return res.status(200).json({ success: true, data: comments });
+
+    // Get user's likes for these comments
+    const commentIds = comments.map((c: any) => c._id);
+    const userLikes = await Like.find({
+      userId: req.user._id,
+      targetType: 'COMMENT',
+      targetId: { $in: commentIds },
+    });
+    const likedCommentIds = new Set(userLikes.map((l) => l.targetId.toString()));
+
+    // Add isLiked flag to each comment
+    const commentsWithLikeStatus = comments.map((comment: any) => ({
+      ...comment.toObject(),
+      isLiked: likedCommentIds.has(comment._id.toString()),
+    }));
+
+    return res.status(200).json({ success: true, data: commentsWithLikeStatus });
   } catch (error: any) {
     console.error('❌ Get Comments Error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch comments' } });

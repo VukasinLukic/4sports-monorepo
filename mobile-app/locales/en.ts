@@ -257,6 +257,8 @@ export default {
     position: 'Position',
     jerseyNumber: 'Jersey Number',
     lastActive: 'Last Active',
+    basicInfo: 'Basic Info',
+    noInfoAvailable: 'No info available',
   },
 
   // Events
@@ -449,6 +451,7 @@ export default {
     newGroup: 'New Group',
     addMember: 'Add Member',
     lastTraining: 'Last Training',
+    trainsGroups: 'Trains Groups',
   },
 
   // News

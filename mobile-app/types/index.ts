@@ -256,6 +256,7 @@ export interface Post {
   isPinned?: boolean;
   likesCount: number;
   commentsCount: number;
+  isLiked?: boolean;
   createdAt: string;
   updatedAt: string;
 }

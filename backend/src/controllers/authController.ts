@@ -359,6 +359,74 @@ export const login = async (
 };
 
 /**
+ * Get User Public Profile
+ * @route GET /api/v1/auth/users/:id
+ * @access Private (requires authentication)
+ *
+ * @description
+ * - Returns public profile for a user (coach, owner)
+ * - Only returns basic info (name, avatar, role)
+ * - For coaches/owners, also returns groups they train and phone number
+ */
+export const getUserPublicProfile = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+      });
+    }
+
+    const { id } = req.params;
+    const user = await User.findById(id).select('fullName profileImage role phoneNumber clubId').lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'User not found' },
+      });
+    }
+
+    // For coaches/owners, fetch groups they train
+    let groups: { _id: string; name: string; ageGroup?: string }[] = [];
+    if ((user.role === 'COACH' || user.role === 'OWNER') && user.clubId) {
+      const Group = require('../models/Group').default;
+      const userGroups = await Group.find({
+        coaches: id,
+        clubId: user.clubId,
+        isActive: true
+      }).select('name ageGroup').lean();
+      groups = userGroups.map((g: any) => ({
+        _id: g._id.toString(),
+        name: g.name,
+        ageGroup: g.ageGroup,
+      }));
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        _id: id,
+        fullName: user.fullName,
+        profilePicture: user.profileImage,
+        role: user.role,
+        phoneNumber: user.phoneNumber,
+        groups,
+      },
+    });
+  } catch (error: any) {
+    console.error('❌ Get User Public Profile Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch user profile' },
+    });
+  }
+};
+
+/**
  * Get Current User
  * @route GET /api/v1/auth/me
  * @access Private (requires authentication)

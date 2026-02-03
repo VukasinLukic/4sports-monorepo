@@ -16,7 +16,6 @@ interface PostCardProps {
   onLike?: (postId: string) => void;
   onComment?: (postId: string) => void;
   onPress?: (post: Post) => void;
-  isLiked?: boolean;
 }
 
 export default function PostCard({
@@ -26,11 +25,8 @@ export default function PostCard({
   onLike,
   onComment,
   onPress,
-  isLiked = false,
 }: PostCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [liked, setLiked] = useState(isLiked);
-  const [likesCount, setLikesCount] = useState(post.likesCount || 0);
 
   const getInitials = (name: string) => {
     return name
@@ -57,8 +53,6 @@ export default function PostCard({
   };
 
   const handleLike = () => {
-    setLiked(!liked);
-    setLikesCount(prev => liked ? prev - 1 : prev + 1);
     onLike?.(post._id);
   };
 
@@ -148,13 +142,13 @@ export default function PostCard({
         <View style={styles.actions}>
           <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
             <MaterialCommunityIcons
-              name={liked ? 'heart' : 'heart-outline'}
+              name={post.isLiked ? 'heart' : 'heart-outline'}
               size={22}
-              color={liked ? Colors.error : Colors.textSecondary}
+              color={post.isLiked ? Colors.error : Colors.textSecondary}
             />
-            {likesCount > 0 && (
-              <Text style={[styles.actionText, liked && styles.actionTextLiked]}>
-                {likesCount}
+            {(post.likesCount || 0) > 0 && (
+              <Text style={[styles.actionText, post.isLiked && styles.actionTextLiked]}>
+                {post.likesCount}
               </Text>
             )}
           </TouchableOpacity>
@@ -221,21 +215,23 @@ const styles = StyleSheet.create({
     fontSize: FontSize.lg,
     fontWeight: '600',
     color: Colors.text,
-    paddingHorizontal: 0,
+    paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xs,
   },
   postContent: {
     fontSize: FontSize.md,
     color: Colors.text,
     lineHeight: 22,
-    paddingHorizontal: 0,
+    paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.sm,
   },
   mediaContainer: {
     position: 'relative',
-    width: '100%',
+    marginHorizontal: Spacing.md,
     aspectRatio: 1,
     backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
   },
   media: {
     width: '100%',

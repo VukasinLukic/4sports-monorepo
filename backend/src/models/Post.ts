@@ -61,13 +61,13 @@ postSchema.statics.findByClub = async function (
   }
   return this.find(query)
     .sort({ isPinned: -1, createdAt: -1 })
-    .populate('authorId', 'firstName lastName profilePicture');
+    .populate('authorId', 'fullName profilePicture');
 };
 
 postSchema.statics.getPinnedPosts = async function (clubId: mongoose.Types.ObjectId): Promise<IPost[]> {
   return this.find({ clubId, isPinned: true })
     .sort({ createdAt: -1 })
-    .populate('authorId', 'firstName lastName profilePicture');
+    .populate('authorId', 'fullName profilePicture');
 };
 
 postSchema.statics.incrementLikes = async function (postId: mongoose.Types.ObjectId): Promise<IPost | null> {

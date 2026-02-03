@@ -260,6 +260,8 @@ export default {
     position: 'Pozicija',
     jerseyNumber: 'Broj dresa',
     lastActive: 'Aktivan:',
+    basicInfo: 'Osnovne informacije',
+    noInfoAvailable: 'Nema dostupnih informacija',
   },
 
   // Events
@@ -452,6 +454,7 @@ export default {
     newGroup: 'Nova Grupa',
     addMember: 'Dodaj Člana',
     lastTraining: 'Poslednji trening',
+    trainsGroups: 'Trenira grupe',
   },
 
   // News

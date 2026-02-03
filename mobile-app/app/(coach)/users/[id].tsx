@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Linking } from 'react-native';
 import { Text, Card, Avatar, ActivityIndicator, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -7,88 +7,95 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
-import { useAuth } from '@/services/AuthContext';
 import api from '@/services/api';
 
-interface MemberProfile {
+interface UserGroup {
+  _id: string;
+  name: string;
+  ageGroup?: string;
+}
+
+interface UserProfile {
   _id: string;
   fullName: string;
   profilePicture?: string;
-  profileImage?: string;
-  position?: string;
-  jerseyNumber?: number;
-  age?: number;
-  userId?: string;
-  groupId?: {
-    _id: string;
-    name: string;
-  };
-  groupName?: string;
+  role: string;
+  phoneNumber?: string;
+  groups?: UserGroup[];
 }
 
-export default function MemberProfileScreen() {
+export default function UserProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { id: memberId } = useLocalSearchParams<{ id: string }>();
+  const { id: userId } = useLocalSearchParams<{ id: string }>();
   const { t } = useLanguage();
-  const { user } = useAuth();
-  const [member, setMember] = useState<MemberProfile | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchMember = useCallback(async () => {
-    if (!memberId) return;
+  const fetchUser = useCallback(async () => {
+    if (!userId) return;
     try {
-      const response = await api.get(`/members/${memberId}`);
-      setMember(response.data.data);
+      const response = await api.get(`/auth/users/${userId}`);
+      setUser(response.data.data);
     } catch (error) {
-      console.error('Error fetching member:', error);
+      console.error('Error fetching user:', error);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [memberId]);
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchMember();
-    }, [fetchMember])
+      fetchUser();
+    }, [fetchUser])
   );
 
   const onRefresh = () => {
     setIsRefreshing(true);
-    fetchMember();
+    fetchUser();
   };
 
   const getInitials = (name?: string) => {
     return name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??';
   };
 
-  const getGroupName = () => {
-    if (member?.groupId && typeof member.groupId === 'object') {
-      return member.groupId.name;
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'OWNER': return t('roles.owner') || 'Owner';
+      case 'COACH': return t('roles.coach') || 'Coach';
+      case 'MEMBER': return t('roles.member') || 'Member';
+      default: return role;
     }
-    return member?.groupName || t('members.noGroup');
   };
 
-  const getProfileImage = () => {
-    return member?.profilePicture || member?.profileImage;
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'OWNER': return 'shield-crown';
+      case 'COACH': return 'whistle';
+      case 'MEMBER': return 'account';
+      default: return 'account';
+    }
   };
 
   const handleStartChat = async () => {
-    if (!member?.userId) return;
+    if (!userId) return;
     try {
       const response = await api.post('/chat/conversations', {
-        participantId: member.userId,
+        participantId: userId,
       });
       const conversationId = response.data.data._id;
-      router.push(`/(member)/chat/${conversationId}` as any);
+      router.push(`/(coach)/chat/${conversationId}` as any);
     } catch (error) {
       console.error('Error starting chat:', error);
     }
   };
 
-  // Check if this is the current user's own profile
-  const isOwnProfile = user && member?.userId === user._id;
+  const handleCallPhone = () => {
+    if (user?.phoneNumber) {
+      Linking.openURL(`tel:${user.phoneNumber}`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -99,7 +106,7 @@ export default function MemberProfileScreen() {
     );
   }
 
-  if (!member) {
+  if (!user) {
     return (
       <View style={[styles.centerContainer, { paddingTop: insets.top }]}>
         <MaterialCommunityIcons name="account-off" size={64} color={Colors.textSecondary} />
@@ -132,65 +139,60 @@ export default function MemberProfileScreen() {
         {/* Profile Card */}
         <Card style={styles.profileCard}>
           <Card.Content style={styles.profileContent}>
-            {getProfileImage() ? (
-              <Image source={{ uri: getProfileImage() }} style={styles.avatar} />
+            {user.profilePicture ? (
+              <Avatar.Image size={100} source={{ uri: user.profilePicture }} />
             ) : (
               <Avatar.Text
                 size={100}
-                label={getInitials(member.fullName)}
+                label={getInitials(user.fullName)}
                 style={styles.avatarPlaceholder}
               />
             )}
-            <Text style={styles.memberName}>{member.fullName}</Text>
-            <View style={styles.groupChip}>
-              <MaterialCommunityIcons name="account-group" size={16} color={Colors.primary} />
-              <Text style={styles.groupText}>{getGroupName()}</Text>
+            <Text style={styles.userName}>{user.fullName}</Text>
+            <View style={styles.roleChip}>
+              <MaterialCommunityIcons
+                name={getRoleIcon(user.role)}
+                size={16}
+                color={Colors.primary}
+              />
+              <Text style={styles.roleText}>{getRoleLabel(user.role)}</Text>
             </View>
-          </Card.Content>
-        </Card>
 
-        {/* Basic Info Card */}
-        <Card style={styles.infoCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>{t('members.basicInfo') || 'Basic Info'}</Text>
-
-            {member.jerseyNumber && (
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="tshirt-crew" size={20} color={Colors.textSecondary} />
-                <Text style={styles.infoLabel}>{t('members.jerseyNumber')}</Text>
-                <Text style={styles.infoValue}>#{member.jerseyNumber}</Text>
-              </View>
-            )}
-
-            {member.position && (
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="soccer" size={20} color={Colors.textSecondary} />
-                <Text style={styles.infoLabel}>{t('members.position')}</Text>
-                <Text style={styles.infoValue}>{member.position}</Text>
-              </View>
-            )}
-
-            {member.age && (
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="cake-variant" size={20} color={Colors.textSecondary} />
-                <Text style={styles.infoLabel}>{t('members.age')}</Text>
-                <Text style={styles.infoValue}>{member.age} {t('members.years')}</Text>
-              </View>
-            )}
-
-            {!member.jerseyNumber && !member.position && !member.age && (
-              <Text style={styles.noInfoText}>{t('members.noInfoAvailable') || 'No info available'}</Text>
+            {/* Phone number if available */}
+            {user.phoneNumber && (
+              <TouchableOpacity style={styles.phoneRow} onPress={handleCallPhone}>
+                <MaterialCommunityIcons name="phone" size={16} color={Colors.textSecondary} />
+                <Text style={styles.phoneText}>{user.phoneNumber}</Text>
+              </TouchableOpacity>
             )}
           </Card.Content>
         </Card>
+
+        {/* Groups Card - for coaches/owners */}
+        {user.groups && user.groups.length > 0 && (
+          <Card style={styles.infoCard}>
+            <Card.Content>
+              <Text style={styles.sectionTitle}>{t('groups.trainsGroups') || 'Trains Groups'}</Text>
+              {user.groups.map((group) => (
+                <View key={group._id} style={styles.groupRow}>
+                  <MaterialCommunityIcons name="account-group" size={20} color={Colors.textSecondary} />
+                  <View style={styles.groupInfo}>
+                    <Text style={styles.groupName}>{group.name}</Text>
+                    {group.ageGroup && (
+                      <Text style={styles.groupAge}>{group.ageGroup}</Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </Card.Content>
+          </Card>
+        )}
       </ScrollView>
 
-      {/* Fixed Chat Button - only show for other members */}
-      {!isOwnProfile && member?.userId && (
-        <TouchableOpacity style={styles.chatFab} onPress={handleStartChat}>
-          <MaterialCommunityIcons name="message-text" size={24} color="#fff" />
-        </TouchableOpacity>
-      )}
+      {/* Fixed Chat Button */}
+      <TouchableOpacity style={styles.chatFab} onPress={handleStartChat}>
+        <MaterialCommunityIcons name="message-text" size={24} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -256,23 +258,18 @@ const styles = StyleSheet.create({
   },
   profileContent: {
     alignItems: 'center',
-    paddingVertical: Spacing.lg,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    paddingVertical: Spacing.xl,
   },
   avatarPlaceholder: {
     backgroundColor: Colors.primary,
   },
-  memberName: {
+  userName: {
     fontSize: FontSize.xl,
     fontWeight: 'bold',
     color: Colors.text,
     marginTop: Spacing.md,
   },
-  groupChip: {
+  roleChip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary + '20',
@@ -282,9 +279,19 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     gap: Spacing.xs,
   },
-  groupText: {
+  roleText: {
     fontSize: FontSize.sm,
     fontWeight: '600',
+    color: Colors.primary,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    gap: Spacing.xs,
+  },
+  phoneText: {
+    fontSize: FontSize.sm,
     color: Colors.primary,
   },
   infoCard: {
@@ -296,27 +303,24 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: Spacing.md,
   },
-  infoRow: {
+  groupRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     gap: Spacing.sm,
   },
-  infoLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+  groupInfo: {
     flex: 1,
   },
-  infoValue: {
+  groupName: {
     fontSize: FontSize.sm,
     fontWeight: '500',
     color: Colors.text,
   },
-  noInfoText: {
-    fontSize: FontSize.sm,
+  groupAge: {
+    fontSize: FontSize.xs,
     color: Colors.textSecondary,
-    textAlign: 'center',
-    paddingVertical: Spacing.md,
+    marginTop: 2,
   },
   chatFab: {
     position: 'absolute',

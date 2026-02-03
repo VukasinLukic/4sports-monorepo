@@ -307,6 +307,67 @@ export const getClubMembers = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get member by user ID (for profile lookups from comments)
+ * Returns basic public profile info only
+ */
+export const getMemberByUserId = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+
+    const { userId } = req.params;
+    const clubId = req.user.clubId;
+
+    if (!clubId) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
+    }
+
+    // Find member by userId
+    const member = await Member.findOne({ userId })
+      .populate('clubs.groupId', 'name ageGroup color');
+
+    if (!member) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found' } });
+    }
+
+    // Check if member is in the same club
+    if (!member.isInClub(clubId)) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Member not in your club' } });
+    }
+
+    // Calculate age
+    let age = null;
+    if (member.dateOfBirth) {
+      const now = new Date();
+      const birthDate = new Date(member.dateOfBirth);
+      age = now.getFullYear() - birthDate.getFullYear();
+      const monthDiff = now.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+        age--;
+      }
+    }
+
+    // Get group info for this club
+    const activeClub = member.clubs.find(c => c.clubId?.toString() === clubId?.toString() && c.status === 'ACTIVE');
+
+    // Return only basic public info
+    const publicProfile = {
+      _id: member._id,
+      fullName: member.fullName,
+      profilePicture: member.profileImage,
+      position: member.position,
+      jerseyNumber: member.jerseyNumber,
+      age,
+      groupId: activeClub?.groupId,
+    };
+
+    return res.status(200).json({ success: true, data: publicProfile });
+  } catch (error: any) {
+    console.error('❌ Get Member By UserId Error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch member' } });
+  }
+};
+
 export const getMember = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
@@ -329,13 +390,13 @@ export const getMember = async (req: Request, res: Response) => {
         return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
       }
     } else if (req.user.role === 'MEMBER') {
-      // MEMBER can only see their own profile
-      const userIdRaw = member.userId as any;
-      const userId = userIdRaw && typeof userIdRaw === 'object' && '_id' in userIdRaw
-        ? userIdRaw._id.toString()
-        : userIdRaw?.toString();
-      if (userId !== req.user._id.toString()) {
-        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
+      // MEMBER can see other club members' profiles
+      const clubId = req.user.clubId;
+      if (!clubId) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
+      }
+      if (!member.isInClub(clubId)) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Member not in your club' } });
       }
     } else {
       // OWNER or COACH - check if member belongs to their club

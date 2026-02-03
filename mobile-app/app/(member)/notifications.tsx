@@ -94,7 +94,11 @@ export default function NotificationsScreen() {
     if (notification.data?.conversationId) {
       router.push(`/(member)/chat/${notification.data.conversationId}` as any);
     } else if (notification.data?.postId) {
-      router.push(`/(member)/news/${notification.data.postId}` as any);
+      // Navigate to news feed and scroll to the post with comments open
+      router.push({
+        pathname: '/(member)/news',
+        params: { postId: notification.data.postId, openComments: 'true' },
+      } as any);
     } else if (notification.data?.eventId) {
       router.push(`/(member)/events/${notification.data.eventId}` as any);
     }

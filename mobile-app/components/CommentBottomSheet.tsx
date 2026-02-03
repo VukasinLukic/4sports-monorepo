@@ -4,14 +4,16 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   TextInput,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
   Animated,
-  PanResponder,
   Dimensions,
   Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  GestureResponderEvent,
 } from 'react-native';
 import { Text, Avatar, ActivityIndicator, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -23,7 +25,8 @@ import { useAuth } from '@/services/AuthContext';
 import api from '@/services/api';
 
 const { height: screenHeight } = Dimensions.get('window');
-const SHEET_HEIGHT = screenHeight * 0.75;
+const SHEET_HEIGHT = screenHeight * 0.7;
+const SWIPE_THRESHOLD = 100;
 
 interface CommentAuthor {
   _id: string;
@@ -59,38 +62,18 @@ export default function CommentBottomSheet({
   const [isLoading, setIsLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const isClosingRef = useRef(false);
+  const scrollOffsetRef = useRef(0);
+  const startYRef = useRef(0);
+  const currentYRef = useRef(0);
 
   // Animation for slide up/down
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return gestureState.dy > 10;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          translateY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100 || gestureState.vy > 0.5) {
-          closeSheet();
-        } else {
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 100,
-            friction: 10,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
   const openSheet = useCallback(() => {
+    isClosingRef.current = false;
     Animated.spring(translateY, {
       toValue: 0,
       useNativeDriver: true,
@@ -100,6 +83,9 @@ export default function CommentBottomSheet({
   }, [translateY]);
 
   const closeSheet = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    Keyboard.dismiss();
     Animated.timing(translateY, {
       toValue: SHEET_HEIGHT,
       duration: 200,
@@ -108,6 +94,44 @@ export default function CommentBottomSheet({
       onClose();
     });
   }, [translateY, onClose]);
+
+  // Touch handlers for drag area
+  const handleTouchStart = (e: GestureResponderEvent) => {
+    startYRef.current = e.nativeEvent.pageY;
+    currentYRef.current = e.nativeEvent.pageY;
+  };
+
+  const handleTouchMove = (e: GestureResponderEvent) => {
+    currentYRef.current = e.nativeEvent.pageY;
+    const dy = currentYRef.current - startYRef.current;
+
+    // Only drag down when at top of scroll
+    if (dy > 0 && scrollOffsetRef.current <= 0) {
+      setIsDragging(true);
+      translateY.setValue(dy);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging) {
+      const dy = currentYRef.current - startYRef.current;
+      if (dy > SWIPE_THRESHOLD) {
+        closeSheet();
+      } else {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 10,
+        }).start();
+      }
+      setIsDragging(false);
+    }
+  };
+
+  const handleScroll = (event: any) => {
+    scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+  };
 
   const fetchComments = useCallback(async () => {
     if (!postId) return;
@@ -126,6 +150,7 @@ export default function CommentBottomSheet({
     if (visible) {
       fetchComments();
       openSheet();
+      scrollOffsetRef.current = 0;
     } else {
       translateY.setValue(SHEET_HEIGHT);
     }
@@ -158,7 +183,6 @@ export default function CommentBottomSheet({
         targetType: 'COMMENT',
         targetId: commentId,
       });
-      // Update local state
       setComments((prev) =>
         prev.map((c) =>
           c._id === commentId
@@ -175,19 +199,32 @@ export default function CommentBottomSheet({
     }
   };
 
-  const handleAvatarPress = (authorId: string) => {
-    closeSheet();
-    // Navigate to profile based on basePath
-    setTimeout(() => {
-      if (basePath === '/(coach)') {
-        router.push(`/(coach)/members/${authorId}` as any);
-      } else if (basePath === '/(member)') {
-        // Members can view other members' basic profile
-        router.push(`/(member)/members/${authorId}` as any);
-      } else if (basePath === '/(parent)') {
-        router.push(`/(parent)/members/${authorId}` as any);
+  const handleAvatarPress = async (authorId: string) => {
+    if (user && authorId === user._id) {
+      closeSheet();
+      setTimeout(() => {
+        router.push(`${basePath}/profile` as any);
+      }, 300);
+      return;
+    }
+
+    try {
+      const response = await api.get(`/members/by-user/${authorId}`);
+      if (response.data.success && response.data.data) {
+        const memberId = response.data.data._id;
+        closeSheet();
+        setTimeout(() => {
+          router.push(`${basePath}/members/${memberId}` as any);
+        }, 300);
       }
-    }, 300);
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        closeSheet();
+        setTimeout(() => {
+          router.push(`${basePath}/users/${authorId}` as any);
+        }, 300);
+      }
+    }
   };
 
   const getAuthorName = (comment: Comment) => {
@@ -213,12 +250,7 @@ export default function CommentBottomSheet({
 
   const getInitials = (name?: string) => {
     if (!name) return '??';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
+    return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   };
 
   const formatDate = (dateString: string) => {
@@ -261,10 +293,7 @@ export default function CommentBottomSheet({
           <Text style={styles.commentText}>{item.content}</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.likeButton}
-          onPress={() => handleLikeComment(item._id)}
-        >
+        <TouchableOpacity style={styles.likeButton} onPress={() => handleLikeComment(item._id)}>
           <MaterialCommunityIcons
             name={item.isLiked ? 'heart' : 'heart-outline'}
             size={18}
@@ -283,75 +312,68 @@ export default function CommentBottomSheet({
   if (!visible) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={closeSheet}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={closeSheet}>
       <KeyboardAvoidingView
         style={styles.modalContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
       >
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={closeSheet}
-        />
+        <TouchableWithoutFeedback onPress={closeSheet}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
 
-        <Animated.View
-          style={[
-            styles.sheetContainer,
-            { transform: [{ translateY }] },
-          ]}
-        >
-          {/* Drag Handle */}
-          <View {...panResponder.panHandlers} style={styles.dragHandleContainer}>
+        <Animated.View style={[styles.sheetContainer, { transform: [{ translateY }] }]}>
+          {/* Large drag area - handles swipe gesture */}
+          <View
+            style={styles.dragArea}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <View style={styles.dragHandle} />
-          </View>
-
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>
-              {t('posts.comments') || 'Comments'}
-            </Text>
-            <IconButton
-              icon="close"
-              size={24}
-              iconColor={Colors.textSecondary}
-              onPress={closeSheet}
-            />
-          </View>
-
-          {/* Comments List */}
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
-          ) : comments.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons
-                name="comment-outline"
-                size={48}
-                color={Colors.textSecondary}
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>{t('posts.comments') || 'Comments'}</Text>
+              <IconButton
+                icon="close"
+                size={24}
+                iconColor={Colors.textSecondary}
+                onPress={closeSheet}
               />
-              <Text style={styles.emptyText}>
-                {t('posts.noComments') || 'No comments yet'}
-              </Text>
-              <Text style={styles.emptySubtext}>
-                {t('posts.beFirst') || 'Be the first to comment!'}
-              </Text>
             </View>
-          ) : (
-            <FlatList
-              ref={flatListRef}
-              data={comments}
-              renderItem={renderComment}
-              keyExtractor={(item) => item._id}
-              contentContainerStyle={styles.commentsList}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
+          </View>
+
+          {/* Content area with scroll detection */}
+          <View
+            style={styles.contentWrapper}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+              </View>
+            ) : comments.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="comment-outline" size={48} color={Colors.textSecondary} />
+                <Text style={styles.emptyText}>{t('posts.noComments') || 'No comments yet'}</Text>
+                <Text style={styles.emptySubtext}>{t('posts.beFirst') || 'Be the first to comment!'}</Text>
+              </View>
+            ) : (
+              <FlatList
+                ref={flatListRef}
+                data={comments}
+                renderItem={renderComment}
+                keyExtractor={(item) => item._id}
+                contentContainerStyle={styles.commentsList}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                scrollEnabled={!isDragging}
+              />
+            )}
+          </View>
 
           {/* Input */}
           <View style={styles.inputContainer}>
@@ -366,10 +388,7 @@ export default function CommentBottomSheet({
                 maxLength={500}
               />
               <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  (!newComment.trim() || isSubmitting) && styles.sendButtonDisabled,
-                ]}
+                style={[styles.sendButton, (!newComment.trim() || isSubmitting) && styles.sendButtonDisabled]}
                 onPress={handleSubmitComment}
                 disabled={!newComment.trim() || isSubmitting}
               >
@@ -405,29 +424,35 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius.lg,
     borderTopRightRadius: BorderRadius.lg,
   },
-  dragHandleContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
+  dragArea: {
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
+    paddingTop: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
   dragHandle: {
     width: 40,
     height: 4,
     backgroundColor: Colors.border,
     borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: Spacing.xs,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingBottom: Spacing.xs,
   },
   headerTitle: {
     fontSize: FontSize.lg,
     fontWeight: '600',
     color: Colors.text,
+  },
+  contentWrapper: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,

@@ -122,6 +122,19 @@ export default function MemberDetailsScreen() {
     });
   };
 
+  const handleStartChat = async () => {
+    if (!member?.userId) return;
+    try {
+      const response = await api.post('/chat/conversations', {
+        participantId: member.userId,
+      });
+      const conversationId = response.data.data._id;
+      router.push(`/(coach)/chat/${conversationId}` as any);
+    } catch (error) {
+      console.error('Error starting chat:', error);
+    }
+  };
+
   const handleEventPress = (eventId: string) => {
     router.push({
       pathname: '/(coach)/events/[id]',
@@ -543,13 +556,14 @@ export default function MemberDetailsScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
-      }
-    >
+    <View style={styles.mainContainer}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
+        }
+      >
       {/* Compact Header */}
       <Card style={styles.headerCard}>
         <Card.Content style={styles.headerContent}>
@@ -646,17 +660,45 @@ export default function MemberDetailsScreen() {
       {activeTab === 'membership' && renderMembershipTab()}
       {activeTab === 'attendance' && renderAttendanceTab()}
     </ScrollView>
+
+    {/* Fixed Chat Button */}
+    {member.userId && (
+      <TouchableOpacity style={styles.chatFab} onPress={handleStartChat}>
+        <MaterialCommunityIcons name="message-text" size={24} color="#fff" />
+      </TouchableOpacity>
+    )}
+  </View>
   );
 }
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,
   },
   content: {
     padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
+    paddingBottom: 100,
+  },
+  chatFab: {
+    position: 'absolute',
+    right: Spacing.md,
+    bottom: Spacing.xl,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.success,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   centerContainer: {
     flex: 1,

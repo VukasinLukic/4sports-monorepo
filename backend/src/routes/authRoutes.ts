@@ -3,6 +3,7 @@ import {
   register,
   login,
   getCurrentUser,
+  getUserPublicProfile,
 } from '../controllers/authController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -28,5 +29,12 @@ router.post('/login', login);
  * @access  Private
  */
 router.get('/me', protect, getCurrentUser);
+
+/**
+ * @route   GET /api/v1/auth/users/:id
+ * @desc    Get user public profile (for coaches, owners)
+ * @access  Private
+ */
+router.get('/users/:id', protect, getUserPublicProfile);
 
 export default router;

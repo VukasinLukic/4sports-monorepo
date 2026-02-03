@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, ActivityIndicator, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect, router } from 'expo-router';
+import { useFocusEffect, router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, FontSize } from '@/constants/Layout';
 import PostCard from '@/components/PostCard';
@@ -19,11 +19,14 @@ interface PostWithAuthor extends Post {
 }
 
 export default function MemberNewsFeed() {
+  const { postId: scrollToPostId, openComments } = useLocalSearchParams<{ postId?: string; openComments?: string }>();
+  const flatListRef = useRef<FlatList>(null);
   const [posts, setPosts] = useState<PostWithAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [commentSheetVisible, setCommentSheetVisible] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [hasScrolledToPost, setHasScrolledToPost] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -48,6 +51,23 @@ export default function MemberNewsFeed() {
       fetchData();
     }, [fetchData])
   );
+
+  // Scroll to post and open comments if coming from notification
+  useEffect(() => {
+    if (scrollToPostId && posts.length > 0 && !hasScrolledToPost) {
+      const postIndex = posts.findIndex(p => p._id === scrollToPostId);
+      if (postIndex !== -1) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ index: postIndex, animated: true });
+          if (openComments === 'true') {
+            setSelectedPostId(scrollToPostId);
+            setCommentSheetVisible(true);
+          }
+          setHasScrolledToPost(true);
+        }, 300);
+      }
+    }
+  }, [scrollToPostId, openComments, posts, hasScrolledToPost]);
 
   const onRefresh = () => {
     setIsRefreshing(true);
@@ -80,10 +100,9 @@ export default function MemberNewsFeed() {
   };
 
   const handlePostPress = (post: Post) => {
-    router.push({
-      pathname: '/(member)/news/[id]',
-      params: { id: post._id },
-    });
+    // Open comments instead of navigating to post detail
+    setSelectedPostId(post._id);
+    setCommentSheetVisible(true);
   };
 
   const renderPost = ({ item }: { item: PostWithAuthor }) => (
@@ -128,6 +147,7 @@ export default function MemberNewsFeed() {
   return (
     <View style={styles.container}>
       <FlatList
+        ref={flatListRef}
         data={posts}
         keyExtractor={(item) => item._id}
         renderItem={renderPost}
@@ -141,6 +161,13 @@ export default function MemberNewsFeed() {
             colors={[Colors.primary]}
           />
         }
+        onScrollToIndexFailed={(info) => {
+          // Scroll to approximate position and retry
+          flatListRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: true });
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+          }, 100);
+        }}
       />
 
       {/* Comment Bottom Sheet */}

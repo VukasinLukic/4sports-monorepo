@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMember, getParentMembers, getClubMembers, getAllMembers, getMember, updateMember, deleteMember, getMyMemberProfile, updateMyMemberProfile } from '../controllers/memberController';
+import { createMember, getParentMembers, getClubMembers, getAllMembers, getMember, getMemberByUserId, updateMember, deleteMember, getMyMemberProfile, updateMyMemberProfile } from '../controllers/memberController';
 import { protect, restrictTo } from '../middleware/authMiddleware';
 
 const router = express.Router();
@@ -17,6 +17,9 @@ router.get('/my-children', restrictTo(['PARENT']), getParentMembers);
 // Member self-profile routes (for MEMBER role users)
 router.get('/me', restrictTo(['MEMBER']), getMyMemberProfile);
 router.put('/me', restrictTo(['MEMBER']), updateMyMemberProfile);
+
+// Get member by user ID (for profile lookups from comments)
+router.get('/by-user/:userId', getMemberByUserId);
 
 // Member CRUD
 router.post('/', restrictTo(['PARENT']), createMember);
