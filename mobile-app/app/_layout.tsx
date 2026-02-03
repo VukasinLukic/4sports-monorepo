@@ -9,6 +9,7 @@ import { AppColors } from '@/constants/Colors';
 import { AuthProvider } from '@/services/AuthContext';
 import { ChatProvider } from '@/services/ChatContext';
 import { LanguageProvider } from '@/services/LanguageContext';
+import { NotificationBadgeProvider } from '@/services/NotificationBadgeContext';
 import NetworkStatus from '@/components/NetworkStatus';
 import { ToastProvider } from '@/components/Toast';
 
@@ -59,6 +60,7 @@ export default function RootLayout() {
       <LanguageProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
+            <NotificationBadgeProvider>
             <ChatProvider>
               <PaperProvider theme={theme}>
                 <ToastProvider>
@@ -90,6 +92,7 @@ export default function RootLayout() {
               </ToastProvider>
               </PaperProvider>
             </ChatProvider>
+            </NotificationBadgeProvider>
           </AuthProvider>
         </QueryClientProvider>
       </LanguageProvider>

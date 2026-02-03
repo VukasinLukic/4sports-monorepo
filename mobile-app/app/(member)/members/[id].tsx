@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Image, TouchableOpacity, Alert } from 'react-native';
 import { Text, Card, Avatar, ActivityIndicator, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -75,15 +75,33 @@ export default function MemberProfileScreen() {
   };
 
   const handleStartChat = async () => {
-    if (!member?.userId) return;
+    if (!member?.userId) {
+      Alert.alert(
+        t('common.error') || 'Greška',
+        t('chat.memberNoAccount') || 'Ovaj član nema korisnički nalog i ne može primati poruke.'
+      );
+      return;
+    }
     try {
       const response = await api.post('/chat/conversations', {
         participantIds: [member.userId],
       });
       const conversationId = response.data.data.conversationId || response.data.data._id;
       router.push(`/(member)/chat/${conversationId}` as any);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting chat:', error);
+      const errorCode = error.response?.data?.error?.code;
+      if (errorCode === 'INVALID_PARTICIPANTS') {
+        Alert.alert(
+          t('common.error') || 'Greška',
+          t('chat.participantNotFound') || 'Nije moguće pokrenuti chat. Korisnik možda ne postoji ili nema pristup.'
+        );
+      } else {
+        Alert.alert(
+          t('common.error') || 'Greška',
+          t('chat.startFailed') || 'Nije moguće pokrenuti chat. Pokušajte ponovo.'
+        );
+      }
     }
   };
 

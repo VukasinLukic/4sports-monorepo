@@ -23,6 +23,7 @@ import {
   Button,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
@@ -71,6 +72,17 @@ export default function EvidenceScreen() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
   const [paymentNote, setPaymentNote] = useState('');
   const { mutate: recordPayment, isPending: isRecordingPayment } = useRecordPayment();
+
+  // Medical modal state
+  const [showMedicalModal, setShowMedicalModal] = useState(false);
+  const [selectedMemberForMedical, setSelectedMemberForMedical] = useState<MemberWithStatus | null>(null);
+  const [medicalCheckDate, setMedicalCheckDate] = useState(new Date());
+  const [showMedicalDatePicker, setShowMedicalDatePicker] = useState(false);
+  const [isSubmittingMedical, setIsSubmittingMedical] = useState(false);
+
+  // Calculate expiry date (6 months from check date)
+  const medicalExpiryDate = new Date(medicalCheckDate);
+  medicalExpiryDate.setMonth(medicalExpiryDate.getMonth() + 6);
 
   // Default membership fee (will be dynamic when membershipFee is added to Member)
   const DEFAULT_MEMBERSHIP_FEE = 3000;
@@ -181,30 +193,11 @@ export default function EvidenceScreen() {
       return;
     }
 
-    // Medical tab - keep existing behavior
-    const actionKey = `mark-${member._id}`;
-    if (loadingActions.has(actionKey)) return;
-
-    setLoadingActions(prev => new Set(prev).add(actionKey));
-
-    try {
-      const expiryDate = new Date();
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-      await api.post(`/evidence/medical/${member._id}`, {
-        lastCheckDate: new Date().toISOString(),
-        expiryDate: expiryDate.toISOString(),
-      });
-      fetchData();
-    } catch (error) {
-      console.error('Error marking member:', error);
-      Alert.alert(t('common.error'), t('evidence.failedToMarkPaid'));
-    } finally {
-      setLoadingActions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(actionKey);
-        return newSet;
-      });
-    }
+    // Medical tab - open modal instead of directly marking
+    setSelectedMemberForMedical(member);
+    setMedicalCheckDate(new Date());
+    setShowMedicalDatePicker(false);
+    setShowMedicalModal(true);
   };
 
   // Handle payment submission from modal
@@ -254,6 +247,42 @@ export default function EvidenceScreen() {
   const closePaymentModal = () => {
     setShowPaymentModal(false);
     setSelectedMemberForPayment(null);
+  };
+
+  // Handle medical date change
+  const handleMedicalDateChange = (event: any, selectedDate?: Date) => {
+    setShowMedicalDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setMedicalCheckDate(selectedDate);
+    }
+  };
+
+  // Handle medical submission from modal
+  const handleSubmitMedical = async () => {
+    if (!selectedMemberForMedical) return;
+
+    setIsSubmittingMedical(true);
+
+    try {
+      await api.post(`/evidence/medical/${selectedMemberForMedical._id}`, {
+        lastCheckDate: medicalCheckDate.toISOString(),
+        expiryDate: medicalExpiryDate.toISOString(),
+      });
+      setShowMedicalModal(false);
+      setSelectedMemberForMedical(null);
+      fetchData();
+      Alert.alert(t('common.success'), t('medical.recordedSuccess') || 'Lekarski pregled je uspešno evidentiran!');
+    } catch (error) {
+      console.error('Error updating medical:', error);
+      Alert.alert(t('common.error'), t('medical.recordFailed') || 'Greška pri evidenciji lekarskog pregleda.');
+    } finally {
+      setIsSubmittingMedical(false);
+    }
+  };
+
+  const closeMedicalModal = () => {
+    setShowMedicalModal(false);
+    setSelectedMemberForMedical(null);
   };
 
   const handleRemindMember = async (member: MemberWithStatus) => {
@@ -865,6 +894,126 @@ export default function EvidenceScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Medical Modal */}
+      <Modal
+        visible={showMedicalModal}
+        transparent
+        animationType="slide"
+        onRequestClose={closeMedicalModal}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('medical.recordCheckup') || 'Evidentiraj pregled'}</Text>
+              <TouchableOpacity onPress={closeMedicalModal} style={styles.modalCloseButton}>
+                <MaterialCommunityIcons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Member Info */}
+            {selectedMemberForMedical && (
+              <View style={styles.modalMemberInfo}>
+                {selectedMemberForMedical.profileImage || selectedMemberForMedical.profilePicture ? (
+                  <Avatar.Image
+                    size={48}
+                    source={{ uri: selectedMemberForMedical.profileImage || selectedMemberForMedical.profilePicture }}
+                  />
+                ) : (
+                  <Avatar.Text
+                    size={48}
+                    label={selectedMemberForMedical.fullName.charAt(0).toUpperCase()}
+                    style={{ backgroundColor: Colors.primary }}
+                  />
+                )}
+                <View style={styles.modalMemberDetails}>
+                  <Text style={styles.modalMemberName}>{selectedMemberForMedical.fullName}</Text>
+                  <Text style={styles.modalMemberPeriod}>
+                    {t('medical.checkup') || 'Lekarski pregled'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Check Date Picker */}
+            <Text style={styles.modalLabel}>{t('medical.lastCheckDate') || 'Datum pregleda'} *</Text>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => setShowMedicalDatePicker(true)}
+            >
+              <MaterialCommunityIcons name="calendar" size={20} color={Colors.primary} />
+              <Text style={styles.datePickerText}>
+                {medicalCheckDate.toLocaleDateString('sr-RS', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </Text>
+            </TouchableOpacity>
+            {showMedicalDatePicker && (
+              <DateTimePicker
+                value={medicalCheckDate}
+                mode="date"
+                display="default"
+                onChange={handleMedicalDateChange}
+                maximumDate={new Date()}
+              />
+            )}
+
+            {/* Expiry Date Display */}
+            <View style={styles.expiryDateContainer}>
+              <View style={styles.expiryDateRow}>
+                <MaterialCommunityIcons name="calendar-clock" size={20} color={Colors.success} />
+                <Text style={styles.expiryDateLabel}>{t('medical.expiryDate') || 'Datum isteka'}:</Text>
+              </View>
+              <Text style={styles.expiryDateValue}>
+                {medicalExpiryDate.toLocaleDateString('sr-RS', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </Text>
+            </View>
+
+            {/* Helper text */}
+            <View style={styles.medicalHelperContainer}>
+              <MaterialCommunityIcons name="information-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.medicalHelperText}>
+                {t('medical.sixMonthsValidity') || 'Važi 6 meseci od datuma pregleda'}
+              </Text>
+            </View>
+
+            {/* Submit Button */}
+            <Button
+              mode="contained"
+              onPress={handleSubmitMedical}
+              loading={isSubmittingMedical}
+              disabled={isSubmittingMedical}
+              style={styles.modalSubmitButton}
+              icon="check"
+              buttonColor={Colors.success}
+            >
+              {t('medical.recordCheckup') || 'Evidentiraj pregled'}
+            </Button>
+
+            {/* Cancel Button */}
+            <Button
+              mode="outlined"
+              onPress={closeMedicalModal}
+              style={styles.modalCancelButton}
+              textColor={Colors.textSecondary}
+            >
+              {t('common.cancel') || 'Otkaži'}
+            </Button>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -1270,5 +1419,57 @@ const styles = StyleSheet.create({
   modalCancelButton: {
     marginTop: Spacing.sm,
     borderColor: Colors.border,
+  },
+  medicalHelperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  medicalHelperText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+  },
+  datePickerText: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+    flex: 1,
+  },
+  expiryDateContainer: {
+    backgroundColor: Colors.success + '15',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.success + '30',
+  },
+  expiryDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  expiryDateLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.success,
+    fontWeight: '600',
+  },
+  expiryDateValue: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+    fontWeight: '500',
   },
 });

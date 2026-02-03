@@ -551,6 +551,9 @@ export default {
   medical: {
     title: 'Medical',
     recordMedical: 'Record Medical Check',
+    recordCheckup: 'Record Checkup',
+    checkup: 'Medical Checkup',
+    lastCheckDate: 'Check Date',
     medicalHistory: 'Medical History',
     checkDate: 'Check Date',
     expiryDate: 'Expiry Date',
@@ -571,6 +574,7 @@ export default {
     notePlaceholder: 'e.g., Regular checkup, all clear',
     validityInfo: 'Medical checks are valid for 6 months from the examination date. The system will automatically track expiration.',
     sixMonthsFromExam: '6 months from examination date',
+    sixMonthsValidity: 'Valid for 6 months from check date',
   },
 
   // Profile
@@ -688,6 +692,9 @@ export default {
     from: 'from',
     to: 'to',
     allDay: 'All day',
+    justNow: 'Just now',
+    year: 'yr',
+    years: 'yrs',
     months: {
       january: 'January',
       february: 'February',
@@ -739,6 +746,7 @@ export default {
     months: 'Months',
     in: 'In',
     days: 'days',
+    week: 'week',
     weeks: 'weeks',
     minutesShort: 'm',
     hoursShort: 'h',
@@ -808,6 +816,9 @@ export default {
     noMessages: 'No messages yet',
     typeMessage: 'Type a message...',
     send: 'Send',
+    memberNoAccount: 'This member does not have a user account and cannot receive messages. The member must register through the app to use chat.',
+    participantNotFound: 'Unable to start chat. User may not exist or does not have access.',
+    startFailed: 'Unable to start chat. Please try again.',
   },
 
   // App specific

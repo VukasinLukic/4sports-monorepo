@@ -554,6 +554,9 @@ export default {
   medical: {
     title: 'Lekarski',
     recordMedical: 'Evidentiraj lekarski pregled',
+    recordCheckup: 'Evidentiraj pregled',
+    checkup: 'Lekarski pregled',
+    lastCheckDate: 'Datum pregleda',
     medicalHistory: 'Istorija lekarskih',
     checkDate: 'Datum pregleda',
     expiryDate: 'Datum isteka',
@@ -574,6 +577,7 @@ export default {
     notePlaceholder: 'npr. Redovan pregled, sve u redu',
     validityInfo: 'Lekarski pregledi važe 6 meseci od datuma pregleda. Sistem automatski prati istek.',
     sixMonthsFromExam: '6 meseci od datuma pregleda',
+    sixMonthsValidity: 'Važi 6 meseci od datuma pregleda',
   },
 
   // Profile
@@ -691,6 +695,9 @@ export default {
     from: 'od',
     to: 'do',
     allDay: 'Ceo dan',
+    justNow: 'Upravo',
+    year: 'god.',
+    years: 'god.',
     months: {
       january: 'Januar',
       february: 'Februar',
@@ -752,7 +759,8 @@ export default {
     months: 'Meseci',
     in: 'Za',
     days: 'dana',
-    weeks: 'ned.',
+    week: 'nedelju',
+    weeks: 'nedelje',
     minutesShort: 'm',
     hoursShort: 'h',
     daysShort: 'd',
@@ -821,6 +829,9 @@ export default {
     noMessages: 'Nema poruka',
     typeMessage: 'Unesite poruku...',
     send: 'Pošalji',
+    memberNoAccount: 'Ovaj član nema korisnički nalog i ne može primati poruke. Član mora da se registruje preko aplikacije da bi mogao da koristi chat.',
+    participantNotFound: 'Nije moguće pokrenuti chat. Korisnik možda ne postoji ili nema pristup.',
+    startFailed: 'Nije moguće pokrenuti chat. Pokušajte ponovo.',
   },
 
   // App specific

@@ -5,14 +5,17 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
+  Modal,
+  ScrollView,
 } from 'react-native';
-import { Text, ActivityIndicator, Avatar } from 'react-native-paper';
+import { Text, ActivityIndicator, Avatar, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
+import { useNotificationBadge } from '@/services/NotificationBadgeContext';
 import api from '@/services/api';
 
 interface NotificationSender {
@@ -40,9 +43,11 @@ interface Notification {
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
+  const { decrementBadgeCount, setBadgeCount } = useNotificationBadge();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -71,6 +76,7 @@ export default function NotificationsScreen() {
       setNotifications((prev) =>
         prev.map((n) => (n._id === notificationId ? { ...n, isRead: true } : n))
       );
+      decrementBadgeCount(1);
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -80,6 +86,7 @@ export default function NotificationsScreen() {
     try {
       await api.patch('/notifications/read-all');
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setBadgeCount(0);
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
@@ -103,6 +110,9 @@ export default function NotificationsScreen() {
       router.push(`/(coach)/events/${notification.data.eventId}` as any);
     } else if (notification.data?.memberId) {
       router.push(`/(coach)/members/${notification.data.memberId}` as any);
+    } else {
+      // No navigation target - show full message in custom modal
+      setSelectedNotification(notification);
     }
   };
 
@@ -199,7 +209,7 @@ export default function NotificationsScreen() {
             </Text>
             <Text style={styles.timeTopRight}>{getTimeAgo(item.createdAt)}</Text>
           </View>
-          <Text style={styles.message} numberOfLines={2}>
+          <Text style={styles.message} numberOfLines={4}>
             {item.message}
           </Text>
         </View>
@@ -267,6 +277,54 @@ export default function NotificationsScreen() {
           }
         />
       )}
+
+      {/* Notification Detail Modal */}
+      <Modal
+        visible={!!selectedNotification}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedNotification(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedNotification(null)}
+        >
+          <View style={styles.modalContent}>
+            {/* Icon */}
+            <View style={styles.modalIconContainer}>
+              <MaterialCommunityIcons
+                name={getNotificationIcon(selectedNotification?.type || '') as any}
+                size={32}
+                color={Colors.primary}
+              />
+            </View>
+
+            {/* Title */}
+            <Text style={styles.modalTitle}>{selectedNotification?.title}</Text>
+
+            {/* Message */}
+            <ScrollView style={styles.modalMessageScroll}>
+              <Text style={styles.modalMessage}>{selectedNotification?.message}</Text>
+            </ScrollView>
+
+            {/* Time */}
+            <Text style={styles.modalTime}>
+              {selectedNotification && getTimeAgo(selectedNotification.createdAt)}
+            </Text>
+
+            {/* Close Button */}
+            <Button
+              mode="contained"
+              onPress={() => setSelectedNotification(null)}
+              style={styles.modalButton}
+              buttonColor={Colors.primary}
+            >
+              {t('common.ok') || 'U redu'}
+            </Button>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -396,5 +454,56 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.xs,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  modalMessageScroll: {
+    maxHeight: 200,
+    width: '100%',
+  },
+  modalMessage: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: FontSize.md * 1.5,
+  },
+  modalTime: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+  modalButton: {
+    marginTop: Spacing.lg,
+    minWidth: 120,
   },
 });

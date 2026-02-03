@@ -42,6 +42,14 @@ const getRelativeTimeText = (dateString: string, t: any): string => {
   if (diffDays === 0) return t('dateTime.today') || 'Danas';
   if (diffDays === 1) return t('dateTime.tomorrow') || 'Sutra';
   if (diffDays > 1 && diffDays <= 7) return `${t('time.in') || 'Za'} ${diffDays} ${t('time.days') || 'dana'}`;
+  if (diffDays > 7 && diffDays <= 14) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${t('time.in') || 'Za'} ${weeks} ${weeks === 1 ? (t('time.week') || 'nedelju') : (t('time.weeks') || 'nedelje')}`;
+  }
+  if (diffDays > 14) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${t('time.in') || 'Za'} ${weeks} ${t('time.weeks') || 'nedelja'}`;
+  }
   return '';
 };
 
@@ -217,16 +225,19 @@ export default function MemberHome() {
                 </View>
               ) : null}
 
-              {/* Location or relative time */}
+              {/* Relative time for upcoming events (not today) */}
+              {!isToday && relativeTime ? (
+                <View style={styles.eventMeta}>
+                  <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.primary} />
+                  <Text style={[styles.eventLocation, { color: Colors.primary, fontWeight: '500' }]}>{relativeTime}</Text>
+                </View>
+              ) : null}
+
+              {/* Location */}
               {event.location ? (
                 <View style={styles.eventMeta}>
                   <MaterialCommunityIcons name="map-marker-outline" size={14} color={Colors.textSecondary} />
                   <Text style={styles.eventLocation} numberOfLines={1}>{event.location}</Text>
-                </View>
-              ) : relativeTime ? (
-                <View style={styles.eventMeta}>
-                  <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
-                  <Text style={styles.eventLocation}>{relativeTime}</Text>
                 </View>
               ) : null}
             </View>
@@ -269,7 +280,11 @@ export default function MemberHome() {
           <Card.Content>
             <Text style={styles.rsvpLabel}>{t('rsvp.nextEvent') || 'Sledeći događaj'}</Text>
 
-            <View style={styles.rsvpEventRow}>
+            <TouchableOpacity
+              style={styles.rsvpEventRow}
+              onPress={() => router.push({ pathname: '/(member)/events/[id]', params: { id: nextEvent._id } })}
+              activeOpacity={0.7}
+            >
               {/* Date Box */}
               <View style={[styles.rsvpDateBox, { backgroundColor: getEventTypeColor(nextEvent.type) }]}>
                 <Text style={styles.rsvpDateDay}>{new Date(nextEvent.startTime).getDate()}</Text>
@@ -292,7 +307,10 @@ export default function MemberHome() {
                   {getRelativeTimeText(nextEvent.startTime, t)} {formatTime(nextEvent.startTime)}
                 </Text>
               </View>
-            </View>
+
+              {/* Arrow indicator */}
+              <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textSecondary} />
+            </TouchableOpacity>
 
             {/* RSVP Buttons */}
             <View style={styles.rsvpButtonsRow}>

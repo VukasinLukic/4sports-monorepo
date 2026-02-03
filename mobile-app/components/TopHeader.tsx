@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/services/AuthContext';
+import { useNotificationBadge } from '@/services/NotificationBadgeContext';
 import api from '@/services/api';
 
 interface ClubInfo {
@@ -20,18 +21,17 @@ interface TopHeaderProps {
 export default function TopHeader({ basePath }: TopHeaderProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { unreadCount, refreshBadgeCount } = useNotificationBadge();
   const [clubInfo, setClubInfo] = useState<ClubInfo | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     fetchClubInfo();
-    fetchUnreadNotifications();
   }, [user?.clubId]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchUnreadNotifications();
-    }, [])
+      refreshBadgeCount();
+    }, [refreshBadgeCount])
   );
 
   const fetchClubInfo = async () => {
@@ -41,15 +41,6 @@ export default function TopHeader({ basePath }: TopHeaderProps) {
       setClubInfo(response.data.data);
     } catch (error) {
       console.error('Error fetching club info:', error);
-    }
-  };
-
-  const fetchUnreadNotifications = async () => {
-    try {
-      const response = await api.get('/notifications/unread/count');
-      setUnreadCount(response.data.data?.count || 0);
-    } catch (error) {
-      // Silently fail - notifications might not be set up yet
     }
   };
 

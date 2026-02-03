@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Text, Card, Avatar, ActivityIndicator, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -85,8 +85,20 @@ export default function UserProfileScreen() {
       });
       const conversationId = response.data.data.conversationId || response.data.data._id;
       router.push(`/(member)/chat/${conversationId}` as any);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting chat:', error);
+      const errorCode = error.response?.data?.error?.code;
+      if (errorCode === 'INVALID_PARTICIPANTS') {
+        Alert.alert(
+          t('common.error') || 'Greška',
+          t('chat.participantNotFound') || 'Nije moguće pokrenuti chat. Korisnik možda ne postoji ili nema pristup.'
+        );
+      } else {
+        Alert.alert(
+          t('common.error') || 'Greška',
+          t('chat.startFailed') || 'Nije moguće pokrenuti chat. Pokušajte ponovo.'
+        );
+      }
     }
   };
 
