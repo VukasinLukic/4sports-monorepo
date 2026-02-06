@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { AddFinanceDialog } from './AddFinanceDialog';
-import { useFinances, useFinanceSummary, useDeleteFinanceEntry } from './useFinances';
+import { useFinances, useFinanceSummary, useDeleteFinanceEntry, useClubPayments, MembershipPayment } from './useFinances';
 import { useDashboard } from '../dashboard/useDashboard';
 import { FinanceEntry } from '@/types';
 import {
@@ -51,7 +51,35 @@ export function FinancePage() {
   const { data: entries, isLoading: entriesLoading, isError, refetch } = useFinances({
     type: typeFilter,
   });
+  const { data: clubPayments, isLoading: paymentsLoading } = useClubPayments();
   const deleteEntryMutation = useDeleteFinanceEntry();
+
+  // Calculate total from membership payments
+  const paidPaymentsTotal = (clubPayments || [])
+    .filter((p) => p.status === 'PAID')
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  const getMemberName = (payment: MembershipPayment): string => {
+    if (typeof payment.memberId === 'object' && payment.memberId?.fullName) {
+      return payment.memberId.fullName;
+    }
+    return 'Član';
+  };
+
+  const getPaymentPeriod = (payment: MembershipPayment): string => {
+    if (payment.period) {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Avg', 'Sep', 'Okt', 'Nov', 'Dec'];
+      return `${monthNames[payment.period.month - 1]} ${payment.period.year}`;
+    }
+    return payment.note || payment.description || 'Članarina';
+  };
+
+  const getRecordedByName = (payment: MembershipPayment): string => {
+    if (typeof payment.createdBy === 'object' && payment.createdBy?.fullName) {
+      return payment.createdBy.fullName;
+    }
+    return 'Sistem';
+  };
 
   // Start tutorial on first visit
   useEffect(() => {
@@ -90,7 +118,7 @@ export function FinancePage() {
     });
   };
 
-  if (summaryLoading || entriesLoading) {
+  if (summaryLoading || entriesLoading || paymentsLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -146,9 +174,9 @@ export function FinancePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(summary?.currentMonthIncome || 0)}
+              {formatCurrency((summary?.currentMonthIncome || 0) + paidPaymentsTotal)}
             </div>
-            <p className="text-xs text-muted-foreground">Current month</p>
+            <p className="text-xs text-muted-foreground">Ukupan prihod (uključujući članarine)</p>
           </CardContent>
         </Card>
 
@@ -173,12 +201,12 @@ export function FinancePage() {
           <CardContent>
             <div
               className={`text-2xl font-bold ${
-                (summary?.netProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                ((summary?.netProfit || 0) + paidPaymentsTotal) >= 0 ? 'text-green-600' : 'text-red-600'
               }`}
             >
-              {formatCurrency(summary?.netProfit || 0)}
+              {formatCurrency((summary?.netProfit || 0) + paidPaymentsTotal)}
             </div>
-            <p className="text-xs text-muted-foreground">Current month</p>
+            <p className="text-xs text-muted-foreground">Ukupno</p>
           </CardContent>
         </Card>
       </div>
@@ -329,31 +357,60 @@ export function FinancePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Recorded By</TableHead>
+                    <TableHead>Datum</TableHead>
+                    <TableHead>Član</TableHead>
+                    <TableHead>Period</TableHead>
+                    <TableHead>Način plaćanja</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Iznos</TableHead>
+                    <TableHead>Evidentirao</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {entries
-                    ?.filter((e) => !e.isManual && e.type === 'INCOME')
-                    .map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell>{formatDate(entry.date)}</TableCell>
-                        <TableCell>{entry.category}</TableCell>
-                        <TableCell>{entry.description}</TableCell>
-                        <TableCell className="text-green-600 font-semibold">
-                          +{formatCurrency(entry.amount)}
+                  {clubPayments && clubPayments.length > 0 ? (
+                    clubPayments.map((payment) => (
+                      <TableRow key={payment._id}>
+                        <TableCell>
+                          {formatDate(payment.paymentDate || payment.paidDate || payment.createdAt)}
                         </TableCell>
-                        <TableCell>{entry.recordedBy}</TableCell>
+                        <TableCell className="font-medium">
+                          {getMemberName(payment)}
+                        </TableCell>
+                        <TableCell>{getPaymentPeriod(payment)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {payment.paymentMethod === 'CASH' ? 'Gotovina' :
+                             payment.paymentMethod === 'BANK_TRANSFER' ? 'Prenos' :
+                             payment.paymentMethod === 'CARD' ? 'Kartica' :
+                             payment.paymentMethod || '-'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              payment.status === 'PAID' ? 'bg-green-600 hover:bg-green-700' :
+                              payment.status === 'PENDING' ? 'bg-yellow-500 hover:bg-yellow-600' :
+                              payment.status === 'OVERDUE' ? 'bg-red-600 hover:bg-red-700' :
+                              'bg-gray-500'
+                            }
+                          >
+                            {payment.status === 'PAID' ? 'Plaćeno' :
+                             payment.status === 'PENDING' ? 'Na čekanju' :
+                             payment.status === 'OVERDUE' ? 'Kasni' :
+                             payment.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-green-600 font-semibold">
+                          +{formatCurrency(payment.amount)}
+                        </TableCell>
+                        <TableCell>{getRecordedByName(payment)}</TableCell>
                       </TableRow>
-                    )) || (
+                    ))
+                  ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10">
+                      <TableCell colSpan={7} className="text-center py-10">
                         <p className="text-muted-foreground">
-                          No membership payments found
+                          Nema evidentiranih uplata članarine
                         </p>
                       </TableCell>
                     </TableRow>

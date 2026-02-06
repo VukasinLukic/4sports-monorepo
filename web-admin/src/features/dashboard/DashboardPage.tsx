@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { DollarSign, Users, Calendar, AlertCircle, HeartPulse, UsersRound, CalendarDays, Clock, MapPin } from 'lucide-react';
+import { DollarSign, Users, Calendar, AlertCircle, HeartPulse, UsersRound, CalendarDays, Clock, MapPin, TrendingUp, Activity } from 'lucide-react';
 import { useDashboard, UpcomingEvent } from './useDashboard';
 import { KPICard } from './KPICard';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
@@ -9,6 +9,18 @@ import { useOnboarding } from '@/context/OnboardingContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from 'recharts';
 
 const getEventTypeColor = (type: string): string => {
   const upperType = type?.toUpperCase() || '';
@@ -48,6 +60,8 @@ const formatEventDate = (dateString: string) => {
   }
 };
 
+const CHART_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#06b6d4'];
+
 export const DashboardPage = () => {
   const { data, isLoading, error, refetch } = useDashboard();
   const { checkAndStartTutorial } = useOnboarding();
@@ -70,13 +84,37 @@ export const DashboardPage = () => {
     );
   }
 
+  // Prepare chart data from real data
+  const getEventTypeDistribution = () => {
+    if (!data?.upcomingEvents?.length) return [];
+    const typeCounts: Record<string, number> = {};
+    data.upcomingEvents.forEach((event) => {
+      const type = event.type || 'Other';
+      typeCounts[type] = (typeCounts[type] || 0) + 1;
+    });
+    return Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
+  };
+
+  const getAttendanceStats = () => {
+    if (!data?.upcomingEvents?.length) return [];
+    return data.upcomingEvents.slice(0, 5).map((event) => ({
+      name: event.title.length > 12 ? event.title.substring(0, 12) + '...' : event.title,
+      confirmed: event.confirmedCount,
+      pending: event.pendingCount,
+    }));
+  };
+
+  const eventTypeData = getEventTypeDistribution();
+  const attendanceData = getAttendanceStats();
+
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! Here's your club overview.</p>
+        <p className="text-muted-foreground">Dobrodošli! Evo pregleda vašeg kluba.</p>
       </div>
 
+      {/* Stats Cards */}
       <div data-tour="stats-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {isLoading ? (
           <>
@@ -115,35 +153,169 @@ export const DashboardPage = () => {
       {!isLoading && data && (data.unpaidCount > 0 || data.medicalDueCount > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {data.unpaidCount > 0 && (
-            <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+            <Card className="border-orange-300 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/40 dark:to-orange-900/30 dark:border-orange-700">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-                    <AlertCircle className="h-6 w-6 text-orange-600" />
+                  <div className="p-3 bg-orange-200 dark:bg-orange-800/50 rounded-full">
+                    <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <div>
-                    <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">Neplaćene članarine</p>
-                    <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{data.unpaidCount}</p>
+                  <div className="flex-1">
+                    <p className="text-sm text-orange-700 dark:text-orange-300 font-medium">Neplaćene članarine</p>
+                    <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">{data.unpaidCount}</p>
                   </div>
+                  <Link
+                    to="/finances"
+                    className="text-sm text-orange-600 dark:text-orange-400 hover:underline font-medium"
+                  >
+                    Pogledaj sve &rarr;
+                  </Link>
                 </div>
               </CardContent>
             </Card>
           )}
           {data.medicalDueCount > 0 && (
-            <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800">
+            <Card className="border-red-300 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/40 dark:to-red-900/30 dark:border-red-700">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                    <HeartPulse className="h-6 w-6 text-red-600" />
+                  <div className="p-3 bg-red-200 dark:bg-red-800/50 rounded-full">
+                    <HeartPulse className="h-6 w-6 text-red-600 dark:text-red-400" />
                   </div>
-                  <div>
-                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">Lekarski pregledi ističu</p>
-                    <p className="text-2xl font-bold text-red-700 dark:text-red-300">{data.medicalDueCount}</p>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-700 dark:text-red-300 font-medium">Lekarski pregledi ističu</p>
+                    <p className="text-2xl font-bold text-red-800 dark:text-red-200">{data.medicalDueCount}</p>
                   </div>
+                  <Link
+                    to="/members"
+                    className="text-sm text-red-600 dark:text-red-400 hover:underline font-medium"
+                  >
+                    Pogledaj sve &rarr;
+                  </Link>
                 </div>
               </CardContent>
             </Card>
           )}
+        </div>
+      )}
+
+      {/* Charts Row */}
+      {!isLoading && data && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Event Types Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Activity className="h-5 w-5" />
+                Tipovi događaja
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {eventTypeData.length > 0 ? (
+                <div className="h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={eventTypeData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={110}
+                        paddingAngle={3}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      >
+                        {eventTypeData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [`${value} događaja`, 'Broj']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Nema predstojećih događaja</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Attendance Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <TrendingUp className="h-5 w-5" />
+                Dolasci po događajima
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {attendanceData.length > 0 ? (
+                <div className="h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={attendanceData} layout="vertical" margin={{ left: 10, right: 30 }}>
+                      <XAxis type="number" />
+                      <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="confirmed" name="Potvrđeno" fill="#22c55e" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="pending" name="Čeka" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Nema podataka o dolascima</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Quick Stats Row */}
+      {!isLoading && data && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-primary">{data.totalEvents}</p>
+                <p className="text-sm text-muted-foreground">Ukupno događaja</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-green-600">
+                  {data.upcomingEvents.reduce((acc, e) => acc + e.confirmedCount, 0)}
+                </p>
+                <p className="text-sm text-muted-foreground">Potvrđenih dolazaka</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-yellow-600">
+                  {data.upcomingEvents.reduce((acc, e) => acc + e.pendingCount, 0)}
+                </p>
+                <p className="text-sm text-muted-foreground">Na čekanju</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-blue-600">{data.upcomingEvents.length}</p>
+                <p className="text-sm text-muted-foreground">Predstojeći događaji</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 

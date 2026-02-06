@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Newspaper, Plus, Trash2, MessageCircle, Heart, Pin, Eye, Users, UserCheck, GraduationCap } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Newspaper, Plus, Trash2, MessageCircle, Heart, Pin, Eye, Users, UserCheck, GraduationCap, MoreHorizontal } from 'lucide-react';
 import { usePosts, useDeletePost, Post } from './usePosts';
 import { CreatePostDialog } from './CreatePostDialog';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
@@ -18,6 +19,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 
 const getVisibilityIcon = (visibility: string) => {
   switch (visibility) {
@@ -62,6 +73,19 @@ const getTypeColor = (type: string) => {
   }
 };
 
+const getTypeLabel = (type: string) => {
+  switch (type) {
+    case 'NEWS':
+      return 'News';
+    case 'ANNOUNCEMENT':
+      return 'Announcement';
+    case 'EVENT':
+      return 'Event';
+    default:
+      return type;
+  }
+};
+
 export function NewsPage() {
   const { toast } = useToast();
   const { data: posts, isLoading, error, refetch } = usePosts();
@@ -69,6 +93,8 @@ export function NewsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handleDeleteClick = (post: Post) => {
     setPostToDelete(post);
@@ -96,15 +122,40 @@ export function NewsPage() {
     }
   };
 
+  const openImageModal = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    setImageModalOpen(true);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+    if (diffMinutes < 60) {
+      return `${diffMinutes}m ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    } else if (diffDays < 7) {
+      return `${diffDays}d ago`;
+    }
     return date.toLocaleDateString('sr-RS', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase();
   };
 
   if (error) {
@@ -144,104 +195,195 @@ export function NewsPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Posts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
-            </div>
-          ) : !posts || posts.length === 0 ? (
-            <div className="text-center py-10">
-              <Newspaper className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No posts yet</p>
-              <p className="text-sm text-muted-foreground">
-                Create your first announcement to share with your club
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <div
-                  key={post._id}
-                  className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        {post.isPinned && (
-                          <Pin className="h-4 w-4 text-primary" />
-                        )}
-                        <Badge className={`${getTypeColor(post.type)} text-white text-xs`}>
-                          {post.type}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs flex items-center gap-1">
-                          {getVisibilityIcon(post.visibility)}
-                          {getVisibilityLabel(post.visibility)}
-                        </Badge>
+      {isLoading ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : !posts || posts.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Newspaper className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
+            <p className="text-muted-foreground text-center max-w-md">
+              Create your first announcement to share with your club members
+            </p>
+            <Button
+              className="mt-4 bg-green-600 hover:bg-green-700"
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Your First Post
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {posts.map((post) => {
+            const authorName = typeof post.authorId === 'object' ? post.authorId.fullName : 'Unknown';
+            const authorPicture = typeof post.authorId === 'object' ? post.authorId.profilePicture : null;
+
+            return (
+              <Card key={post._id} className="overflow-hidden flex flex-col">
+                {/* Images Section - Full Width at Top */}
+                {post.images && post.images.length > 0 && (
+                  <div className="relative">
+                    {post.images.length === 1 ? (
+                      <img
+                        src={post.images[0]}
+                        alt="Post image"
+                        className="w-full h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => openImageModal(post.images[0])}
+                      />
+                    ) : post.images.length === 2 ? (
+                      <div className="grid grid-cols-2 gap-0.5 h-64">
+                        {post.images.slice(0, 2).map((image, index) => (
+                          <img
+                            key={index}
+                            src={image}
+                            alt={`Post image ${index + 1}`}
+                            className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => openImageModal(image)}
+                          />
+                        ))}
                       </div>
-
-                      <h3 className="font-semibold text-lg mb-1">{post.title}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                        {post.content}
-                      </p>
-
-                      {/* Images preview */}
-                      {post.images && post.images.length > 0 && (
-                        <div className="flex gap-2 mb-3">
-                          {post.images.slice(0, 3).map((image, index) => (
+                    ) : post.images.length === 3 ? (
+                      <div className="grid grid-cols-2 gap-0.5 h-64">
+                        <img
+                          src={post.images[0]}
+                          alt="Post image 1"
+                          className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity row-span-2"
+                          onClick={() => openImageModal(post.images[0])}
+                        />
+                        <div className="grid grid-rows-2 gap-0.5">
+                          {post.images.slice(1, 3).map((image, index) => (
                             <img
                               key={index}
                               src={image}
-                              alt={`Post image ${index + 1}`}
-                              className="w-16 h-16 object-cover rounded-md"
+                              alt={`Post image ${index + 2}`}
+                              className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => openImageModal(image)}
                             />
                           ))}
-                          {post.images.length > 3 && (
-                            <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center text-sm text-muted-foreground">
-                              +{post.images.length - 3}
-                            </div>
-                          )}
                         </div>
-                      )}
-
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Heart className="h-4 w-4" />
-                          {post.likesCount}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MessageCircle className="h-4 w-4" />
-                          {post.commentsCount}
-                        </span>
-                        <span>•</span>
-                        <span>{formatDate(post.createdAt)}</span>
-                        <span>•</span>
-                        <span>
-                          by {typeof post.authorId === 'object' ? post.authorId.fullName : 'Unknown'}
-                        </span>
                       </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-0.5 h-64">
+                        {post.images.slice(0, 4).map((image, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={image}
+                              alt={`Post image ${index + 1}`}
+                              className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => openImageModal(image)}
+                            />
+                            {index === 3 && post.images.length > 4 && (
+                              <div
+                                className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-2xl font-bold cursor-pointer"
+                                onClick={() => openImageModal(post.images[3])}
+                              >
+                                +{post.images.length - 4}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Type Badge on Image */}
+                    <div className="absolute top-3 left-3">
+                      <Badge className={`${getTypeColor(post.type)} text-white shadow-md`}>
+                        {getTypeLabel(post.type)}
+                      </Badge>
                     </div>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteClick(post)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {/* Pinned Badge */}
+                    {post.isPinned && (
+                      <div className="absolute top-3 right-3">
+                        <div className="bg-primary text-primary-foreground rounded-full p-1.5 shadow-md">
+                          <Pin className="h-4 w-4" />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                )}
+
+                {/* Content Section */}
+                <CardContent className="flex-1 flex flex-col p-4">
+                  {/* Author Row */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={authorPicture || undefined} />
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {getInitials(authorName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">{authorName}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(post.createdAt)}</p>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDeleteClick(post)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Post
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Type Badge - Show only if no images */}
+                  {(!post.images || post.images.length === 0) && (
+                    <div className="flex items-center gap-2 mb-2">
+                      {post.isPinned && (
+                        <Pin className="h-4 w-4 text-primary" />
+                      )}
+                      <Badge className={`${getTypeColor(post.type)} text-white text-xs`}>
+                        {getTypeLabel(post.type)}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Title & Content */}
+                  <h3 className="font-semibold text-lg mb-2">{post.title}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-3 mb-4 flex-1">
+                    {post.content}
+                  </p>
+
+                  {/* Visibility & Stats Row */}
+                  <div className="flex items-center justify-between pt-3 border-t">
+                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      {getVisibilityIcon(post.visibility)}
+                      {getVisibilityLabel(post.visibility)}
+                    </Badge>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Heart className="h-4 w-4" />
+                        {post.likesCount}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MessageCircle className="h-4 w-4" />
+                        {post.commentsCount}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <CreatePostDialog
         open={createDialogOpen}
@@ -268,6 +410,19 @@ export function NewsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Image Modal */}
+      <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-0">
+          {selectedImage && (
+            <img
+              src={selectedImage}
+              alt="Full size"
+              className="w-full h-auto max-h-[90vh] object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -19,6 +19,7 @@ const routeNameMap: Record<string, string> = {
   '/coaches': 'Coaches',
   '/news': 'News',
   '/calendar': 'Calendar',
+  '/chat': 'Chat',
   '/finances': 'Finances',
   '/settings': 'Settings',
 };
@@ -31,7 +32,8 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  const currentRouteName = routeNameMap[location.pathname] || 'Page';
+  const currentRouteName = routeNameMap[location.pathname] ||
+    (location.pathname.startsWith('/calendar/') ? 'Događaj' : 'Page');
 
   const handleLogout = async () => {
     try {

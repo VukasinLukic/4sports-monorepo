@@ -122,6 +122,44 @@ export const useUpdateFinanceEntry = () => {
   });
 };
 
+// Fetch membership payments from /payments/club
+export interface MembershipPayment {
+  _id: string;
+  memberId: {
+    _id: string;
+    fullName: string;
+    profileImage?: string;
+  } | string;
+  amount: number;
+  currency: string;
+  type: string;
+  paymentMethod?: string;
+  paymentDate?: string;
+  paidDate?: string;
+  status: string;
+  note?: string;
+  description?: string;
+  period?: {
+    month: number;
+    year: number;
+  };
+  createdBy: {
+    _id: string;
+    fullName: string;
+  } | string;
+  createdAt: string;
+}
+
+export const useClubPayments = () => {
+  return useQuery({
+    queryKey: ['club-payments'],
+    queryFn: async () => {
+      const response = await api.get<{ success: boolean; data: MembershipPayment[] }>('/payments/club');
+      return response.data.data || [];
+    },
+  });
+};
+
 // Delete finance entry (only manual entries)
 export const useDeleteFinanceEntry = () => {
   const queryClient = useQueryClient();

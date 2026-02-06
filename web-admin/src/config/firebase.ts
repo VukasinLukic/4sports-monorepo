@@ -1,6 +1,7 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Check if Firebase is configured
 const isFirebaseConfigured = () => {
@@ -15,6 +16,7 @@ export const FIREBASE_ENABLED = isFirebaseConfigured();
 let app: FirebaseApp | null = null;
 let authInstance: Auth | null = null;
 let storageInstance: FirebaseStorage | null = null;
+let firestoreInstance: Firestore | null = null;
 
 if (FIREBASE_ENABLED) {
   const firebaseConfig = {
@@ -30,6 +32,7 @@ if (FIREBASE_ENABLED) {
     app = initializeApp(firebaseConfig);
     authInstance = getAuth(app);
     storageInstance = getStorage(app);
+    firestoreInstance = getFirestore(app);
     console.log('✅ Firebase initialized successfully');
   } catch (error) {
     console.error('❌ Firebase initialization failed:', error);
@@ -40,3 +43,4 @@ if (FIREBASE_ENABLED) {
 
 export const auth = authInstance as Auth;
 export const storage = storageInstance as FirebaseStorage;
+export const db = firestoreInstance as Firestore;

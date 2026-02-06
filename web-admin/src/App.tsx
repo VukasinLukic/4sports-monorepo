@@ -13,6 +13,8 @@ import { FinancePage } from './features/finances/FinancePage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { NewsPage } from './features/news/NewsPage';
 import { CalendarPage } from './features/calendar/CalendarPage';
+import { EventDetailPage } from './features/calendar/EventDetailPage';
+import { ChatPage } from './features/chat/ChatPage';
 import { NotFoundPage } from './features/dashboard/NotFoundPage';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
@@ -77,6 +79,26 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <CalendarPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/calendar/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <EventDetailPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ChatPage />
                   </Layout>
                 </ProtectedRoute>
               }

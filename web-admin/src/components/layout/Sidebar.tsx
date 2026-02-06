@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Newspaper,
-  CalendarDays
+  CalendarDays,
+  MessageCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +35,7 @@ const navItems: NavItem[] = [
   { name: 'Coaches', path: '/coaches', icon: GraduationCap },
   { name: 'News', path: '/news', icon: Newspaper },
   { name: 'Calendar', path: '/calendar', icon: CalendarDays },
+  { name: 'Chat', path: '/chat', icon: MessageCircle },
   { name: 'Finances', path: '/finances', icon: DollarSign },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];

@@ -124,6 +124,88 @@ export const useUpdateEvent = () => {
   });
 };
 
+// Fetch single event detail
+export const useEvent = (eventId: string | null) => {
+  return useQuery({
+    queryKey: ['event', eventId],
+    queryFn: async () => {
+      const response = await api.get<{ success: boolean; data: Event }>(`/events/${eventId}`);
+      return response.data.data;
+    },
+    enabled: !!eventId,
+  });
+};
+
+// Fetch event participants
+export interface Participant {
+  _id: string;
+  eventId: string;
+  memberId: {
+    _id: string;
+    fullName: string;
+    profileImage?: string;
+  };
+  status: 'PRESENT' | 'ABSENT' | 'EXCUSED' | 'LATE';
+  rsvpStatus: 'CONFIRMED' | 'DECLINED' | 'PENDING';
+  rsvpAt?: string;
+  checkinTime?: string;
+  markedBy?: string;
+  markedAt?: string;
+  notes?: string;
+}
+
+export interface ParticipantStats {
+  total: number;
+  confirmed: number;
+  declined: number;
+  pending: number;
+  present: number;
+  absent: number;
+  excused: number;
+  late: number;
+}
+
+export const useEventParticipants = (eventId: string | null) => {
+  return useQuery({
+    queryKey: ['event-participants', eventId],
+    queryFn: async () => {
+      const response = await api.get<{
+        success: boolean;
+        data: { participants: Participant[]; stats: ParticipantStats };
+      }>(`/events/${eventId}/participants`);
+      return response.data.data;
+    },
+    enabled: !!eventId,
+  });
+};
+
+// Mark attendance
+export const useMarkAttendance = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      eventId,
+      memberId,
+      status,
+    }: {
+      eventId: string;
+      memberId: string;
+      status: 'PRESENT' | 'ABSENT' | 'EXCUSED' | 'LATE';
+    }) => {
+      const response = await api.post('/attendance/mark', {
+        eventId,
+        memberId,
+        status,
+      });
+      return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['event-participants', variables.eventId] });
+    },
+  });
+};
+
 // Delete an event
 export const useDeleteEvent = () => {
   const queryClient = useQueryClient();
