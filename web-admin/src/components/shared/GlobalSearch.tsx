@@ -17,11 +17,11 @@ export function GlobalSearch() {
 
   // Filter results based on query
   const filteredMembers = members?.filter((m) =>
-    m.fullName.toLowerCase().includes(query.toLowerCase())
+    m.fullName?.toLowerCase().includes(query.toLowerCase())
   ).slice(0, 3) || [];
 
   const filteredCoaches = coaches?.filter((c) =>
-    c.fullName.toLowerCase().includes(query.toLowerCase())
+    c.fullName?.toLowerCase().includes(query.toLowerCase())
   ).slice(0, 3) || [];
 
   const hasResults = filteredMembers.length > 0 || filteredCoaches.length > 0;

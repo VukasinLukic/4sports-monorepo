@@ -18,10 +18,10 @@ export const useCoaches = () => {
 export const useGenerateCoachInvite = () => {
   return useMutation({
     mutationFn: async () => {
-      const response = await api.post<InviteCode>('/invites/generate', {
+      const response = await api.post<{ success: boolean; data: InviteCode }>('/invites/generate', {
         type: 'COACH',
       });
-      return response.data;
+      return response.data.data;
     },
   });
 };

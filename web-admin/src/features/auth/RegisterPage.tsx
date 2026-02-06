@@ -14,7 +14,7 @@ export const RegisterPage = () => {
     confirmPassword: '',
     fullName: '',
     phoneNumber: '',
-    inviteCode: '',
+    clubName: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,13 +58,15 @@ export const RegisterPage = () => {
 
     try {
       const firebaseUser = await register(formData.email, formData.password);
+      const firebaseToken = await firebaseUser.getIdToken();
 
       await api.post('/auth/register', {
-        firebaseUid: firebaseUser.uid,
+        firebaseToken,
         email: formData.email,
         fullName: formData.fullName,
+        role: 'OWNER',
         phoneNumber: formData.phoneNumber || undefined,
-        inviteCode: formData.inviteCode || undefined,
+        clubName: formData.clubName || formData.fullName + "'s Club",
       });
 
       navigate('/');
@@ -146,12 +148,12 @@ export const RegisterPage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="inviteCode">Invite Code (Optional)</Label>
+              <Label htmlFor="clubName">Club Name</Label>
               <Input
-                id="inviteCode"
+                id="clubName"
                 type="text"
-                placeholder="XXXXXXXX"
-                value={formData.inviteCode}
+                placeholder="My Sports Club"
+                value={formData.clubName}
                 onChange={handleChange}
                 disabled={loading}
               />

@@ -11,6 +11,8 @@ import { MemberListPage } from './features/members/MemberListPage';
 import { CoachListPage } from './features/coaches/CoachListPage';
 import { FinancePage } from './features/finances/FinancePage';
 import { SettingsPage } from './features/settings/SettingsPage';
+import { NewsPage } from './features/news/NewsPage';
+import { CalendarPage } from './features/calendar/CalendarPage';
 import { NotFoundPage } from './features/dashboard/NotFoundPage';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
@@ -55,6 +57,26 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <CoachListPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/news"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewsPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/calendar"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <CalendarPage />
                   </Layout>
                 </ProtectedRoute>
               }

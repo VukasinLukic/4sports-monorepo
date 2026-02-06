@@ -88,25 +88,21 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
     }
   };
 
+  // Categories must match backend enum: MEMBERSHIP_FEE, EVENT_FEE, EQUIPMENT, SALARY, RENT, UTILITIES, SPONSORSHIP, OTHER
   const incomeCategories = [
-    'Membership Payment',
-    'Registration Fee',
-    'Sponsorship',
-    'Tournament Prize',
-    'Equipment Sales',
-    'Other Income',
+    { value: 'MEMBERSHIP_FEE', label: 'Membership Payment' },
+    { value: 'EVENT_FEE', label: 'Event Fee' },
+    { value: 'SPONSORSHIP', label: 'Sponsorship' },
+    { value: 'EQUIPMENT', label: 'Equipment Sales' },
+    { value: 'OTHER', label: 'Other Income' },
   ];
 
   const expenseCategories = [
-    'Equipment Purchase',
-    'Facility Rent',
-    'Coach Salary',
-    'Utilities',
-    'Travel Expenses',
-    'Marketing',
-    'Insurance',
-    'Maintenance',
-    'Other Expense',
+    { value: 'EQUIPMENT', label: 'Equipment Purchase' },
+    { value: 'RENT', label: 'Facility Rent' },
+    { value: 'SALARY', label: 'Coach Salary' },
+    { value: 'UTILITIES', label: 'Utilities' },
+    { value: 'OTHER', label: 'Other Expense' },
   ];
 
   const categories = formData.type === 'INCOME' ? incomeCategories : expenseCategories;
@@ -156,8 +152,8 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

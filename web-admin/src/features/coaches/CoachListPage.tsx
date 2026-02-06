@@ -25,6 +25,7 @@ import { GenerateInviteDialog } from './GenerateInviteDialog';
 import { useCoaches, useDeleteCoach } from './useCoaches';
 import { Coach } from '@/types';
 import { Trash2, UserPlus, AlertTriangle, Search } from 'lucide-react';
+import { useAuth } from '@/features/auth/AuthContext';
 import { SkeletonTable } from '@/components/shared/SkeletonTable';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
 import { HelpButton } from '@/components/shared/HelpButton';
@@ -32,6 +33,7 @@ import { useOnboarding } from '@/context/OnboardingContext';
 
 export function CoachListPage() {
   const { checkAndStartTutorial } = useOnboarding();
+  const { backendUser } = useAuth();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);

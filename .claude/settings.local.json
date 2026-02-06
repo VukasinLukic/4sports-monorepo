@@ -43,7 +43,8 @@
       "Bash(del \"c:\\\\Users\\\\Nemanja\\\\Desktop\\\\4sports-monorepo\\\\mobile-app\\\\config\\\\firebase.ts\")",
       "Bash(find:*)",
       "Bash(git show:*)",
-      "Bash(npx expo export:*)"
+      "Bash(npx expo export:*)",
+      "Bash(git -C \"C:/Users/Nemanja/Desktop/4sports-monorepo\" show f0b1758 --stat)"
     ],
     "deny": [],
     "ask": []

@@ -9,7 +9,9 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Newspaper,
+  CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +32,8 @@ const navItems: NavItem[] = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Members', path: '/members', icon: Users },
   { name: 'Coaches', path: '/coaches', icon: GraduationCap },
+  { name: 'News', path: '/news', icon: Newspaper },
+  { name: 'Calendar', path: '/calendar', icon: CalendarDays },
   { name: 'Finances', path: '/finances', icon: DollarSign },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
