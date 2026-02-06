@@ -15,6 +15,7 @@ import { NewsPage } from './features/news/NewsPage';
 import { CalendarPage } from './features/calendar/CalendarPage';
 import { EventDetailPage } from './features/calendar/EventDetailPage';
 import { ChatPage } from './features/chat/ChatPage';
+import { EvidencePage } from './features/evidence/EvidencePage';
 import { NotFoundPage } from './features/dashboard/NotFoundPage';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
@@ -99,6 +100,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <ChatPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/evidence"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <EvidencePage />
                   </Layout>
                 </ProtectedRoute>
               }

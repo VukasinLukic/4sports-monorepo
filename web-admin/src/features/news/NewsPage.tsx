@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -223,6 +223,8 @@ export function NewsPage() {
           {posts.map((post) => {
             const authorName = typeof post.authorId === 'object' ? post.authorId.fullName : 'Unknown';
             const authorPicture = typeof post.authorId === 'object' ? post.authorId.profilePicture : null;
+            const authorRole = typeof post.authorId === 'object' ? post.authorId.role : null;
+            const roleLabel = authorRole === 'OWNER' ? 'Vlasnik' : authorRole === 'COACH' ? 'Trener' : null;
 
             return (
               <Card key={post._id} className="overflow-hidden flex flex-col">
@@ -321,7 +323,14 @@ export function NewsPage() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium text-sm">{authorName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm">{authorName}</p>
+                          {roleLabel && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                              {roleLabel}
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">{formatDate(post.createdAt)}</p>
                       </div>
                     </div>

@@ -21,7 +21,6 @@ import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { AddFinanceDialog } from './AddFinanceDialog';
 import { useFinances, useFinanceSummary, useDeleteFinanceEntry, useClubPayments, MembershipPayment } from './useFinances';
-import { useDashboard } from '../dashboard/useDashboard';
 import { FinanceEntry } from '@/types';
 import {
   Plus,
@@ -47,17 +46,11 @@ export function FinancePage() {
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
 
   const { data: summary, isLoading: summaryLoading } = useFinanceSummary();
-  const { data: dashboardData } = useDashboard();
   const { data: entries, isLoading: entriesLoading, isError, refetch } = useFinances({
     type: typeFilter,
   });
   const { data: clubPayments, isLoading: paymentsLoading } = useClubPayments();
   const deleteEntryMutation = useDeleteFinanceEntry();
-
-  // Calculate total from membership payments
-  const paidPaymentsTotal = (clubPayments || [])
-    .filter((p) => p.status === 'PAID')
-    .reduce((sum, p) => sum + p.amount, 0);
 
   const getMemberName = (payment: MembershipPayment): string => {
     if (typeof payment.memberId === 'object' && payment.memberId?.fullName) {
@@ -80,6 +73,57 @@ export function FinancePage() {
     }
     return 'Sistem';
   };
+
+  // Calculate total from membership payments
+  const paidPayments = (clubPayments || []).filter((p) => p.status === 'PAID');
+  const paidPaymentsTotal = paidPayments.reduce((sum, p) => sum + p.amount, 0);
+
+  // Convert membership payments to FinanceEntry format for "All" tab
+  const paymentEntries: FinanceEntry[] = paidPayments.map((p) => ({
+    id: p._id,
+    type: 'INCOME' as const,
+    category: 'MEMBERSHIP',
+    description: `Članarina - ${getMemberName(p)}${p.period ? ` (${['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Avg','Sep','Okt','Nov','Dec'][p.period.month - 1]} ${p.period.year})` : ''}`,
+    amount: p.amount,
+    date: p.paymentDate || p.paidDate || p.createdAt,
+    recordedBy: getRecordedByName(p),
+    isManual: false,
+    createdAt: p.createdAt,
+  }));
+
+  // Merge manual entries + payment entries for "All" tab, sorted by date desc
+  const allEntries = [...(entries || []), ...paymentEntries].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  // Build monthly trends from all entries
+  const monthlyTrends = (() => {
+    const monthMap: Record<string, { revenue: number; expenses: number }> = {};
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Avg', 'Sep', 'Okt', 'Nov', 'Dec'];
+
+    allEntries.forEach((entry) => {
+      const d = new Date(entry.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthMap[key]) monthMap[key] = { revenue: 0, expenses: 0 };
+      if (entry.type === 'INCOME') {
+        monthMap[key].revenue += entry.amount;
+      } else {
+        monthMap[key].expenses += entry.amount;
+      }
+    });
+
+    return Object.keys(monthMap)
+      .sort()
+      .slice(-6)
+      .map((key) => {
+        const [, m] = key.split('-');
+        return {
+          month: monthNames[parseInt(m) - 1],
+          revenue: monthMap[key].revenue,
+          expenses: monthMap[key].expenses,
+        };
+      });
+  })();
 
   // Start tutorial on first visit
   useEffect(() => {
@@ -213,28 +257,13 @@ export function FinancePage() {
 
       {/* Charts */}
       <div data-tour="finance-chart" className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Income vs Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BalanceChart
-              data={{
-                income: summary?.totalIncome || 0,
-                expense: summary?.totalExpenses || 0,
-              }}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly Trends</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MonthlyFinanceChart data={dashboardData?.monthlyFinance || []} />
-          </CardContent>
-        </Card>
+        <BalanceChart
+          data={{
+            income: (summary?.totalIncome || 0) + paidPaymentsTotal,
+            expense: summary?.totalExpenses || 0,
+          }}
+        />
+        <MonthlyFinanceChart data={monthlyTrends} />
       </div>
 
       {/* Transactions Table */}
@@ -282,8 +311,8 @@ export function FinancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {entries && entries.length > 0 ? (
-                    entries.map((entry) => (
+                  {allEntries.length > 0 ? (
+                    allEntries.map((entry) => (
                       <TableRow key={entry.id}>
                         <TableCell>{formatDate(entry.date)}</TableCell>
                         <TableCell>

@@ -59,7 +59,7 @@ const transformUserProfile = (data: any): UserProfile => ({
   email: data.email || '',
   phoneNumber: data.phoneNumber || '',
   profileImage: data.profileImage,
-  role: data.role === 'OWNER' ? 'ADMIN' : data.role,
+  role: data.role,
 });
 
 // Fetch user profile

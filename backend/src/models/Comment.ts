@@ -29,7 +29,7 @@ const commentSchema = new Schema<IComment, ICommentModel>(
 commentSchema.index({ postId: 1, createdAt: -1 });
 
 commentSchema.statics.findByPost = async function (postId: mongoose.Types.ObjectId): Promise<IComment[]> {
-  return this.find({ postId }).sort({ createdAt: 1 }).populate('authorId', 'fullName profilePicture');
+  return this.find({ postId }).sort({ createdAt: 1 }).populate('authorId', 'fullName profilePicture role');
 };
 
 commentSchema.statics.incrementLikes = async function (commentId: mongoose.Types.ObjectId): Promise<IComment | null> {

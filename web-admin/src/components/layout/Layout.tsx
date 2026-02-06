@@ -32,7 +32,9 @@ export const Layout = ({ children }: LayoutProps) => {
       />
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
         <Header onMenuClick={handleMobileMenuClick} />
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="p-4 md:p-6">
+          <div className="max-w-[1400px] mx-auto">{children}</div>
+        </main>
       </div>
     </div>
   );

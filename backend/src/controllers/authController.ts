@@ -30,6 +30,7 @@ export const register = async (
       phoneNumber,
       role: bodyRole, // Role from body (required for OWNER, optional for others)
       inviteCode,
+      clubName: bodyClubName,
     } = req.body;
 
     // ========================================
@@ -152,7 +153,7 @@ export const register = async (
 
       // Auto-create new club
       const newClub = await Club.create({
-        name: `${fullName}'s Club`,
+        name: bodyClubName || `${fullName}'s Club`,
         subscriptionPlan: 'FREE',
         // ownerId will be set after user creation
       });

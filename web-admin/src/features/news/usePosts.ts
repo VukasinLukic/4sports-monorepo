@@ -8,6 +8,7 @@ export interface Post {
     _id: string;
     fullName: string;
     profilePicture?: string;
+    role?: string;
   };
   title: string;
   content: string;

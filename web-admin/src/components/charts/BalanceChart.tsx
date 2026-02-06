@@ -8,8 +8,8 @@ interface BalanceChartProps {
 
 export const BalanceChart = ({ data }: BalanceChartProps) => {
   const chartData = [
-    { name: 'Income', value: data.income },
-    { name: 'Expense', value: data.expense },
+    { name: 'Prihodi', value: data.income },
+    { name: 'Rashodi', value: data.expense },
   ];
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))'];
@@ -50,7 +50,7 @@ export const BalanceChart = ({ data }: BalanceChartProps) => {
               labelStyle={{
                 color: 'hsl(var(--popover-foreground))',
               }}
-              formatter={(value: number) => `$${value.toLocaleString()}`}
+              formatter={(value: number) => `${value.toLocaleString()} RSD`}
             />
             <Legend
               wrapperStyle={{

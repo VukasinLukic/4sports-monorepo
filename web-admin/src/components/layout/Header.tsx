@@ -20,6 +20,7 @@ const routeNameMap: Record<string, string> = {
   '/news': 'News',
   '/calendar': 'Calendar',
   '/chat': 'Chat',
+  '/evidence': 'Evidencija',
   '/finances': 'Finances',
   '/settings': 'Settings',
 };
