@@ -13,7 +13,8 @@ interface Payment {
   memberId: string;
   type: string;
   amount: number;
-  status: 'PENDING' | 'PAID' | 'OVERDUE';
+  paidAmount?: number;
+  status: 'PENDING' | 'PAID' | 'PARTIAL' | 'OVERDUE';
   dueDate: string;
   paidDate?: string;
   period?: {
@@ -70,6 +71,8 @@ export default function MemberPayments() {
     switch (status) {
       case 'PAID':
         return Colors.success;
+      case 'PARTIAL':
+        return Colors.warning;
       case 'PENDING':
         return Colors.warning;
       case 'OVERDUE':
@@ -96,7 +99,7 @@ export default function MemberPayments() {
   // Calculate summary
   const summary = {
     total: payments.reduce((sum, p) => sum + p.amount, 0),
-    paid: payments.filter((p) => p.status === 'PAID').reduce((sum, p) => sum + p.amount, 0),
+    paid: payments.filter((p) => p.status === 'PAID' || p.status === 'PARTIAL').reduce((sum, p) => sum + (p.paidAmount ?? p.amount ?? 0), 0),
     pending: payments.filter((p) => p.status === 'PENDING').reduce((sum, p) => sum + p.amount, 0),
     overdue: payments.filter((p) => p.status === 'OVERDUE').reduce((sum, p) => sum + p.amount, 0),
   };

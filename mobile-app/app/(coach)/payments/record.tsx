@@ -101,10 +101,10 @@ export default function RecordPaymentScreen() {
         return pDate.getMonth() === month && pDate.getFullYear() === year;
       });
 
-      // Calculate paid amount (sum of amounts where status = 'PAID')
+      // Calculate paid amount (sum of paidAmounts where status = 'PAID' or 'PARTIAL')
       const paidAmount = monthPayments
-        .filter((p: Payment) => p.status === 'PAID')
-        .reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
+        .filter((p: Payment) => p.status === 'PAID' || p.status === 'PARTIAL')
+        .reduce((sum: number, p: Payment) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
 
       // Expected amount is the monthly fee
       const expectedAmount = monthlyFee;
@@ -152,9 +152,11 @@ export default function RecordPaymentScreen() {
     recordPayment(
       {
         memberId: selectedMemberId,
-        amount: parseFloat(amount),
+        amount: monthlyFee,
+        paidAmount: parseFloat(amount),
         paymentMethod,
         paymentDate: new Date().toISOString().split('T')[0],
+        period: { month: selectedMonth + 1, year: selectedYear },
         note: note.trim() || `${months[selectedMonth]} ${selectedYear}`,
       },
       {

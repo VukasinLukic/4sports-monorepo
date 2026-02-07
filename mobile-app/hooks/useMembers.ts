@@ -109,6 +109,7 @@ export function useUpdateMember() {
 interface RecordPaymentData {
   memberId: string;
   amount: number;
+  paidAmount?: number;
   paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'CARD';
   paymentDate?: string;
   note?: string;

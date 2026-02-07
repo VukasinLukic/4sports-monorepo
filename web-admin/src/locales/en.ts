@@ -411,6 +411,8 @@ export default {
     amountRSD: 'Amount (RSD)',
     enterAmount: 'Enter amount',
     enterDescription: 'Enter description',
+    group: 'Group',
+    noGroup: 'Not linked to a group',
     categories: {
       membershipPayment: 'Membership Payment',
       eventFee: 'Event Fee',
@@ -422,6 +424,13 @@ export default {
       coachSalary: 'Coach Salary',
       utilities: 'Utilities',
       otherExpense: 'Other Expense',
+    },
+    status: {
+      PAID: 'Paid',
+      PARTIAL: 'Partially Paid',
+      PENDING: 'Pending',
+      OVERDUE: 'Overdue',
+      CANCELLED: 'Cancelled',
     },
   },
 

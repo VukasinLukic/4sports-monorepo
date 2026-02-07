@@ -9,7 +9,7 @@ import Budget from '../models/Budget';
 export const createTransaction = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
-    const { type, category, amount, description, transactionDate, paymentId, receiptUrl, notes } = req.body;
+    const { type, category, amount, description, transactionDate, groupId, paymentId, receiptUrl, notes } = req.body;
     const clubId = req.user.clubId;
 
     if (!clubId) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
@@ -24,6 +24,7 @@ export const createTransaction = async (req: Request, res: Response) => {
       amount,
       description,
       transactionDate,
+      groupId: groupId || undefined,
       paymentId,
       receiptUrl,
       notes,
@@ -240,13 +241,14 @@ export const updateTransaction = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
     }
 
-    const { type, category, amount, description, transactionDate, notes } = req.body;
+    const { type, category, amount, description, transactionDate, groupId, notes } = req.body;
 
     if (type) transaction.type = type;
     if (category) transaction.category = category;
     if (amount !== undefined) transaction.amount = amount;
     if (description) transaction.description = description;
     if (transactionDate) transaction.transactionDate = transactionDate;
+    if (groupId !== undefined) (transaction as any).groupId = groupId || undefined;
     if (notes !== undefined) transaction.notes = notes;
 
     await transaction.save();

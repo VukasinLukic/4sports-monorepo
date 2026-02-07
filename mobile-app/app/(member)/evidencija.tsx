@@ -108,8 +108,8 @@ export default function EvidencijaScreen() {
     const totalExpected = monthsTraining * monthlyFee;
 
     const totalPaid = payments
-      .filter((p: Payment) => p.status === 'PAID')
-      .reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
+      .filter((p: Payment) => p.status === 'PAID' || p.status === 'PARTIAL')
+      .reduce((sum: number, p: Payment) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
 
     const debt = Math.max(0, totalExpected - totalPaid);
 
@@ -141,8 +141,8 @@ export default function EvidencijaScreen() {
       });
 
       const paidAmount = monthPayments
-        .filter((p: Payment) => p.status === 'PAID')
-        .reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
+        .filter((p: Payment) => p.status === 'PAID' || p.status === 'PARTIAL')
+        .reduce((sum: number, p: Payment) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
 
       let status: 'PAID' | 'PARTIAL' | 'UNPAID' = 'UNPAID';
       if (paidAmount >= stats.monthlyFee) {

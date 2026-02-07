@@ -59,7 +59,7 @@ export function EvidencePage() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [medicalDialogOpen, setMedicalDialogOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<{ id: string; name: string } | null>(null);
+  const [selectedMember, setSelectedMember] = useState<{ id: string; name: string; membershipFee?: number } | null>(null);
 
   const { data: membershipData, isLoading: membershipLoading } = useMembershipEvidence({
     month: selectedMonth,
@@ -153,8 +153,8 @@ export function EvidencePage() {
     }
   }, [membershipGroups, medicalGroups, activeTab]);
 
-  const handleOpenPaymentDialog = (memberId: string, memberName: string) => {
-    setSelectedMember({ id: memberId, name: memberName });
+  const handleOpenPaymentDialog = (memberId: string, memberName: string, membershipFee?: number) => {
+    setSelectedMember({ id: memberId, name: memberName, membershipFee });
     setPaymentDialogOpen(true);
   };
 
@@ -198,7 +198,7 @@ export function EvidencePage() {
   const medStats = medicalData?.stats;
   const isLoading = activeTab === 'membership' ? membershipLoading : medicalLoading;
 
-  const unpaidCount = stats ? stats.pending + stats.overdue + stats.notCreated : 0;
+  const unpaidCount = stats ? stats.pending + stats.overdue + stats.notCreated + (stats.partial || 0) : 0;
   const collectionRate = stats && stats.total > 0 ? Math.round((stats.paid / stats.total) * 100) : 0;
 
   if (isLoading) {
@@ -362,7 +362,7 @@ export function EvidencePage() {
                       <MembershipRow
                         key={member.memberId}
                         member={member}
-                        onMarkPaid={() => handleOpenPaymentDialog(member.memberId, member.memberName)}
+                        onMarkPaid={() => handleOpenPaymentDialog(member.memberId, member.memberName, member.payment?.amount)}
                         onSendReminder={() => handleSendReminder(member.memberId)}
                         isReminderLoading={sendReminderMutation.isPending}
                       />
@@ -450,6 +450,7 @@ export function EvidencePage() {
         memberName={selectedMember?.name || ''}
         month={selectedMonth}
         year={selectedYear}
+        membershipFee={selectedMember?.membershipFee}
       />
       <RecordMedicalDialog
         open={medicalDialogOpen}
@@ -474,12 +475,14 @@ function MembershipRow({
   isReminderLoading: boolean;
 }) {
   const isPaid = member.status === 'PAID';
+  const isPartial = member.status === 'PARTIAL';
 
   return (
     <div
       className={cn(
         'flex items-center gap-3 p-3 rounded-lg border transition-colors bg-muted/50',
         isPaid && 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800',
+        isPartial && 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800',
         member.status === 'OVERDUE' && 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800',
       )}
     >
@@ -501,6 +504,11 @@ function MembershipRow({
               <Check className="h-3 w-3" />
               Plaćeno
             </span>
+          ) : isPartial ? (
+            <span className="text-xs text-orange-600 flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              Delimično ({member.payment?.paidAmount ?? 0}/{member.payment?.amount ?? 0} RSD)
+            </span>
           ) : member.status === 'OVERDUE' ? (
             <span className="text-xs text-red-600 flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
@@ -514,7 +522,7 @@ function MembershipRow({
           ) : (
             <span className="text-xs text-muted-foreground">Nije plaćeno</span>
           )}
-          {member.payment?.amount && (
+          {isPaid && member.payment?.amount && (
             <span className="text-xs text-muted-foreground">{member.payment.amount} RSD</span>
           )}
         </div>
@@ -529,7 +537,7 @@ function MembershipRow({
               size="icon"
               className="h-9 w-9"
               onClick={onMarkPaid}
-              title="Evidentraj uplatu"
+              title="Evidentiraj uplatu"
             >
               <CreditCard className="h-4 w-4" />
             </Button>
@@ -549,6 +557,11 @@ function MembershipRow({
           <Badge className="bg-green-600 hover:bg-green-700">
             <Check className="h-3 w-3 mr-1" />
             Plaćeno
+          </Badge>
+        )}
+        {isPartial && (
+          <Badge className="bg-orange-500 hover:bg-orange-600">
+            Delimično
           </Badge>
         )}
       </div>

@@ -98,6 +98,7 @@ export interface CreateFinanceEntryData {
   description: string;
   amount: number;
   date: string;
+  groupId?: string;
   invoiceUrl?: string;
 }
 

@@ -210,13 +210,14 @@ export interface Payment {
   memberId: string;
   clubId: string;
   amount: number;
+  paidAmount?: number;
   currency: string;
   type: 'MEMBERSHIP' | 'EVENT' | 'EQUIPMENT' | 'OTHER';
   paymentMethod?: PaymentMethod;
   paymentDate?: string;
   paidDate?: string;
   dueDate?: string;
-  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  status: 'PENDING' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELLED';
   isPaid?: boolean;
   description?: string;
   note?: string;

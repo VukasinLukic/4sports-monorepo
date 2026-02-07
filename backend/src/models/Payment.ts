@@ -15,7 +15,8 @@ export interface IPayment extends Document {
   description?: string;
   dueDate: Date;
   paidDate?: Date;
-  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  paidAmount: number;
+  status: 'PENDING' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELLED';
   paymentMethod?: 'CASH' | 'CARD' | 'BANK_TRANSFER' | 'OTHER';
   receiptNumber?: string;
   notes?: string;
@@ -37,11 +38,12 @@ const paymentSchema = new Schema<IPayment, IPaymentModel>(
     memberId: { type: Schema.Types.ObjectId, ref: 'Member', required: true },
     type: { type: String, enum: ['MEMBERSHIP', 'EVENT', 'EQUIPMENT', 'OTHER'], required: true },
     amount: { type: Number, required: true, min: 0 },
+    paidAmount: { type: Number, default: 0, min: 0 },
     currency: { type: String, default: 'RSD' },
     description: { type: String, trim: true, maxlength: 500 },
     dueDate: { type: Date, required: true },
     paidDate: { type: Date },
-    status: { type: String, enum: ['PENDING', 'PAID', 'OVERDUE', 'CANCELLED'], default: 'PENDING' },
+    status: { type: String, enum: ['PENDING', 'PAID', 'PARTIAL', 'OVERDUE', 'CANCELLED'], default: 'PENDING' },
     paymentMethod: { type: String, enum: ['CASH', 'CARD', 'BANK_TRANSFER', 'OTHER'] },
     receiptNumber: { type: String, trim: true },
     notes: { type: String, trim: true, maxlength: 500 },
@@ -66,7 +68,7 @@ paymentSchema.statics.findByClub = async function (clubId: mongoose.Types.Object
 };
 
 paymentSchema.statics.getPendingPayments = async function (clubId: mongoose.Types.ObjectId): Promise<IPayment[]> {
-  return this.find({ clubId, status: { $in: ['PENDING', 'OVERDUE'] } }).populate('memberId', 'fullName').sort({ dueDate: 1 });
+  return this.find({ clubId, status: { $in: ['PENDING', 'PARTIAL', 'OVERDUE'] } }).populate('memberId', 'fullName').sort({ dueDate: 1 });
 };
 
 const Payment = mongoose.model<IPayment, IPaymentModel>('Payment', paymentSchema);

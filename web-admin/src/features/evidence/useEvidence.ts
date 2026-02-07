@@ -12,10 +12,11 @@ export interface EvidenceMember {
     color?: string;
   };
   period: { month: number; year: number };
-  status: 'NOT_CREATED' | 'PENDING' | 'PAID' | 'OVERDUE';
+  status: 'NOT_CREATED' | 'PENDING' | 'PAID' | 'PARTIAL' | 'OVERDUE';
   payment?: {
     _id: string;
     amount: number;
+    paidAmount?: number;
     dueDate: string;
     paidDate?: string;
     status: string;
@@ -25,6 +26,7 @@ export interface EvidenceMember {
 export interface EvidenceStats {
   total: number;
   paid: number;
+  partial: number;
   pending: number;
   overdue: number;
   notCreated: number;
@@ -121,6 +123,7 @@ export const useRecordPayment = () => {
     mutationFn: async (data: {
       memberId: string;
       amount: number;
+      paidAmount?: number;
       paymentMethod: 'CASH' | 'BANK_TRANSFER';
       paymentDate?: string;
       note?: string;
@@ -130,6 +133,7 @@ export const useRecordPayment = () => {
         memberId: data.memberId,
         type: 'MEMBERSHIP',
         amount: data.amount,
+        paidAmount: data.paidAmount,
         paymentMethod: data.paymentMethod,
         paymentDate: data.paymentDate || new Date().toISOString().split('T')[0],
         note: data.note,

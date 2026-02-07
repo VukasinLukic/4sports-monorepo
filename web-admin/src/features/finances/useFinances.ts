@@ -85,6 +85,7 @@ export const useCreateFinanceEntry = () => {
         amount: data.amount,
         description: data.description,
         transactionDate: data.date,
+        groupId: data.groupId || undefined,
         receiptUrl: data.invoiceUrl,
       };
       const response = await api.post<{ success: boolean; data: any }>('/finances', backendData);
@@ -93,6 +94,7 @@ export const useCreateFinanceEntry = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finances'] });
       queryClient.invalidateQueries({ queryKey: ['finances-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-v2'] });
     },
   });
 };
@@ -131,6 +133,7 @@ export interface MembershipPayment {
     profileImage?: string;
   } | string;
   amount: number;
+  paidAmount?: number;
   currency: string;
   type: string;
   paymentMethod?: string;

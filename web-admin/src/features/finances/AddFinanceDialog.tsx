@@ -16,7 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useTranslation } from 'react-i18next';
 import { useCreateFinanceEntry } from './useFinances';
+import { useGroups } from '@/features/calendar/useEvents';
 import { CreateFinanceEntryData } from '@/types';
 import { Loader2 } from 'lucide-react';
 
@@ -26,7 +28,9 @@ interface AddFinanceDialogProps {
 }
 
 export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) {
+  const { t } = useTranslation();
   const createEntryMutation = useCreateFinanceEntry();
+  const { data: groups = [] } = useGroups();
   const [formData, setFormData] = useState<CreateFinanceEntryData>({
     type: 'INCOME',
     category: '',
@@ -88,21 +92,20 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
     }
   };
 
-  // Categories must match backend enum: MEMBERSHIP_FEE, EVENT_FEE, EQUIPMENT, SALARY, RENT, UTILITIES, SPONSORSHIP, OTHER
   const incomeCategories = [
-    { value: 'MEMBERSHIP_FEE', label: 'Membership Payment' },
-    { value: 'EVENT_FEE', label: 'Event Fee' },
-    { value: 'SPONSORSHIP', label: 'Sponsorship' },
-    { value: 'EQUIPMENT', label: 'Equipment Sales' },
-    { value: 'OTHER', label: 'Other Income' },
+    { value: 'MEMBERSHIP_FEE', label: t('finances.categories.membershipPayment') },
+    { value: 'EVENT_FEE', label: t('finances.categories.eventFee') },
+    { value: 'SPONSORSHIP', label: t('finances.categories.sponsorship') },
+    { value: 'EQUIPMENT', label: t('finances.categories.equipmentSales') },
+    { value: 'OTHER', label: t('finances.categories.otherIncome') },
   ];
 
   const expenseCategories = [
-    { value: 'EQUIPMENT', label: 'Equipment Purchase' },
-    { value: 'RENT', label: 'Facility Rent' },
-    { value: 'SALARY', label: 'Coach Salary' },
-    { value: 'UTILITIES', label: 'Utilities' },
-    { value: 'OTHER', label: 'Other Expense' },
+    { value: 'EQUIPMENT', label: t('finances.categories.equipmentPurchase') },
+    { value: 'RENT', label: t('finances.categories.facilityRent') },
+    { value: 'SALARY', label: t('finances.categories.coachSalary') },
+    { value: 'UTILITIES', label: t('finances.categories.utilities') },
+    { value: 'OTHER', label: t('finances.categories.otherExpense') },
   ];
 
   const categories = formData.type === 'INCOME' ? incomeCategories : expenseCategories;
@@ -111,20 +114,19 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add Finance Entry</DialogTitle>
+          <DialogTitle>{t('finances.addEntry')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             {/* Type */}
             <div className="grid gap-2">
               <Label htmlFor="type">
-                Type <span className="text-red-500">*</span>
+                {t('finances.type')} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.type}
                 onValueChange={(value) => {
                   handleChange('type', value as 'INCOME' | 'EXPENSE');
-                  // Reset category when type changes
                   setFormData((prev) => ({ ...prev, category: '' }));
                 }}
               >
@@ -132,8 +134,8 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="INCOME">Income</SelectItem>
-                  <SelectItem value="EXPENSE">Expense</SelectItem>
+                  <SelectItem value="INCOME">{t('finances.incomeOnly')}</SelectItem>
+                  <SelectItem value="EXPENSE">{t('finances.expensesOnly')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -141,14 +143,14 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
             {/* Category */}
             <div className="grid gap-2">
               <Label htmlFor="category">
-                Category <span className="text-red-500">*</span>
+                {t('finances.category')} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.category}
                 onValueChange={(value) => handleChange('category', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder={t('finances.selectCategory')} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
@@ -163,10 +165,31 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
               )}
             </div>
 
+            {/* Group */}
+            <div className="grid gap-2">
+              <Label htmlFor="group">{t('finances.group')}</Label>
+              <Select
+                value={formData.groupId || 'NONE'}
+                onValueChange={(value) => handleChange('groupId', value === 'NONE' ? undefined : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">{t('finances.noGroup')}</SelectItem>
+                  {groups.map((g) => (
+                    <SelectItem key={g._id} value={g._id}>
+                      {g.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Amount */}
             <div className="grid gap-2">
               <Label htmlFor="amount">
-                Amount (RSD) <span className="text-red-500">*</span>
+                {t('finances.amount')} (RSD) <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="amount"
@@ -176,7 +199,7 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
                 onChange={(e) =>
                   handleChange('amount', e.target.value ? Number(e.target.value) : 0)
                 }
-                placeholder="Enter amount"
+                placeholder={t('finances.enterAmount')}
               />
               {errors.amount && (
                 <p className="text-sm text-red-500">{errors.amount}</p>
@@ -186,13 +209,13 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
             {/* Description */}
             <div className="grid gap-2">
               <Label htmlFor="description">
-                Description <span className="text-red-500">*</span>
+                {t('finances.description')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="description"
                 value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
-                placeholder="Enter description"
+                placeholder={t('finances.enterDescription')}
               />
               {errors.description && (
                 <p className="text-sm text-red-500">{errors.description}</p>
@@ -202,7 +225,7 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
             {/* Date */}
             <div className="grid gap-2">
               <Label htmlFor="date">
-                Date <span className="text-red-500">*</span>
+                {t('finances.date')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="date"
@@ -225,7 +248,7 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
               onClick={() => onOpenChange(false)}
               disabled={createEntryMutation.isPending}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -235,10 +258,10 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
               {createEntryMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
+                  {t('common.loading')}
                 </>
               ) : (
-                'Add Entry'
+                t('common.add')
               )}
             </Button>
           </DialogFooter>

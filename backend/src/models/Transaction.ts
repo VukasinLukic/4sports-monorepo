@@ -9,6 +9,7 @@ export interface ITransaction extends Document {
   currency: string;
   description: string;
   transactionDate: Date;
+  groupId?: mongoose.Types.ObjectId;
   paymentId?: mongoose.Types.ObjectId;
   receiptUrl?: string;
   createdBy: mongoose.Types.ObjectId;
@@ -40,6 +41,7 @@ const transactionSchema = new Schema<ITransaction, ITransactionModel>(
     currency: { type: String, default: 'RSD' },
     description: { type: String, required: true, trim: true, maxlength: 500 },
     transactionDate: { type: Date, required: true },
+    groupId: { type: Schema.Types.ObjectId, ref: 'Group' },
     paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' },
     receiptUrl: { type: String, trim: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },

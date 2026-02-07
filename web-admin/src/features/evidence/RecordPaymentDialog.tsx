@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils';
 
 const MONTHS = ['Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun', 'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar'];
 
+const DEFAULT_MEMBERSHIP_FEE = 3000;
+
 interface RecordPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,9 +26,11 @@ interface RecordPaymentDialogProps {
   memberName: string;
   month: number;
   year: number;
+  membershipFee?: number;
 }
 
-export function RecordPaymentDialog({ open, onOpenChange, memberId, memberName, month, year }: RecordPaymentDialogProps) {
+export function RecordPaymentDialog({ open, onOpenChange, memberId, memberName, month, year, membershipFee }: RecordPaymentDialogProps) {
+  const fee = membershipFee || DEFAULT_MEMBERSHIP_FEE;
   const { toast } = useToast();
   const recordPayment = useRecordPayment();
   const [amount, setAmount] = useState('');
@@ -40,7 +44,8 @@ export function RecordPaymentDialog({ open, onOpenChange, memberId, memberName, 
     try {
       await recordPayment.mutateAsync({
         memberId,
-        amount: Number(amount),
+        amount: fee,
+        paidAmount: Number(amount),
         paymentMethod,
         note: note || `${MONTHS[month - 1]} ${year}`,
         period: { month, year },

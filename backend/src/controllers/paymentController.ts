@@ -1,15 +1,46 @@
 import { Request, Response } from 'express';
 import Payment from '../models/Payment';
 import Member from '../models/Member';
+import Transaction from '../models/Transaction';
+import mongoose from 'mongoose';
+
+// Helper: find member's groupId for a given club
+function getMemberGroupId(member: any, clubId: mongoose.Types.ObjectId): mongoose.Types.ObjectId | undefined {
+  const entry = member.clubs?.find(
+    (c: any) => c.clubId.toString() === clubId.toString() && c.status === 'ACTIVE'
+  );
+  return entry?.groupId;
+}
+
+// Helper: auto-create a INCOME transaction linked to a payment
+async function createTransactionForPayment(
+  payment: any,
+  paidAmount: number,
+  clubId: mongoose.Types.ObjectId,
+  groupId: mongoose.Types.ObjectId | undefined,
+  createdBy: mongoose.Types.ObjectId,
+  memberName: string,
+) {
+  await Transaction.create({
+    clubId,
+    type: 'INCOME',
+    category: 'MEMBERSHIP_FEE',
+    amount: paidAmount,
+    description: `Članarina - ${memberName}`,
+    transactionDate: payment.paidDate || new Date(),
+    groupId: groupId || undefined,
+    paymentId: payment._id,
+    createdBy,
+  });
+}
 
 export const createPayment = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
-    const { memberId, type, amount, description, dueDate, paymentMethod, paymentDate, note, period } = req.body;
+    const { memberId, type, amount, paidAmount: paidAmountInput, description, dueDate, paymentMethod, paymentDate, note, period } = req.body;
     const clubId = req.user.clubId;
     if (!clubId) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
 
-    // Support both "create pending payment" and "record completed payment" flows
     if (!memberId || !amount) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required fields: memberId and amount are required' } });
     }
@@ -17,9 +48,9 @@ export const createPayment = async (req: Request, res: Response) => {
     const member = await Member.findById(memberId);
     if (!member || !member.isInClub(clubId)) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found in club' } });
 
-    // If paymentMethod is provided, this is a "record payment" (already paid)
-    const isPaid = !!paymentMethod;
     const now = new Date();
+    const hasPaid = !!paymentMethod;
+    const actualPaidAmount = hasPaid ? (paidAmountInput || amount) : 0;
 
     // Use explicit period if provided, otherwise derive from paymentDate or current date
     let periodMonth: number;
@@ -33,24 +64,75 @@ export const createPayment = async (req: Request, res: Response) => {
       periodYear = periodDate.getFullYear();
     }
 
+    // Check if a payment already exists for this member+period (upsert logic)
+    const paymentType = type || 'MEMBERSHIP';
+    const existingPayment = await Payment.findOne({
+      clubId,
+      memberId,
+      type: paymentType,
+      'period.month': periodMonth,
+      'period.year': periodYear,
+    });
+
+    if (existingPayment && hasPaid) {
+      // Update total expected amount if provided (fixes legacy payments with incorrect amount)
+      if (amount && amount !== existingPayment.amount) {
+        existingPayment.amount = amount;
+      }
+      // Update existing payment: add to paidAmount
+      const newPaidAmount = (existingPayment.paidAmount || 0) + actualPaidAmount;
+      existingPayment.paidAmount = Math.min(newPaidAmount, existingPayment.amount);
+      existingPayment.status = existingPayment.paidAmount >= existingPayment.amount ? 'PAID' : 'PARTIAL';
+      existingPayment.paidDate = paymentDate ? new Date(paymentDate) : now;
+      if (paymentMethod) existingPayment.paymentMethod = paymentMethod;
+      if (description || note) existingPayment.description = description || note;
+      await existingPayment.save();
+
+      // Auto-create Transaction for paid amount
+      if (actualPaidAmount > 0) {
+        const groupId = getMemberGroupId(member, clubId);
+        await createTransactionForPayment(
+          existingPayment, actualPaidAmount, clubId, groupId, req.user._id, member.fullName
+        );
+      }
+
+      return res.status(200).json({ success: true, data: existingPayment });
+    }
+
+    // No existing payment — create new
+    let status: 'PENDING' | 'PAID' | 'PARTIAL' = 'PENDING';
+    if (hasPaid) {
+      status = actualPaidAmount >= amount ? 'PAID' : 'PARTIAL';
+    }
+
     const paymentData: any = {
       clubId,
       memberId,
-      type: type || 'MEMBERSHIP',
+      type: paymentType,
       amount,
+      paidAmount: actualPaidAmount,
       description: description || note,
       dueDate: dueDate || now,
       createdBy: req.user._id,
       period: { month: periodMonth, year: periodYear },
+      status,
     };
 
-    if (isPaid) {
-      paymentData.status = 'PAID';
+    if (hasPaid) {
       paymentData.paidDate = paymentDate ? new Date(paymentDate) : now;
       paymentData.paymentMethod = paymentMethod;
     }
 
     const payment = await Payment.create(paymentData);
+
+    // Auto-create Transaction for paid amount
+    if (hasPaid && actualPaidAmount > 0) {
+      const groupId = getMemberGroupId(member, clubId);
+      await createTransactionForPayment(
+        payment, actualPaidAmount, clubId, groupId, req.user._id, member.fullName
+      );
+    }
+
     return res.status(201).json({ success: true, data: payment });
   } catch (error: any) {
     console.error('❌ Create Payment Error:', error);
@@ -108,18 +190,33 @@ export const markPaymentPaid = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
     const { id } = req.params;
-    const { paymentMethod, receiptNumber, notes } = req.body;
+    const { paymentMethod, receiptNumber, notes, paidAmount: paidAmountInput } = req.body;
+    const clubId = req.user.clubId;
 
     const payment = await Payment.findById(id);
     if (!payment) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Payment not found' } });
-    if (payment.clubId.toString() !== req.user.clubId?.toString()) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
+    if (payment.clubId.toString() !== clubId?.toString()) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
 
-    payment.status = 'PAID';
+    // Calculate new paid amount: add to existing paidAmount
+    const additionalAmount = paidAmountInput || (payment.amount - (payment.paidAmount || 0));
+    const newPaidAmount = (payment.paidAmount || 0) + additionalAmount;
+
+    payment.paidAmount = Math.min(newPaidAmount, payment.amount);
+    payment.status = payment.paidAmount >= payment.amount ? 'PAID' : 'PARTIAL';
     payment.paidDate = new Date();
     if (paymentMethod) payment.paymentMethod = paymentMethod;
     if (receiptNumber) payment.receiptNumber = receiptNumber;
     if (notes) payment.notes = notes;
     await payment.save();
+
+    // Auto-create Transaction for the additional paid amount
+    if (additionalAmount > 0 && clubId) {
+      const member = await Member.findById(payment.memberId);
+      const groupId = member ? getMemberGroupId(member, clubId) : undefined;
+      await createTransactionForPayment(
+        payment, additionalAmount, clubId, groupId, req.user._id, member?.fullName || 'Član'
+      );
+    }
 
     return res.status(200).json({ success: true, data: payment });
   } catch (error: any) {

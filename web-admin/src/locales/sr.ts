@@ -411,6 +411,8 @@ export default {
     amountRSD: 'Iznos (RSD)',
     enterAmount: 'Unesite iznos',
     enterDescription: 'Unesite opis',
+    group: 'Grupa',
+    noGroup: 'Nije vezano za grupu',
     categories: {
       membershipPayment: 'Uplata članarine',
       eventFee: 'Kotizacija za događaj',
@@ -422,6 +424,13 @@ export default {
       coachSalary: 'Plata trenera',
       utilities: 'Režije',
       otherExpense: 'Ostali rashod',
+    },
+    status: {
+      PAID: 'Plaćeno',
+      PARTIAL: 'Delimično',
+      PENDING: 'Na čekanju',
+      OVERDUE: 'Kasni',
+      CANCELLED: 'Otkazano',
     },
   },
 

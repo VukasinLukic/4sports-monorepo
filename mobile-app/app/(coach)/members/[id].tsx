@@ -174,10 +174,10 @@ export default function MemberDetailsScreen() {
     // Total expected
     const totalExpected = monthsTraining * monthlyFee;
 
-    // Total paid
+    // Total paid (include PARTIAL payments, use paidAmount field)
     const totalPaid = payments
-      .filter((p: Payment) => p.status === 'PAID')
-      .reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
+      .filter((p: Payment) => p.status === 'PAID' || p.status === 'PARTIAL')
+      .reduce((sum: number, p: Payment) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
 
     // Debt
     const debt = Math.max(0, totalExpected - totalPaid);
@@ -218,8 +218,8 @@ export default function MemberDetailsScreen() {
       });
 
       const paidAmount = monthPayments
-        .filter((p: Payment) => p.status === 'PAID')
-        .reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
+        .filter((p: Payment) => p.status === 'PAID' || p.status === 'PARTIAL')
+        .reduce((sum: number, p: Payment) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
 
       let status: 'PAID' | 'PARTIAL' | 'UNPAID' = 'UNPAID';
       if (paidAmount >= stats.monthlyFee) {
@@ -262,6 +262,7 @@ export default function MemberDetailsScreen() {
   }
 
   const isPaid = member.paymentStatus === PaymentStatus.PAID;
+  const isPartialPaid = member.paymentStatus === PaymentStatus.PARTIAL;
   const isMedicalValid = member.medicalCheckStatus === 'VALID';
   const stats = calculateMembershipStats();
   const monthlyHistory = generateMonthlyHistory();
@@ -611,14 +612,14 @@ export default function MemberDetailsScreen() {
 
               {/* Status badges row */}
               <View style={styles.statusRow}>
-                <View style={[styles.statusBadge, { backgroundColor: isPaid ? Colors.success + '20' : Colors.error + '20' }]}>
+                <View style={[styles.statusBadge, { backgroundColor: isPaid ? Colors.success + '20' : isPartialPaid ? Colors.warning + '20' : Colors.error + '20' }]}>
                   <MaterialCommunityIcons
                     name="cash"
                     size={12}
-                    color={isPaid ? Colors.success : Colors.error}
+                    color={isPaid ? Colors.success : isPartialPaid ? Colors.warning : Colors.error}
                   />
-                  <Text style={[styles.statusBadgeText, { color: isPaid ? Colors.success : Colors.error }]}>
-                    {isPaid ? t('status.paid') : t('status.notPaid')}
+                  <Text style={[styles.statusBadgeText, { color: isPaid ? Colors.success : isPartialPaid ? Colors.warning : Colors.error }]}>
+                    {isPaid ? t('status.paid') : isPartialPaid ? t('status.partial') : t('status.notPaid')}
                   </Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: isMedicalValid ? Colors.success + '20' : Colors.error + '20' }]}>
@@ -636,7 +637,7 @@ export default function MemberDetailsScreen() {
 
             {/* Reminder bells */}
             <View style={styles.reminderButtons}>
-              {!isPaid && (
+              {!isPaid && !isPartialPaid && (
                 <TouchableOpacity
                   style={styles.reminderButton}
                   onPress={() => handleSendReminder('payment')}

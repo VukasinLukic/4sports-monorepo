@@ -46,6 +46,8 @@ interface GroupWithMembers extends Group {
 
 interface MemberWithStatus extends Member {
   isPaid: boolean;
+  isPartial: boolean;
+  paymentInfo?: { paidAmount: number; amount: number };
   isValidMedical: boolean;
   lastActive?: string;
   membershipFee?: number; // For dynamic fee support
@@ -123,6 +125,11 @@ export default function EvidenceScreen() {
               return {
                 ...member,
                 isPaid: evidence?.status === 'PAID',
+                isPartial: evidence?.status === 'PARTIAL',
+                paymentInfo: evidence?.payment ? {
+                  paidAmount: evidence.payment.paidAmount ?? 0,
+                  amount: evidence.payment.amount ?? 0,
+                } : undefined,
                 isValidMedical: evidence?.status === 'VALID',
                 lastActive: member.updatedAt,
               };
@@ -466,13 +473,14 @@ export default function EvidenceScreen() {
 
   const renderMemberCard = (member: MemberWithStatus, isChecked: boolean) => {
     const isLoading = loadingActions.has(`mark-${member._id}`) || loadingActions.has(`remind-${member._id}`);
+    const isPartial = activeTab === 'membership' && member.isPartial;
 
     return (
       <View
         key={member._id}
         style={[
           styles.memberCard,
-          isChecked ? styles.memberCardPaid : styles.memberCardUnpaid,
+          isChecked ? styles.memberCardPaid : isPartial ? styles.memberCardPartial : styles.memberCardUnpaid,
         ]}
       >
         {/* Member Avatar */}
@@ -494,11 +502,13 @@ export default function EvidenceScreen() {
           <Text style={styles.memberName}>{member.fullName}</Text>
           <Text style={[
             styles.memberStatus,
-            isChecked ? styles.memberStatusPaid : styles.memberStatusUnpaid,
+            isChecked ? styles.memberStatusPaid : isPartial ? styles.memberStatusPartial : styles.memberStatusUnpaid,
           ]}>
             {isChecked
               ? (activeTab === 'membership' ? t('status.paid') : t('status.valid'))
-              : (activeTab === 'membership' ? t('status.notPaid') : t('status.invalid'))
+              : isPartial
+                ? `${t('status.partial')} (${member.paymentInfo?.paidAmount ?? 0}/${member.paymentInfo?.amount ?? 0})`
+                : (activeTab === 'membership' ? t('status.notPaid') : t('status.invalid'))
             }
           </Text>
           <Text style={styles.memberLastActive}>
@@ -508,7 +518,7 @@ export default function EvidenceScreen() {
 
         {/* Actions */}
         <View style={styles.memberActions}>
-          {!isChecked && (
+          {!isChecked && !isPartial && (
             <TouchableOpacity
               style={styles.reminderButton}
               onPress={() => handleRemindMember(member)}
@@ -532,10 +542,18 @@ export default function EvidenceScreen() {
               <View style={[
                 styles.checkbox,
                 isChecked && styles.checkboxChecked,
+                isPartial && styles.checkboxPartial,
               ]}>
                 {isChecked && (
                   <MaterialCommunityIcons
                     name="check"
+                    size={18}
+                    color="#fff"
+                  />
+                )}
+                {isPartial && (
+                  <MaterialCommunityIcons
+                    name="minus"
                     size={18}
                     color="#fff"
                   />
@@ -1227,6 +1245,9 @@ const styles = StyleSheet.create({
   memberCardPaid: {
     backgroundColor: Colors.success + '15',
   },
+  memberCardPartial: {
+    backgroundColor: Colors.warning + '15',
+  },
   memberCardUnpaid: {
     backgroundColor: Colors.error + '15',
   },
@@ -1245,6 +1266,9 @@ const styles = StyleSheet.create({
   },
   memberStatusPaid: {
     color: Colors.success,
+  },
+  memberStatusPartial: {
+    color: Colors.warning,
   },
   memberStatusUnpaid: {
     color: Colors.error,
@@ -1276,6 +1300,10 @@ const styles = StyleSheet.create({
   checkboxChecked: {
     backgroundColor: Colors.success,
     borderColor: Colors.success,
+  },
+  checkboxPartial: {
+    backgroundColor: Colors.warning,
+    borderColor: Colors.warning,
   },
   emptyContainer: {
     flex: 1,

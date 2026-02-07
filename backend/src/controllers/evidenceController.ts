@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Member from '../models/Member';
 import Payment from '../models/Payment';
+import Transaction from '../models/Transaction';
 
 /**
  * Get Membership Evidence by Group
@@ -61,6 +62,7 @@ export const getMembershipEvidence = async (req: Request, res: Response) => {
         payment: payment ? {
           _id: payment._id,
           amount: payment.amount,
+          paidAmount: payment.paidAmount || 0,
           dueDate: payment.dueDate,
           paidDate: payment.paidDate,
           status: payment.status,
@@ -72,6 +74,7 @@ export const getMembershipEvidence = async (req: Request, res: Response) => {
     const stats = {
       total: evidence.length,
       paid: evidence.filter(e => e.status === 'PAID').length,
+      partial: evidence.filter(e => e.status === 'PARTIAL').length,
       pending: evidence.filter(e => e.status === 'PENDING').length,
       overdue: evidence.filter(e => e.status === 'OVERDUE').length,
       notCreated: evidence.filter(e => e.status === 'NOT_CREATED').length,
@@ -189,7 +192,7 @@ export const markMembershipPaid = async (req: Request, res: Response) => {
     }
 
     const { memberId } = req.params;
-    const { month, year, amount, paymentMethod } = req.body;
+    const { month, year, amount, paidAmount: paidAmountInput, paymentMethod } = req.body;
 
     if (!month || !year) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'month and year are required' } });
@@ -201,6 +204,12 @@ export const markMembershipPaid = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found' } });
     }
 
+    // Find member's groupId
+    const activeClub = member.clubs.find(
+      (c: any) => c.clubId.toString() === clubId.toString() && c.status === 'ACTIVE'
+    );
+    const groupId = activeClub?.groupId;
+
     // Check if payment already exists for this period
     let payment = await Payment.findOne({
       clubId,
@@ -210,24 +219,49 @@ export const markMembershipPaid = async (req: Request, res: Response) => {
       'period.year': year,
     });
 
+    const paidNow = paidAmountInput || amount || 0;
+
     if (payment) {
-      // Update existing payment
-      payment.status = 'PAID';
+      // Update total expected amount if provided (fixes legacy payments with incorrect amount)
+      if (amount && amount !== payment.amount) {
+        payment.amount = amount;
+      }
+      // Update existing payment: add to paidAmount
+      const newPaidAmount = (payment.paidAmount || 0) + paidNow;
+      payment.paidAmount = Math.min(newPaidAmount, payment.amount);
+      payment.status = payment.paidAmount >= payment.amount ? 'PAID' : 'PARTIAL';
       payment.paidDate = new Date();
       if (paymentMethod) payment.paymentMethod = paymentMethod;
       await payment.save();
     } else {
       // Create new payment
+      const totalAmount = amount || 0;
       payment = await Payment.create({
         clubId,
         memberId,
         type: 'MEMBERSHIP',
-        amount: amount || 0,
+        amount: totalAmount,
+        paidAmount: Math.min(paidNow, totalAmount),
         dueDate: new Date(year, month - 1, 1),
         paidDate: new Date(),
-        status: 'PAID',
+        status: paidNow >= totalAmount ? 'PAID' : 'PARTIAL',
         paymentMethod: paymentMethod || 'CASH',
         period: { month, year },
+        createdBy: req.user._id,
+      });
+    }
+
+    // Auto-create Transaction for the paid amount
+    if (paidNow > 0) {
+      await Transaction.create({
+        clubId,
+        type: 'INCOME',
+        category: 'MEMBERSHIP_FEE',
+        amount: paidNow,
+        description: `Članarina - ${member.fullName}`,
+        transactionDate: new Date(),
+        groupId: groupId || undefined,
+        paymentId: payment._id,
         createdBy: req.user._id,
       });
     }

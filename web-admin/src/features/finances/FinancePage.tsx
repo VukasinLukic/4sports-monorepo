@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -39,6 +40,7 @@ import { HelpButton } from '@/components/shared/HelpButton';
 import { useOnboarding } from '@/context/OnboardingContext';
 
 export function FinancePage() {
+  const { t } = useTranslation();
   const { checkAndStartTutorial } = useOnboarding();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -74,9 +76,9 @@ export function FinancePage() {
     return 'Sistem';
   };
 
-  // Calculate total from membership payments
-  const paidPayments = (clubPayments || []).filter((p) => p.status === 'PAID');
-  const paidPaymentsTotal = paidPayments.reduce((sum, p) => sum + p.amount, 0);
+  // Calculate total from membership payments (include PAID and PARTIAL)
+  const paidPayments = (clubPayments || []).filter((p) => p.status === 'PAID' || p.status === 'PARTIAL');
+  const paidPaymentsTotal = paidPayments.reduce((sum, p) => sum + (p.paidAmount ?? p.amount), 0);
 
   // Convert membership payments to FinanceEntry format for "All" tab
   const paymentEntries: FinanceEntry[] = paidPayments.map((p) => ({
@@ -418,19 +420,20 @@ export function FinancePage() {
                           <Badge
                             className={
                               payment.status === 'PAID' ? 'bg-green-600 hover:bg-green-700' :
+                              payment.status === 'PARTIAL' ? 'bg-orange-500 hover:bg-orange-600' :
                               payment.status === 'PENDING' ? 'bg-yellow-500 hover:bg-yellow-600' :
                               payment.status === 'OVERDUE' ? 'bg-red-600 hover:bg-red-700' :
                               'bg-gray-500'
                             }
                           >
-                            {payment.status === 'PAID' ? 'Plaćeno' :
-                             payment.status === 'PENDING' ? 'Na čekanju' :
-                             payment.status === 'OVERDUE' ? 'Kasni' :
-                             payment.status}
+                            {t(`finances.status.${payment.status}`)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-green-600 font-semibold">
-                          +{formatCurrency(payment.amount)}
+                          {payment.status === 'PARTIAL'
+                            ? `${formatCurrency(payment.paidAmount ?? 0)} / ${formatCurrency(payment.amount)}`
+                            : `+${formatCurrency(payment.amount)}`
+                          }
                         </TableCell>
                         <TableCell>{getRecordedByName(payment)}</TableCell>
                       </TableRow>

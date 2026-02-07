@@ -312,7 +312,7 @@ export const getCoachDashboardV2 = async (req: Request, res: Response) => {
       Transaction.find({ clubId: clubObjId })
         .sort({ transactionDate: -1 })
         .limit(15)
-        .select('type category description amount transactionDate createdAt')
+        .select('type category description amount transactionDate createdAt groupId')
         .lean(),
 
       // 10. Total transaction count current month
@@ -361,53 +361,53 @@ export const getCoachDashboardV2 = async (req: Request, res: Response) => {
     }
 
     // ─── Process Group Stats ───
-    // Build member-to-group mapping
-    const groupMemberMap = new Map<string, string[]>();
-    for (const group of groups) {
-      groupMemberMap.set(group._id.toString(), []);
-    }
+    // Aggregate transactions by groupId
+    const groupTransactionAgg = await Transaction.aggregate([
+      { $match: { clubId: clubObjId, groupId: { $exists: true, $ne: null } } },
+      {
+        $group: {
+          _id: { groupId: '$groupId', type: '$type' },
+          total: { $sum: '$amount' },
+        },
+      },
+    ]);
+
+    // Build member count per group
+    const groupMemberCountMap = new Map<string, number>();
     for (const member of members) {
       const clubEntry = member.clubs.find(
         (c: any) => c.clubId.toString() === clubObjId.toString() && c.status === 'ACTIVE'
       );
-      if (clubEntry) {
+      if (clubEntry && clubEntry.groupId) {
         const gid = clubEntry.groupId.toString();
-        if (groupMemberMap.has(gid)) {
-          groupMemberMap.get(gid)!.push(member._id.toString());
-        }
+        groupMemberCountMap.set(gid, (groupMemberCountMap.get(gid) || 0) + 1);
       }
     }
 
-    // Get income per group via Payment aggregation
-    const memberIds = members.map((m: any) => m._id);
-
-    const groupPayments = memberIds.length > 0
-      ? await Payment.aggregate([
-          { $match: { clubId: clubObjId, memberId: { $in: memberIds }, status: 'PAID' } },
-          { $group: { _id: '$memberId', totalPaid: { $sum: '$amount' } } },
-        ])
-      : [];
-
-    const memberPaymentMap = new Map<string, number>();
-    for (const gp of groupPayments) {
-      memberPaymentMap.set(gp._id.toString(), gp.totalPaid);
+    // Build income/expense maps per group from transactions
+    const groupIncomeMap = new Map<string, number>();
+    const groupExpenseMap = new Map<string, number>();
+    for (const row of groupTransactionAgg) {
+      const gid = (row._id as any).groupId.toString();
+      if ((row._id as any).type === 'INCOME') {
+        groupIncomeMap.set(gid, (groupIncomeMap.get(gid) || 0) + (row as any).total);
+      } else {
+        groupExpenseMap.set(gid, (groupExpenseMap.get(gid) || 0) + (row as any).total);
+      }
     }
 
     const groupStats = groups.map((group: any) => {
       const gid = group._id.toString();
-      const memberIdsInGroup = groupMemberMap.get(gid) || [];
-      const totalIncome = memberIdsInGroup.reduce(
-        (sum, mid) => sum + (memberPaymentMap.get(mid) || 0),
-        0
-      );
+      const totalIncome = groupIncomeMap.get(gid) || 0;
+      const totalExpense = groupExpenseMap.get(gid) || 0;
       return {
         groupId: gid,
         groupName: group.name,
         groupColor: group.color || '#3b82f6',
-        memberCount: memberIdsInGroup.length,
+        memberCount: groupMemberCountMap.get(gid) || 0,
         totalIncome,
-        totalExpense: 0,
-        profit: totalIncome,
+        totalExpense,
+        profit: totalIncome - totalExpense,
       };
     });
 
