@@ -109,6 +109,76 @@ export interface FinanceSummary {
   currentMonthExpenses: number;
 }
 
+// Dashboard V2 Types
+export interface DashboardV2Data {
+  kpiCards: DashboardKPICards;
+  monthlyFinance: MonthlyFinanceEntry[];
+  groupStats: GroupStatEntry[];
+  memberGrowth: MemberGrowthData;
+  paymentMethodBreakdown: PaymentMethodBreakdown;
+  recentTransactions: RecentTransaction[];
+  totalTransactionCount: number;
+  transactionCountTrend: number;
+}
+
+export interface DashboardKPICards {
+  totalIncome: number;
+  totalExpense: number;
+  profit: number;
+  unpaidCount: number;
+  incomeTrend: number;
+  expenseTrend: number;
+  profitTrend: number;
+  unpaidTrend: number;
+}
+
+export interface MonthlyFinanceEntry {
+  month: number;
+  income: number;
+  expense: number;
+}
+
+export interface GroupStatEntry {
+  groupId: string;
+  groupName: string;
+  groupColor: string;
+  memberCount: number;
+  totalIncome: number;
+  totalExpense: number;
+  profit: number;
+}
+
+export interface MemberGrowthData {
+  totalMembers: number;
+  memberTrend: number;
+  newMembersThisMonth: number;
+  newMembersTrend: number;
+  monthlyData: Array<{
+    month: number;
+    count: number;
+    newCount: number;
+  }>;
+}
+
+export interface PaymentMethodBreakdown {
+  totalBalance: number;
+  methods: Array<{
+    method: string;
+    amount: number;
+    count: number;
+  }>;
+}
+
+export interface RecentTransaction {
+  _id: string;
+  type: 'INCOME' | 'EXPENSE';
+  category: string;
+  description: string;
+  amount: number;
+  transactionDate: string;
+  createdAt: string;
+}
+
 // Settings Types
 export interface ClubSettings {
   id: string;

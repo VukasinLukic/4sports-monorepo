@@ -53,3 +53,36 @@ export const useDashboard = () => {
     queryFn: fetchDashboardStats,
   });
 };
+
+// ─── Dashboard V2 ───
+import type { DashboardV2Data } from '@/types';
+
+const emptyDashboardV2: DashboardV2Data = {
+  kpiCards: {
+    totalIncome: 0, totalExpense: 0, profit: 0, unpaidCount: 0,
+    incomeTrend: 0, expenseTrend: 0, profitTrend: 0, unpaidTrend: 0,
+  },
+  monthlyFinance: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, income: 0, expense: 0 })),
+  groupStats: [],
+  memberGrowth: {
+    totalMembers: 0, memberTrend: 0, newMembersThisMonth: 0, newMembersTrend: 0,
+    monthlyData: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, count: 0, newCount: 0 })),
+  },
+  paymentMethodBreakdown: { totalBalance: 0, methods: [] },
+  recentTransactions: [],
+  totalTransactionCount: 0,
+  transactionCountTrend: 0,
+};
+
+export const useDashboardV2 = (year?: number) => {
+  return useQuery({
+    queryKey: ['dashboard-v2', year],
+    queryFn: async (): Promise<DashboardV2Data> => {
+      const params = year ? `?year=${year}` : '';
+      const response = await api.get<{ success: boolean; data: DashboardV2Data }>(
+        `/dashboard/coach/v2${params}`
+      );
+      return response.data.data || emptyDashboardV2;
+    },
+  });
+};

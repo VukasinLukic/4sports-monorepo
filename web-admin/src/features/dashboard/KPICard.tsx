@@ -25,15 +25,17 @@ export const KPICard = ({ title, value, icon: Icon, trend, suffix = '' }: KPICar
             </h3>
             {trend !== undefined && (
               <div className={cn(
-                'flex items-center gap-1 mt-2 text-sm font-medium',
-                isPositive ? 'text-primary' : 'text-destructive'
+                'inline-flex items-center gap-1 mt-2 text-xs font-medium px-2 py-0.5 rounded-full',
+                isPositive
+                  ? 'bg-green-500/10 text-green-500'
+                  : 'bg-red-500/10 text-red-500'
               )}>
                 {isPositive ? (
-                  <TrendingUp size={16} />
+                  <TrendingUp size={14} />
                 ) : (
-                  <TrendingDown size={16} />
+                  <TrendingDown size={14} />
                 )}
-                <span>{Math.abs(trend)}%</span>
+                <span>{isPositive ? '+' : ''}{trend}%</span>
               </div>
             )}
           </div>
