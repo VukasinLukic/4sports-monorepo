@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 
 export const RegisterPage = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -35,22 +37,22 @@ export const RegisterPage = () => {
     setError(null);
 
     if (!validateEmail(formData.email)) {
-      setError('Please enter a valid email address');
+      setError(t('validation.invalidEmail'));
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('validation.passwordMin'));
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('validation.passwordsNoMatch'));
       return;
     }
 
     if (!formData.fullName.trim()) {
-      setError('Full name is required');
+      setError(t('validation.fullNameRequired'));
       return;
     }
 
@@ -71,7 +73,7 @@ export const RegisterPage = () => {
 
       navigate('/');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to register');
+      setError(err instanceof Error ? err.message : t('errors.registerFailed'));
     } finally {
       setLoading(false);
     }
@@ -83,13 +85,13 @@ export const RegisterPage = () => {
         <CardHeader className="space-y-1">
           <CardTitle className="text-3xl font-bold text-center text-primary">4Sports</CardTitle>
           <CardDescription className="text-center">
-            Create your club admin account
+            {t('auth.createAccountDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -101,7 +103,7 @@ export const RegisterPage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -113,7 +115,7 @@ export const RegisterPage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -125,7 +127,7 @@ export const RegisterPage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
+              <Label htmlFor="fullName">{t('auth.fullName')}</Label>
               <Input
                 id="fullName"
                 type="text"
@@ -137,7 +139,7 @@ export const RegisterPage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <Label htmlFor="phoneNumber">{t('auth.phoneNumber')}</Label>
               <Input
                 id="phoneNumber"
                 type="tel"
@@ -148,7 +150,7 @@ export const RegisterPage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="clubName">Club Name</Label>
+              <Label htmlFor="clubName">{t('auth.clubName')}</Label>
               <Input
                 id="clubName"
                 type="text"
@@ -164,15 +166,15 @@ export const RegisterPage = () => {
               </div>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? t('auth.creatingAccount') : t('auth.signUp')}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-sm text-muted-foreground text-center">
-            Already have an account?{' '}
+            {t('auth.hasAccount')}{' '}
             <Link to="/login" className="text-primary hover:underline">
-              Sign in
+              {t('auth.signIn')}
             </Link>
           </div>
         </CardFooter>

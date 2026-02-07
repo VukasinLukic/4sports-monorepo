@@ -712,15 +712,15 @@ export default {
       november: 'Novembar',
       december: 'Decembar',
     },
-   days: {
-    sun: 'Ned',
-    mon: 'Pon',
-    tue: 'Uto',
-    wed: 'Sre',
-    thu: 'Čet',
-    fri: 'Pet',
-    sat: 'Sub',
-   },
+    days: {
+      sun: 'Ned',
+      mon: 'Pon',
+      tue: 'Uto',
+      wed: 'Sre',
+      thu: 'Čet',
+      fri: 'Pet',
+      sat: 'Sub',
+    },
 
   },
 
@@ -837,7 +837,7 @@ export default {
   // App specific
   app: {
     name: '4Sports',
-    tagline: 'Upravljanje sportskim klubom',
-    copyright: '© 2024 4Sports',
+    tagline: 'Upravljanje klubom bez prepreka',
+    copyright: '© 2026 4Sports',
   },
 };

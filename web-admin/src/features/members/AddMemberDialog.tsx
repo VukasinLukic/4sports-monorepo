@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ interface AddMemberDialogProps {
 }
 
 export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
+  const { t } = useTranslation();
   const createMemberMutation = useCreateMember();
   const [formData, setFormData] = useState<CreateMemberData>({
     fullName: '',
@@ -39,13 +41,13 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
     const newErrors: Record<string, string> = {};
 
     if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
+      newErrors.fullName = t('validation.fullNameRequired');
     }
     if (!formData.dateOfBirth) {
-      newErrors.dateOfBirth = 'Date of birth is required';
+      newErrors.dateOfBirth = t('validation.dateOfBirthRequired');
     }
     if (!formData.groupId) {
-      newErrors.groupId = 'Group is required';
+      newErrors.groupId = t('validation.groupRequired');
     }
 
     setErrors(newErrors);
@@ -88,20 +90,20 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add New Member</DialogTitle>
+          <DialogTitle>{t('members.addNewMember')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             {/* Full Name */}
             <div className="grid gap-2">
               <Label htmlFor="fullName">
-                Full Name <span className="text-red-500">*</span>
+                {t('members.fullName')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="fullName"
                 value={formData.fullName}
                 onChange={(e) => handleChange('fullName', e.target.value)}
-                placeholder="Enter full name"
+                placeholder={t('members.enterFullName')}
               />
               {errors.fullName && (
                 <p className="text-sm text-red-500">{errors.fullName}</p>
@@ -111,7 +113,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             {/* Date of Birth */}
             <div className="grid gap-2">
               <Label htmlFor="dateOfBirth">
-                Date of Birth <span className="text-red-500">*</span>
+                {t('members.dateOfBirth')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="dateOfBirth"
@@ -127,7 +129,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             {/* Gender */}
             <div className="grid gap-2">
               <Label htmlFor="gender">
-                Gender <span className="text-red-500">*</span>
+                {t('members.gender')} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.gender}
@@ -137,8 +139,8 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MALE">Male</SelectItem>
-                  <SelectItem value="FEMALE">Female</SelectItem>
+                  <SelectItem value="MALE">{t('members.male')}</SelectItem>
+                  <SelectItem value="FEMALE">{t('members.female')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -146,14 +148,14 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             {/* Group - Mock options for now */}
             <div className="grid gap-2">
               <Label htmlFor="groupId">
-                Group <span className="text-red-500">*</span>
+                {t('members.group')} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.groupId}
                 onValueChange={(value) => handleChange('groupId', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select group" />
+                  <SelectValue placeholder={t('members.selectGroup')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="group1">U10 - Beginners</SelectItem>
@@ -169,7 +171,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
 
             {/* Height (optional) */}
             <div className="grid gap-2">
-              <Label htmlFor="height">Height (cm)</Label>
+              <Label htmlFor="height">{t('members.heightCm')}</Label>
               <Input
                 id="height"
                 type="number"
@@ -177,13 +179,13 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
                 onChange={(e) =>
                   handleChange('height', e.target.value ? Number(e.target.value) : undefined)
                 }
-                placeholder="Enter height"
+                placeholder={t('members.enterHeight')}
               />
             </div>
 
             {/* Weight (optional) */}
             <div className="grid gap-2">
-              <Label htmlFor="weight">Weight (kg)</Label>
+              <Label htmlFor="weight">{t('members.weightKg')}</Label>
               <Input
                 id="weight"
                 type="number"
@@ -191,18 +193,18 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
                 onChange={(e) =>
                   handleChange('weight', e.target.value ? Number(e.target.value) : undefined)
                 }
-                placeholder="Enter weight"
+                placeholder={t('members.enterWeight')}
               />
             </div>
 
             {/* Position (optional) */}
             <div className="grid gap-2">
-              <Label htmlFor="position">Position</Label>
+              <Label htmlFor="position">{t('members.position')}</Label>
               <Input
                 id="position"
                 value={formData.position || ''}
                 onChange={(e) => handleChange('position', e.target.value)}
-                placeholder="e.g., Forward, Defender, Goalkeeper"
+                placeholder={t('members.positionPlaceholder')}
               />
             </div>
 
@@ -218,7 +220,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
               onClick={() => onOpenChange(false)}
               disabled={createMemberMutation.isPending}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -228,10 +230,10 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
               {createMemberMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
+                  {t('common.adding')}
                 </>
               ) : (
-                'Add Member'
+                t('members.addMember')
               )}
             </Button>
           </DialogFooter>

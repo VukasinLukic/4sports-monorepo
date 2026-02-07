@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,22 +49,6 @@ const parseLocalDateStr = (dateStr: string): Date => {
   return new Date(y, m - 1, d);
 };
 
-const DAYS_OF_WEEK = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub'];
-const MONTHS = [
-  'Januar',
-  'Februar',
-  'Mart',
-  'April',
-  'Maj',
-  'Jun',
-  'Jul',
-  'Avgust',
-  'Septembar',
-  'Oktobar',
-  'Novembar',
-  'Decembar',
-];
-
 const getEventTypeColor = (type: string): string => {
   const upperType = type?.toUpperCase() || '';
   if (upperType === 'TRAINING' || upperType.includes('TRENING')) {
@@ -85,6 +70,7 @@ const formatEventTime = (dateString: string) => {
 };
 
 export function CalendarPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -94,6 +80,9 @@ export function CalendarPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
+
+  const DAYS_OF_WEEK = t('calendar.days', { returnObjects: true }) as string[];
+  const MONTHS = t('calendar.months', { returnObjects: true }) as string[];
 
   const { data: events, isLoading, error, refetch } = useEvents(
     selectedGroupId !== 'all' ? { groupId: selectedGroupId } : undefined
@@ -195,13 +184,13 @@ export function CalendarPage() {
     try {
       await deleteEventMutation.mutateAsync(eventToDelete._id);
       toast({
-        title: 'Uspešno',
-        description: 'Događaj je obrisan',
+        title: t('common.success'),
+        description: t('calendar.eventDeleted'),
       });
     } catch (error) {
       toast({
-        title: 'Greška',
-        description: 'Nije uspelo brisanje događaja',
+        title: t('common.error'),
+        description: t('calendar.eventDeleteFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -224,8 +213,8 @@ export function CalendarPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Kalendar</h1>
-            <p className="text-muted-foreground">Upravljajte treninzima i događajima</p>
+            <h1 className="text-3xl font-bold">{t('calendar.title')}</h1>
+            <p className="text-muted-foreground">{t('calendar.subtitle')}</p>
           </div>
         </div>
         <ErrorMessage message="Failed to load events" onRetry={() => refetch()} />
@@ -237,12 +226,12 @@ export function CalendarPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Kalendar</h1>
-          <p className="text-muted-foreground">Upravljajte treninzima i događajima</p>
+          <h1 className="text-3xl font-bold">{t('calendar.title')}</h1>
+          <p className="text-muted-foreground">{t('calendar.subtitle')}</p>
         </div>
         <Button className="bg-green-600 hover:bg-green-700" onClick={() => setCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Novi događaj
+          {t('calendar.newEvent')}
         </Button>
       </div>
 
@@ -264,7 +253,7 @@ export function CalendarPage() {
                   size="sm"
                   onClick={() => setCurrentDate(new Date())}
                 >
-                  Danas
+                  {t('calendar.today')}
                 </Button>
                 <Button variant="outline" size="icon" onClick={() => navigateMonth('next')}>
                   <ChevronRight className="h-4 w-4" />
@@ -328,7 +317,7 @@ export function CalendarPage() {
                           ))}
                           {dayEvents.length > 2 && (
                             <div className="text-xs text-muted-foreground">
-                              +{dayEvents.length - 2} više
+                              +{dayEvents.length - 2}
                             </div>
                           )}
                         </div>
@@ -347,12 +336,12 @@ export function CalendarPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">
                 {selectedDate
-                  ? `Događaji ${parseLocalDateStr(selectedDate).toLocaleDateString('sr-RS')}`
-                  : 'Predstojeći događaji'}
+                  ? t('calendar.eventsOnDate', { date: parseLocalDateStr(selectedDate).toLocaleDateString('sr-RS') })
+                  : t('calendar.upcomingEvents')}
               </CardTitle>
               {selectedDate && (
                 <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>
-                  Prikaži sve
+                  {t('calendar.showAll')}
                 </Button>
               )}
             </div>
@@ -362,10 +351,10 @@ export function CalendarPage() {
               <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
                 <SelectTrigger className="w-[140px]">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Sve grupe" />
+                  <SelectValue placeholder={t('calendar.allGroups')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Sve grupe</SelectItem>
+                  <SelectItem value="all">{t('calendar.allGroups')}</SelectItem>
                   {groups?.map((group: Group) => (
                     <SelectItem key={group._id} value={group._id}>
                       <div className="flex items-center gap-2">
@@ -384,12 +373,12 @@ export function CalendarPage() {
 
               <Select value={filterType} onValueChange={setFilterType}>
                 <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Svi tipovi" />
+                  <SelectValue placeholder={t('calendar.allTypes')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Svi tipovi</SelectItem>
-                  <SelectItem value="training">Treninzi</SelectItem>
-                  <SelectItem value="match">Utakmice</SelectItem>
+                  <SelectItem value="all">{t('calendar.allTypes')}</SelectItem>
+                  <SelectItem value="training">{t('calendar.trainings')}</SelectItem>
+                  <SelectItem value="match">{t('calendar.matches')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -404,7 +393,7 @@ export function CalendarPage() {
             ) : filteredEvents.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>{selectedDate ? 'Nema događaja na ovaj dan' : 'Nema predstojećih događaja'}</p>
+                <p>{selectedDate ? t('calendar.noEventsOnDay') : t('calendar.noUpcomingEvents')}</p>
               </div>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
@@ -480,18 +469,18 @@ export function CalendarPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Obriši događaj</AlertDialogTitle>
+            <AlertDialogTitle>{t('calendar.deleteEvent')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Da li ste sigurni da želite da obrišete ovaj događaj? Ova akcija se ne može poništiti.
+              {t('calendar.deleteEventConfirm')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Otkaži</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Obriši
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

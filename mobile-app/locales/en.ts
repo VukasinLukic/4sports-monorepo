@@ -825,6 +825,6 @@ export default {
   app: {
     name: '4Sports',
     tagline: 'Sports Club Management',
-    copyright: '© 2024 4Sports',
+    copyright: '© 2026 4Sports',
   },
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,15 +26,14 @@ import { GenerateInviteDialog } from './GenerateInviteDialog';
 import { useCoaches, useDeleteCoach } from './useCoaches';
 import { Coach } from '@/types';
 import { Trash2, UserPlus, AlertTriangle, Search } from 'lucide-react';
-import { useAuth } from '@/features/auth/AuthContext';
 import { SkeletonTable } from '@/components/shared/SkeletonTable';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
 import { HelpButton } from '@/components/shared/HelpButton';
 import { useOnboarding } from '@/context/OnboardingContext';
 
 export function CoachListPage() {
+  const { t } = useTranslation();
   const { checkAndStartTutorial } = useOnboarding();
-  const { backendUser } = useAuth();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
@@ -146,16 +146,16 @@ export function CoachListPage() {
   }
 
   if (isError) {
-    return <ErrorMessage message="Failed to load coaches" onRetry={refetch} />;
+    return <ErrorMessage message={t('errors.loadCoaches')} onRetry={refetch} />;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Coaches</h1>
+          <h1 className="text-3xl font-bold">{t('coaches.title')}</h1>
           <p className="text-muted-foreground">
-            Manage coaches and their contracts
+            {t('coaches.subtitle')}
           </p>
         </div>
         <Button
@@ -164,20 +164,20 @@ export function CoachListPage() {
           className="bg-green-600 hover:bg-green-700"
         >
           <UserPlus className="mr-2 h-4 w-4" />
-          Invite Coach
+          {t('coaches.inviteCoach')}
         </Button>
       </div>
 
-      <FilterPanel onClear={handleClearFilters} title="Advanced Filters">
+      <FilterPanel onClear={handleClearFilters} title={t('coaches.advancedFilters')}>
         <div data-tour="filters" className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div className="space-y-2">
-            <Label htmlFor="search">Search by Name</Label>
+            <Label htmlFor="search">{t('coaches.searchByName')}</Label>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 id="search"
-                placeholder="Search by name..."
+                placeholder={t('coaches.searchPlaceholder')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-8"
@@ -187,7 +187,7 @@ export function CoachListPage() {
 
           {/* Contract Status Filter */}
           <div className="space-y-2">
-            <Label htmlFor="contract-status">Contract Status</Label>
+            <Label htmlFor="contract-status">{t('coaches.contractStatus')}</Label>
             <Select
               value={tempContractStatus}
               onValueChange={(value) => setTempContractStatus(value as any)}
@@ -196,10 +196,10 @@ export function CoachListPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Contracts</SelectItem>
-                <SelectItem value="VALID">Valid Contracts</SelectItem>
-                <SelectItem value="EXPIRING">Expiring Soon (30 days)</SelectItem>
-                <SelectItem value="EXPIRED">Expired Contracts</SelectItem>
+                <SelectItem value="ALL">{t('coaches.allContracts')}</SelectItem>
+                <SelectItem value="VALID">{t('coaches.validContracts')}</SelectItem>
+                <SelectItem value="EXPIRING">{t('coaches.expiringSoon30')}</SelectItem>
+                <SelectItem value="EXPIRED">{t('coaches.expiredContracts')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -212,7 +212,7 @@ export function CoachListPage() {
             className="bg-green-600 hover:bg-green-700"
           >
             <Search className="mr-2 h-4 w-4" />
-            Apply Filters
+            {t('coaches.applyFilters')}
           </Button>
         </div>
       </FilterPanel>
@@ -222,12 +222,12 @@ export function CoachListPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Groups</TableHead>
-                <TableHead>Contract Expiry</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('coaches.name')}</TableHead>
+                <TableHead>{t('coaches.email')}</TableHead>
+                <TableHead>{t('coaches.phone')}</TableHead>
+                <TableHead>{t('coaches.groups')}</TableHead>
+                <TableHead>{t('coaches.contractExpiry')}</TableHead>
+                <TableHead className="text-right">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -244,7 +244,7 @@ export function CoachListPage() {
                       <div className="text-sm">{coach.phoneNumber}</div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{coach.groupsCount} groups</Badge>
+                      <Badge variant="outline">{t('coaches.groupsCount', { count: coach.groupsCount })}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -254,7 +254,7 @@ export function CoachListPage() {
                         {isContractExpired(coach.contractExpiryDate) && (
                           <Badge variant="destructive" className="gap-1">
                             <AlertTriangle className="h-3 w-3" />
-                            Expired
+                            {t('status.expired')}
                           </Badge>
                         )}
                         {isContractExpiringSoon(coach.contractExpiryDate) && (
@@ -263,7 +263,7 @@ export function CoachListPage() {
                             className="gap-1 border-yellow-600 text-yellow-600"
                           >
                             <AlertTriangle className="h-3 w-3" />
-                            Expiring Soon
+                            {t('status.expiringSoon')}
                           </Badge>
                         )}
                       </div>
@@ -287,14 +287,14 @@ export function CoachListPage() {
                   <TableCell colSpan={6} className="text-center py-10">
                     <div className="flex flex-col items-center gap-2">
                       <UserPlus className="h-12 w-12 text-muted-foreground" />
-                      <p className="text-muted-foreground">No coaches found</p>
+                      <p className="text-muted-foreground">{t('coaches.noCoaches')}</p>
                       <Button
                         onClick={() => setInviteDialogOpen(true)}
                         variant="outline"
                         className="mt-2"
                       >
                         <UserPlus className="mr-2 h-4 w-4" />
-                        Invite First Coach
+                        {t('coaches.inviteFirstCoach')}
                       </Button>
                     </div>
                   </TableCell>
@@ -313,11 +313,11 @@ export function CoachListPage() {
       <ConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title="Remove Coach"
-        message={`Are you sure you want to remove ${selectedCoach?.fullName}? This action cannot be undone.`}
+        title={t('coaches.removeCoach')}
+        message={t('coaches.removeConfirm', { name: selectedCoach?.fullName })}
         onConfirm={handleDeleteConfirm}
-        confirmText="Remove"
-        cancelText="Cancel"
+        confirmText={t('common.remove')}
+        cancelText={t('common.cancel')}
         variant="destructive"
       />
 

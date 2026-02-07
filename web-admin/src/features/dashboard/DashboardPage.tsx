@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DollarSign, Users, Calendar, AlertCircle, HeartPulse, UsersRound, CalendarDays, Clock, MapPin, TrendingUp, Activity } from 'lucide-react';
 import { useDashboard, UpcomingEvent } from './useDashboard';
 import { KPICard } from './KPICard';
@@ -42,29 +43,30 @@ const formatEventTime = (dateString: string) => {
   }
 };
 
-const formatEventDate = (dateString: string) => {
-  try {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return 'Danas';
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Sutra';
-    }
-    return date.toLocaleDateString('sr-RS', { weekday: 'short', day: 'numeric', month: 'short' });
-  } catch {
-    return '';
-  }
-};
-
 const CHART_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 export const DashboardPage = () => {
+  const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useDashboard();
   const { checkAndStartTutorial } = useOnboarding();
+
+  const formatEventDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      if (date.toDateString() === today.toDateString()) {
+        return t('common.today');
+      } else if (date.toDateString() === tomorrow.toDateString()) {
+        return t('common.tomorrow');
+      }
+      return date.toLocaleDateString('sr-RS', { weekday: 'short', day: 'numeric', month: 'short' });
+    } catch {
+      return '';
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && data) {
@@ -75,9 +77,9 @@ export const DashboardPage = () => {
   if (error) {
     return (
       <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+        <h1 className="text-3xl font-bold mb-6">{t('dashboard.title')}</h1>
         <ErrorMessage
-          message="Failed to load dashboard data"
+          message={t('errors.loadDashboard')}
           onRetry={() => refetch()}
         />
       </div>
@@ -110,8 +112,8 @@ export const DashboardPage = () => {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">Dobrodošli! Evo pregleda vašeg kluba.</p>
+        <h1 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h1>
+        <p className="text-muted-foreground">{t('dashboard.welcomeSubtitle')}</p>
       </div>
 
       {/* Stats Cards */}
@@ -126,22 +128,22 @@ export const DashboardPage = () => {
         ) : data ? (
           <>
             <KPICard
-              title="Ukupno članova"
+              title={t('dashboard.totalMembers')}
               value={data.totalMembers}
               icon={Users}
             />
             <KPICard
-              title="Ukupno grupa"
+              title={t('dashboard.totalGroups')}
               value={data.totalGroups}
               icon={UsersRound}
             />
             <KPICard
-              title="Događaji danas"
+              title={t('dashboard.eventsToday')}
               value={data.eventsToday}
               icon={Calendar}
             />
             <KPICard
-              title="Ukupan prihod"
+              title={t('dashboard.totalRevenue')}
               value={`${data.totalRevenue.toLocaleString()} RSD`}
               icon={DollarSign}
             />
@@ -160,14 +162,14 @@ export const DashboardPage = () => {
                     <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-orange-700 dark:text-orange-300 font-medium">Neplaćene članarine</p>
+                    <p className="text-sm text-orange-700 dark:text-orange-300 font-medium">{t('dashboard.unpaidMemberships')}</p>
                     <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">{data.unpaidCount}</p>
                   </div>
                   <Link
                     to="/finances"
                     className="text-sm text-orange-600 dark:text-orange-400 hover:underline font-medium"
                   >
-                    Pogledaj sve &rarr;
+                    {t('common.seeAll')} &rarr;
                   </Link>
                 </div>
               </CardContent>
@@ -181,14 +183,14 @@ export const DashboardPage = () => {
                     <HeartPulse className="h-6 w-6 text-red-600 dark:text-red-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-red-700 dark:text-red-300 font-medium">Lekarski pregledi ističu</p>
+                    <p className="text-sm text-red-700 dark:text-red-300 font-medium">{t('dashboard.medicalExpiring')}</p>
                     <p className="text-2xl font-bold text-red-800 dark:text-red-200">{data.medicalDueCount}</p>
                   </div>
                   <Link
                     to="/members"
                     className="text-sm text-red-600 dark:text-red-400 hover:underline font-medium"
                   >
-                    Pogledaj sve &rarr;
+                    {t('common.seeAll')} &rarr;
                   </Link>
                 </div>
               </CardContent>
@@ -205,7 +207,7 @@ export const DashboardPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Activity className="h-5 w-5" />
-                Tipovi događaja
+                {t('dashboard.eventTypes')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -221,13 +223,13 @@ export const DashboardPage = () => {
                         outerRadius={110}
                         paddingAngle={3}
                         dataKey="value"
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        label={({ name, percent }) => `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`}
                       >
                         {eventTypeData.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => [`${value} događaja`, 'Broj']} />
+                      <Tooltip formatter={(value) => [`${value}`, t('dashboard.eventTypes')]} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -235,7 +237,7 @@ export const DashboardPage = () => {
                 <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
                     <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Nema predstojećih događaja</p>
+                    <p>{t('dashboard.noUpcomingEvents')}</p>
                   </div>
                 </div>
               )}
@@ -247,7 +249,7 @@ export const DashboardPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <TrendingUp className="h-5 w-5" />
-                Dolasci po događajima
+                {t('dashboard.attendanceByEvents')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -259,8 +261,8 @@ export const DashboardPage = () => {
                       <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 12 }} />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="confirmed" name="Potvrđeno" fill="#22c55e" radius={[0, 4, 4, 0]} />
-                      <Bar dataKey="pending" name="Čeka" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="confirmed" name={t('status.confirmed')} fill="#22c55e" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="pending" name={t('status.pending')} fill="#f59e0b" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -268,7 +270,7 @@ export const DashboardPage = () => {
                 <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
                     <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Nema podataka o dolascima</p>
+                    <p>{t('dashboard.noAttendanceData')}</p>
                   </div>
                 </div>
               )}
@@ -284,7 +286,7 @@ export const DashboardPage = () => {
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-bold text-primary">{data.totalEvents}</p>
-                <p className="text-sm text-muted-foreground">Ukupno događaja</p>
+                <p className="text-sm text-muted-foreground">{t('dashboard.totalEvents')}</p>
               </div>
             </CardContent>
           </Card>
@@ -294,7 +296,7 @@ export const DashboardPage = () => {
                 <p className="text-3xl font-bold text-green-600">
                   {data.upcomingEvents.reduce((acc, e) => acc + e.confirmedCount, 0)}
                 </p>
-                <p className="text-sm text-muted-foreground">Potvrđenih dolazaka</p>
+                <p className="text-sm text-muted-foreground">{t('dashboard.confirmedAttendances')}</p>
               </div>
             </CardContent>
           </Card>
@@ -304,7 +306,7 @@ export const DashboardPage = () => {
                 <p className="text-3xl font-bold text-yellow-600">
                   {data.upcomingEvents.reduce((acc, e) => acc + e.pendingCount, 0)}
                 </p>
-                <p className="text-sm text-muted-foreground">Na čekanju</p>
+                <p className="text-sm text-muted-foreground">{t('dashboard.pendingStatus')}</p>
               </div>
             </CardContent>
           </Card>
@@ -312,7 +314,7 @@ export const DashboardPage = () => {
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-bold text-blue-600">{data.upcomingEvents.length}</p>
-                <p className="text-sm text-muted-foreground">Predstojeći događaji</p>
+                <p className="text-sm text-muted-foreground">{t('dashboard.upcomingEvents')}</p>
               </div>
             </CardContent>
           </Card>
@@ -325,17 +327,17 @@ export const DashboardPage = () => {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5" />
-              Predstojeći događaji
+              {t('dashboard.upcomingEvents')}
             </CardTitle>
             <Link to="/calendar" className="text-sm text-primary hover:underline">
-              Vidi sve
+              {t('common.viewAll')}
             </Link>
           </CardHeader>
           <CardContent>
             {data.upcomingEvents.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nema predstojećih događaja</p>
+                <p>{t('dashboard.noUpcomingEvents')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -382,11 +384,11 @@ export const DashboardPage = () => {
                       </div>
                       <div className="flex items-center gap-2 mt-2 text-xs">
                         <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                          {event.confirmedCount} potvrđeno
+                          {t('dashboard.confirmedCount', { count: event.confirmedCount })}
                         </Badge>
                         {event.pendingCount > 0 && (
                           <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
-                            {event.pendingCount} čeka
+                            {t('dashboard.pendingCount', { count: event.pendingCount })}
                           </Badge>
                         )}
                       </div>

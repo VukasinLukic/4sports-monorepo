@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -28,22 +29,6 @@ interface CreateEventDialogProps {
   selectedDate?: Date;
 }
 
-const EVENT_TYPES = [
-  { id: 'TRAINING', label: 'Trening' },
-  { id: 'MATCH', label: 'Utakmica' },
-  { id: 'OTHER', label: 'Ostalo' },
-];
-
-const DAYS_OF_WEEK = [
-  { id: 0, label: 'Ned' },
-  { id: 1, label: 'Pon' },
-  { id: 2, label: 'Uto' },
-  { id: 3, label: 'Sre' },
-  { id: 4, label: 'Čet' },
-  { id: 5, label: 'Pet' },
-  { id: 6, label: 'Sub' },
-];
-
 const toLocalDateStr = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -52,9 +37,18 @@ const toLocalDateStr = (date: Date): string => {
 };
 
 export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEventDialogProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const createEventMutation = useCreateEvent();
   const { data: groups, isLoading: isLoadingGroups } = useGroups();
+
+  const EVENT_TYPES = [
+    { id: 'TRAINING', label: t('calendar.training') },
+    { id: 'MATCH', label: t('calendar.match') },
+    { id: 'OTHER', label: t('calendar.other') },
+  ];
+  const DAYS_OF_WEEK_LABELS = t('calendar.days', { returnObjects: true }) as string[];
+  const DAYS_OF_WEEK = DAYS_OF_WEEK_LABELS.map((label, i) => ({ id: i, label }));
 
   const [formData, setFormData] = useState({
     groupId: '',
@@ -92,22 +86,22 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
     const newErrors: Record<string, string> = {};
 
     if (!formData.groupId) {
-      newErrors.groupId = 'Izaberite grupu';
+      newErrors.groupId = t('validation.selectGroup');
     }
     if (!formData.date) {
-      newErrors.date = 'Izaberite datum';
+      newErrors.date = t('validation.selectDate');
     }
     if (!formData.startTime) {
-      newErrors.startTime = 'Unesite vreme početka';
+      newErrors.startTime = t('validation.enterStartTime');
     }
     if (!formData.endTime) {
-      newErrors.endTime = 'Unesite vreme završetka';
+      newErrors.endTime = t('validation.enterEndTime');
     }
     if (formData.startTime >= formData.endTime) {
-      newErrors.endTime = 'Vreme završetka mora biti posle početka';
+      newErrors.endTime = t('validation.endTimeAfterStart');
     }
     if (formData.isRecurring && !formData.recurringUntil) {
-      newErrors.recurringUntil = 'Izaberite datum do kog se ponavlja';
+      newErrors.recurringUntil = t('validation.selectRepeatEnd');
     }
 
     setErrors(newErrors);
@@ -160,8 +154,8 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
       await createEventMutation.mutateAsync(eventData);
 
       toast({
-        title: 'Uspešno',
-        description: 'Događaj je kreiran!',
+        title: t('common.success'),
+        description: t('calendar.eventCreated'),
       });
 
       resetForm();
@@ -169,7 +163,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
     } catch (error: any) {
       console.error('Failed to create event:', error);
       setErrors({
-        submit: error.response?.data?.error?.message || 'Greška pri kreiranju događaja',
+        submit: error.response?.data?.error?.message || t('calendar.eventCreateFailed'),
       });
     }
   };
@@ -232,14 +226,14 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
     >
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novi događaj</DialogTitle>
+          <DialogTitle>{t('calendar.newEvent')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             {/* Event Type */}
             <div className="grid gap-2">
               <Label htmlFor="type">
-                Tip događaja <span className="text-red-500">*</span>
+                {t('calendar.eventType')} <span className="text-red-500">*</span>
               </Label>
               <Select value={formData.type} onValueChange={(value) => handleChange('type', value)}>
                 <SelectTrigger>
@@ -258,7 +252,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
             {/* Group */}
             <div className="grid gap-2">
               <Label htmlFor="groupId">
-                Grupa <span className="text-red-500">*</span>
+                {t('calendar.group')} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.groupId}
@@ -266,7 +260,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
                 disabled={isLoadingGroups}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Izaberite grupu" />
+                  <SelectValue placeholder={t('calendar.selectGroup')} />
                 </SelectTrigger>
                 <SelectContent>
                   {groups?.map((group: Group) => (
@@ -290,7 +284,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
             {/* Date */}
             <div className="grid gap-2">
               <Label htmlFor="date">
-                Datum <span className="text-red-500">*</span>
+                {t('calendar.date')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="date"
@@ -306,7 +300,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="startTime">
-                  Početak <span className="text-red-500">*</span>
+                  {t('calendar.startTime')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="startTime"
@@ -318,7 +312,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="endTime">
-                  Završetak <span className="text-red-500">*</span>
+                  {t('calendar.endTime')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="endTime"
@@ -334,7 +328,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="flex items-center gap-2">
                 <Repeat className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="isRecurring" className="cursor-pointer">Ponavljanje</Label>
+                <Label htmlFor="isRecurring" className="cursor-pointer">{t('calendar.recurring')}</Label>
               </div>
               <Switch
                 id="isRecurring"
@@ -355,14 +349,14 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
                       variant={formData.recurringFrequency === freq ? 'default' : 'outline'}
                       onClick={() => handleChange('recurringFrequency', freq)}
                     >
-                      {freq === 'daily' ? 'Dnevno' : freq === 'weekly' ? 'Nedeljno' : 'Mesečno'}
+                      {freq === 'daily' ? t('calendar.daily') : freq === 'weekly' ? t('calendar.weekly') : t('calendar.monthly')}
                     </Button>
                   ))}
                 </div>
 
                 {formData.recurringFrequency === 'weekly' && (
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Dani u nedelji</Label>
+                    <Label className="text-xs text-muted-foreground">{t('calendar.daysOfWeek')}</Label>
                     <div className="flex gap-1">
                       {DAYS_OF_WEEK.map((day) => (
                         <Button
@@ -381,7 +375,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
                 )}
 
                 <div className="grid gap-1">
-                  <Label className="text-xs text-muted-foreground">Ponavlja se do</Label>
+                  <Label className="text-xs text-muted-foreground">{t('calendar.repeatUntil')}</Label>
                   <Input
                     type="date"
                     value={formData.recurringUntil}
@@ -407,14 +401,14 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
               className="w-full justify-between"
               onClick={() => setShowAdvanced(!showAdvanced)}
             >
-              <span className="text-sm font-medium">Napredne opcije</span>
+              <span className="text-sm font-medium">{t('calendar.advancedOptions')}</span>
               {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
 
             {showAdvanced && (
               <div className="space-y-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="title">Naziv (opciono)</Label>
+                  <Label htmlFor="title">{t('calendar.titleOptional')}</Label>
                   <Input
                     id="title"
                     value={formData.title}
@@ -422,27 +416,27 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
                     placeholder={generateTitle()}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Ako ostavite prazno, automatski će se generisati naziv
+                    {t('calendar.titleAutoGenerate')}
                   </p>
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="location">Lokacija (opciono)</Label>
+                  <Label htmlFor="location">{t('calendar.locationOptional')}</Label>
                   <Input
                     id="location"
                     value={formData.location}
                     onChange={(e) => handleChange('location', e.target.value)}
-                    placeholder="Unesite lokaciju"
+                    placeholder={t('calendar.enterLocation')}
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="description">Opis (opciono)</Label>
+                  <Label htmlFor="description">{t('calendar.descriptionOptional')}</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) => handleChange('description', e.target.value)}
-                    placeholder="Dodatne informacije o događaju..."
+                    placeholder={t('calendar.descriptionPlaceholder')}
                     className="min-h-[80px]"
                   />
                 </div>
@@ -459,7 +453,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
               onClick={() => onOpenChange(false)}
               disabled={createEventMutation.isPending}
             >
-              Otkaži
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -469,10 +463,10 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
               {createEventMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Kreiranje...
+                  {t('common.creating')}
                 </>
               ) : (
-                'Kreiraj događaj'
+                t('calendar.createEvent')
               )}
             </Button>
           </DialogFooter>

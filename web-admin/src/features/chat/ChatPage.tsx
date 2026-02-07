@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +36,7 @@ import {
 import { useAuth } from '@/features/auth/AuthContext';
 import { cn } from '@/lib/utils';
 
-const formatTime = (timestamp: any): string => {
+const formatTime = (timestamp: any, t: (key: string) => string): string => {
   if (!timestamp) return '';
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
   const now = new Date();
@@ -45,7 +46,7 @@ const formatTime = (timestamp: any): string => {
   if (diffDays === 0) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   } else if (diffDays === 1) {
-    return 'Yesterday';
+    return t('chat.yesterday');
   } else if (diffDays < 7) {
     return date.toLocaleDateString([], { weekday: 'short' });
   }
@@ -72,12 +73,19 @@ const getRoleBadgeColor = (role: string) => {
 };
 
 export function ChatPage() {
+  const { t } = useTranslation();
   const { backendUser } = useAuth();
   const { conversations, loading: conversationsLoading } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [newChatDialogOpen, setNewChatDialogOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'members' | 'staff'>('all');
+
+  const filterLabels: Record<string, string> = {
+    all: t('chat.all'),
+    members: t('chat.membersFilter'),
+    staff: t('chat.staff'),
+  };
 
   // Filter conversations
   const filteredConversations = conversations.filter((conv) => {
@@ -107,11 +115,11 @@ export function ChatPage() {
 
   const getConversationName = (conv: Conversation): string => {
     if (conv.type === 'group' || conv.type === 'staff-group') {
-      return conv.groupName || 'Group Chat';
+      return conv.groupName || t('chat.groupChat');
     }
     const otherParticipant = Object.entries(conv.participantDetails)
       .find(([id]) => id !== backendUser?._id);
-    return otherParticipant?.[1]?.name || 'Unknown';
+    return otherParticipant?.[1]?.name || t('common.unknown');
   };
 
   const getConversationAvatar = (conv: Conversation): string | null => {
@@ -132,9 +140,9 @@ export function ChatPage() {
     <div className="h-[calc(100vh-8rem)]">
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-3xl font-bold">Chat</h1>
+          <h1 className="text-3xl font-bold">{t('chat.title')}</h1>
           <p className="text-muted-foreground">
-            Communicate with your team members
+            {t('chat.subtitle')}
           </p>
         </div>
         <Button
@@ -142,7 +150,7 @@ export function ChatPage() {
           onClick={() => setNewChatDialogOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" />
-          New Chat
+          {t('chat.newChat')}
         </Button>
       </div>
 
@@ -153,7 +161,7 @@ export function ChatPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search conversations..."
+                placeholder={t('chat.searchConversations')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -168,7 +176,7 @@ export function ChatPage() {
                   onClick={() => setFilter(f)}
                   className="capitalize"
                 >
-                  {f}
+                  {filterLabels[f]}
                 </Button>
               ))}
             </div>
@@ -182,8 +190,8 @@ export function ChatPage() {
               ) : filteredConversations.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground px-4">
                   <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No conversations yet</p>
-                  <p className="text-sm">Start a new chat to get going</p>
+                  <p>{t('chat.noConversations')}</p>
+                  <p className="text-sm">{t('chat.startNewChat')}</p>
                 </div>
               ) : (
                 <div className="divide-y">
@@ -227,12 +235,12 @@ export function ChatPage() {
                               {name}
                             </span>
                             <span className={cn('text-xs', unreadCount > 0 ? 'text-green-600 font-semibold' : 'text-muted-foreground')}>
-                              {formatTime(conv.lastMessage?.timestamp)}
+                              {formatTime(conv.lastMessage?.timestamp, t)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className={cn('text-sm truncate', unreadCount > 0 ? 'text-foreground font-medium' : 'text-muted-foreground')}>
-                              {conv.lastMessage?.text || 'No messages yet'}
+                              {conv.lastMessage?.text || t('chat.noMessages')}
                             </span>
                             {unreadCount > 0 && (
                               <Badge className="bg-green-600 text-white ml-2">
@@ -261,8 +269,8 @@ export function ChatPage() {
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <MessageCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium">Select a conversation</p>
-                <p className="text-sm">Choose from your existing conversations or start a new one</p>
+                <p className="text-lg font-medium">{t('chat.selectConversation')}</p>
+                <p className="text-sm">{t('chat.selectConversationDescription')}</p>
               </div>
             </div>
           )}
@@ -289,6 +297,7 @@ function ChatView({
   conversation: Conversation & { conversationId?: string };
   currentUserId: string;
 }) {
+  const { t } = useTranslation();
   // Handle both id and conversationId (backend returns conversationId)
   const conversationId = conversation.id || conversation.conversationId;
   const { messages, loading } = useMessages(conversationId || null);
@@ -302,11 +311,11 @@ function ChatView({
 
   const getConversationName = (): string => {
     if (conversation.type === 'group' || conversation.type === 'staff-group') {
-      return conversation.groupName || 'Group Chat';
+      return conversation.groupName || t('chat.groupChat');
     }
     const otherParticipant = Object.entries(conversation.participantDetails)
       .find(([id]) => id !== currentUserId);
-    return otherParticipant?.[1]?.name || 'Chat';
+    return otherParticipant?.[1]?.name || t('chat.title');
   };
 
   const getOtherParticipant = () => {
@@ -371,6 +380,12 @@ function ChatView({
     }
   };
 
+  const getRoleLabel = (role: string): string => {
+    if (role === 'COACH') return t('roles.coach');
+    if (role === 'OWNER') return t('roles.owner');
+    return t('roles.member');
+  };
+
   const otherParticipant = getOtherParticipant();
   const isGroup = conversation.type === 'group' || conversation.type === 'staff-group';
   const isSending = sendMessageMutation.isPending || uploadImagesMutation.isPending;
@@ -402,12 +417,12 @@ function ChatView({
             <CardTitle className="text-lg">{getConversationName()}</CardTitle>
             {otherParticipant && (
               <p className="text-sm text-muted-foreground">
-                {otherParticipant.role === 'COACH' ? 'Coach' : otherParticipant.role === 'OWNER' ? 'Owner' : 'Member'}
+                {getRoleLabel(otherParticipant.role)}
               </p>
             )}
             {isGroup && (
               <p className="text-sm text-muted-foreground">
-                {Object.keys(conversation.participantDetails).length} participants
+                {Object.keys(conversation.participantDetails).length} {t('chat.participants')}
               </p>
             )}
           </div>
@@ -425,8 +440,8 @@ function ChatView({
             <div className="flex items-center justify-center h-full text-muted-foreground">
               <div className="text-center">
                 <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No messages yet</p>
-                <p className="text-sm">Send a message to start the conversation</p>
+                <p>{t('chat.noMessages')}</p>
+                <p className="text-sm">{t('chat.sendToStart')}</p>
               </div>
             </div>
           ) : (
@@ -486,7 +501,7 @@ function ChatView({
             <ImagePlus className="h-5 w-5" />
           </Button>
           <Input
-            placeholder="Type a message..."
+            placeholder={t('chat.typeMessage')}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -586,6 +601,7 @@ function NewChatDialog({
   onOpenChange: (open: boolean) => void;
   onConversationCreated: (conversation: Conversation) => void;
 }) {
+  const { t } = useTranslation();
   const { data: users, isLoading } = useChatUsers();
   const createConversationMutation = useCreateConversation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -622,13 +638,13 @@ function NewChatDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>New Conversation</DialogTitle>
+          <DialogTitle>{t('chat.newConversation')}</DialogTitle>
         </DialogHeader>
 
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search members..."
+            placeholder={t('chat.searchMembers')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -644,12 +660,12 @@ function NewChatDialog({
           ) : creating ? (
             <div className="flex flex-col items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mt-2">Starting conversation...</p>
+              <p className="text-sm text-muted-foreground mt-2">{t('chat.startingConversation')}</p>
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No members found</p>
+              <p>{t('chat.noMembersFound')}</p>
             </div>
           ) : (
             <div className="space-y-2">

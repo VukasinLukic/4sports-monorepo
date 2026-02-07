@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ export function EditMemberDialog({
   onOpenChange,
   member,
 }: EditMemberDialogProps) {
+  const { t } = useTranslation();
   const updateMemberMutation = useUpdateMember();
   const [formData, setFormData] = useState<CreateMemberData>({
     fullName: '',
@@ -60,13 +62,13 @@ export function EditMemberDialog({
     const newErrors: Record<string, string> = {};
 
     if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
+      newErrors.fullName = t('validation.fullNameRequired');
     }
     if (!formData.dateOfBirth) {
-      newErrors.dateOfBirth = 'Date of birth is required';
+      newErrors.dateOfBirth = t('validation.dateOfBirthRequired');
     }
     if (!formData.groupId) {
-      newErrors.groupId = 'Group is required';
+      newErrors.groupId = t('validation.groupRequired');
     }
 
     setErrors(newErrors);
@@ -108,20 +110,20 @@ export function EditMemberDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Edit Member</DialogTitle>
+          <DialogTitle>{t('members.editMember')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             {/* Full Name */}
             <div className="grid gap-2">
               <Label htmlFor="fullName">
-                Full Name <span className="text-red-500">*</span>
+                {t('members.fullName')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="fullName"
                 value={formData.fullName}
                 onChange={(e) => handleChange('fullName', e.target.value)}
-                placeholder="Enter full name"
+                placeholder={t('members.enterFullName')}
               />
               {errors.fullName && (
                 <p className="text-sm text-red-500">{errors.fullName}</p>
@@ -131,7 +133,7 @@ export function EditMemberDialog({
             {/* Date of Birth */}
             <div className="grid gap-2">
               <Label htmlFor="dateOfBirth">
-                Date of Birth <span className="text-red-500">*</span>
+                {t('members.dateOfBirth')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="dateOfBirth"
@@ -147,7 +149,7 @@ export function EditMemberDialog({
             {/* Gender */}
             <div className="grid gap-2">
               <Label htmlFor="gender">
-                Gender <span className="text-red-500">*</span>
+                {t('members.gender')} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.gender}
@@ -157,8 +159,8 @@ export function EditMemberDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MALE">Male</SelectItem>
-                  <SelectItem value="FEMALE">Female</SelectItem>
+                  <SelectItem value="MALE">{t('members.male')}</SelectItem>
+                  <SelectItem value="FEMALE">{t('members.female')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -166,14 +168,14 @@ export function EditMemberDialog({
             {/* Group */}
             <div className="grid gap-2">
               <Label htmlFor="groupId">
-                Group <span className="text-red-500">*</span>
+                {t('members.group')} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.groupId}
                 onValueChange={(value) => handleChange('groupId', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select group" />
+                  <SelectValue placeholder={t('members.selectGroup')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="group1">U10 - Beginners</SelectItem>
@@ -189,7 +191,7 @@ export function EditMemberDialog({
 
             {/* Height (optional) */}
             <div className="grid gap-2">
-              <Label htmlFor="height">Height (cm)</Label>
+              <Label htmlFor="height">{t('members.heightCm')}</Label>
               <Input
                 id="height"
                 type="number"
@@ -197,13 +199,13 @@ export function EditMemberDialog({
                 onChange={(e) =>
                   handleChange('height', e.target.value ? Number(e.target.value) : undefined)
                 }
-                placeholder="Enter height"
+                placeholder={t('members.enterHeight')}
               />
             </div>
 
             {/* Weight (optional) */}
             <div className="grid gap-2">
-              <Label htmlFor="weight">Weight (kg)</Label>
+              <Label htmlFor="weight">{t('members.weightKg')}</Label>
               <Input
                 id="weight"
                 type="number"
@@ -211,18 +213,18 @@ export function EditMemberDialog({
                 onChange={(e) =>
                   handleChange('weight', e.target.value ? Number(e.target.value) : undefined)
                 }
-                placeholder="Enter weight"
+                placeholder={t('members.enterWeight')}
               />
             </div>
 
             {/* Position (optional) */}
             <div className="grid gap-2">
-              <Label htmlFor="position">Position</Label>
+              <Label htmlFor="position">{t('members.position')}</Label>
               <Input
                 id="position"
                 value={formData.position || ''}
                 onChange={(e) => handleChange('position', e.target.value)}
-                placeholder="e.g., Forward, Defender, Goalkeeper"
+                placeholder={t('members.positionPlaceholder')}
               />
             </div>
 
@@ -238,7 +240,7 @@ export function EditMemberDialog({
               onClick={() => onOpenChange(false)}
               disabled={updateMemberMutation.isPending}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -248,10 +250,10 @@ export function EditMemberDialog({
               {updateMemberMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
+                  {t('common.updating')}
                 </>
               ) : (
-                'Update Member'
+                t('members.updateMember')
               )}
             </Button>
           </DialogFooter>

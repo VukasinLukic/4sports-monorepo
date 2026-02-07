@@ -1,4 +1,5 @@
 import { useLocation, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/AuthContext';
 import {
   DropdownMenu,
@@ -13,16 +14,16 @@ import { Bell, User, LogOut, Menu } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { GlobalSearch } from '@/components/shared/GlobalSearch';
 
-const routeNameMap: Record<string, string> = {
-  '/': 'Dashboard',
-  '/members': 'Members',
-  '/coaches': 'Coaches',
-  '/news': 'News',
-  '/calendar': 'Calendar',
-  '/chat': 'Chat',
-  '/evidence': 'Evidencija',
-  '/finances': 'Finances',
-  '/settings': 'Settings',
+const routeKeyMap: Record<string, string> = {
+  '/': 'navigation.dashboard',
+  '/members': 'navigation.members',
+  '/coaches': 'navigation.coaches',
+  '/news': 'navigation.news',
+  '/calendar': 'navigation.calendar',
+  '/chat': 'navigation.chat',
+  '/evidence': 'navigation.evidence',
+  '/finances': 'navigation.finances',
+  '/settings': 'navigation.settings',
 };
 
 interface HeaderProps {
@@ -31,10 +32,13 @@ interface HeaderProps {
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
   const location = useLocation();
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
 
-  const currentRouteName = routeNameMap[location.pathname] ||
-    (location.pathname.startsWith('/calendar/') ? 'Događaj' : 'Page');
+  const routeKey = routeKeyMap[location.pathname];
+  const currentRouteName = routeKey
+    ? t(routeKey)
+    : (location.pathname.startsWith('/calendar/') ? t('calendar.title') : t('common.page'));
 
   const handleLogout = async () => {
     try {
@@ -73,10 +77,10 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('notifications.title')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <div className="py-4 text-center text-sm text-muted-foreground">
-                No new notifications
+                {t('notifications.noNew')}
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -90,7 +94,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">My Account</p>
+                  <p className="text-sm font-medium">{t('auth.myAccount')}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {user?.email}
                   </p>
@@ -98,12 +102,12 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/settings">Settings</Link>
+                <Link to="/settings">{t('navigation.settings')}</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                 <LogOut size={16} className="mr-2" />
-                Logout
+                {t('auth.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

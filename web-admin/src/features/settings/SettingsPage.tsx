@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,12 +14,13 @@ import {
   useSubscription,
 } from './useSettings';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
-import { Building2, User, CreditCard, Save, Key } from 'lucide-react';
+import { Building2, User, CreditCard, Save, Key, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { HelpButton } from '@/components/shared/HelpButton';
 import { useOnboarding } from '@/context/OnboardingContext';
 
 export function SettingsPage() {
+  const { t, i18n } = useTranslation();
   const { checkAndStartTutorial } = useOnboarding();
   const { toast } = useToast();
 
@@ -70,13 +72,13 @@ export function SettingsPage() {
         email: clubEmail,
       });
       toast({
-        title: 'Uspešno',
-        description: 'Podešavanja kluba su ažurirana',
+        title: t('common.success'),
+        description: t('settings.clubSaved'),
       });
     } catch (error) {
       toast({
-        title: 'Greška',
-        description: 'Nije moguće sačuvati podešavanja',
+        title: t('common.error'),
+        description: t('settings.clubSaveFailed'),
         variant: 'destructive',
       });
     }
@@ -89,13 +91,13 @@ export function SettingsPage() {
         phoneNumber: userPhone,
       });
       toast({
-        title: 'Uspešno',
-        description: 'Profil je ažuriran',
+        title: t('common.success'),
+        description: t('settings.profileSaved'),
       });
     } catch (error) {
       toast({
-        title: 'Greška',
-        description: 'Nije moguće sačuvati profil',
+        title: t('common.error'),
+        description: t('settings.profileSaveFailed'),
         variant: 'destructive',
       });
     }
@@ -103,8 +105,8 @@ export function SettingsPage() {
 
   const handleChangePassword = () => {
     toast({
-      title: 'Password Reset',
-      description: 'Password reset email sent (feature coming soon)',
+      title: t('settings.passwordReset'),
+      description: t('settings.passwordResetDescription'),
     });
   };
 
@@ -133,23 +135,23 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your club settings and profile</p>
+        <h1 className="text-3xl font-bold">{t('settings.title')}</h1>
+        <p className="text-muted-foreground">{t('settings.subtitle')}</p>
       </div>
 
       <Tabs defaultValue="club" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="club">
             <Building2 className="mr-2 h-4 w-4" />
-            Club Settings
+            {t('settings.clubSettings')}
           </TabsTrigger>
           <TabsTrigger value="profile">
             <User className="mr-2 h-4 w-4" />
-            My Profile
+            {t('settings.myProfile')}
           </TabsTrigger>
           <TabsTrigger value="subscription">
             <CreditCard className="mr-2 h-4 w-4" />
-            Subscription
+            {t('settings.subscription')}
           </TabsTrigger>
         </TabsList>
 
@@ -157,35 +159,35 @@ export function SettingsPage() {
         <TabsContent value="club" className="space-y-4">
           <Card data-tour="club-settings">
             <CardHeader>
-              <CardTitle>Club Information</CardTitle>
+              <CardTitle>{t('settings.clubInformation')}</CardTitle>
               <CardDescription>
-                Update your club's basic information
+                {t('settings.clubInfoDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="clubName">Club Name</Label>
+                <Label htmlFor="clubName">{t('settings.clubName')}</Label>
                 <Input
                   id="clubName"
                   value={clubName}
                   onChange={(e) => setClubName(e.target.value)}
-                  placeholder="Enter club name"
+                  placeholder={t('settings.enterClubName')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">{t('settings.address')}</Label>
                 <Input
                   id="address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Enter club address"
+                  placeholder={t('settings.enterAddress')}
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="clubPhone">Phone Number</Label>
+                  <Label htmlFor="clubPhone">{t('settings.phoneNumber')}</Label>
                   <Input
                     id="clubPhone"
                     value={clubPhone}
@@ -195,7 +197,7 @@ export function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="clubEmail">Email</Label>
+                  <Label htmlFor="clubEmail">{t('settings.emailLabel')}</Label>
                   <Input
                     id="clubEmail"
                     type="email"
@@ -212,7 +214,7 @@ export function SettingsPage() {
                 disabled={updateClubMutation.isPending}
               >
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                {t('settings.saveChanges')}
               </Button>
             </CardContent>
           </Card>
@@ -222,22 +224,22 @@ export function SettingsPage() {
         <TabsContent value="profile" className="space-y-4">
           <Card data-tour="profile-settings">
             <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your personal details</CardDescription>
+              <CardTitle>{t('settings.personalInfo')}</CardTitle>
+              <CardDescription>{t('settings.personalInfoDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+                <Label htmlFor="fullName">{t('auth.fullName')}</Label>
                 <Input
                   id="fullName"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Enter your full name"
+                  placeholder={t('settings.enterFullName')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="userEmail">Email</Label>
+                <Label htmlFor="userEmail">{t('settings.emailLabel')}</Label>
                 <Input
                   id="userEmail"
                   type="email"
@@ -246,12 +248,12 @@ export function SettingsPage() {
                   className="bg-muted"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Email cannot be changed
+                  {t('settings.emailCannotChange')}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="userPhone">Phone Number</Label>
+                <Label htmlFor="userPhone">{t('settings.phoneNumber')}</Label>
                 <Input
                   id="userPhone"
                   value={userPhone}
@@ -261,7 +263,7 @@ export function SettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Role</Label>
+                <Label>{t('settings.role')}</Label>
                 <div>
                   <Badge variant="secondary" className="uppercase">
                     {userProfile?.role}
@@ -276,12 +278,12 @@ export function SettingsPage() {
                   disabled={updateProfileMutation.isPending}
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  Save Changes
+                  {t('settings.saveChanges')}
                 </Button>
 
                 <Button onClick={handleChangePassword} variant="outline">
                   <Key className="mr-2 h-4 w-4" />
-                  Change Password
+                  {t('settings.changePassword')}
                 </Button>
               </div>
             </CardContent>
@@ -292,34 +294,34 @@ export function SettingsPage() {
         <TabsContent value="subscription" className="space-y-4">
           <Card data-tour="subscription">
             <CardHeader>
-              <CardTitle>Subscription Plan</CardTitle>
+              <CardTitle>{t('settings.subscriptionPlan')}</CardTitle>
               <CardDescription>
-                View your current subscription details
+                {t('settings.subscriptionDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Current Plan</Label>
+                <Label>{t('settings.currentPlan')}</Label>
                 <div>
                   <Badge
                     variant={getPlanBadgeVariant(subscription?.plan || 'FREE')}
                     className="text-lg px-4 py-2"
                   >
-                    {subscription?.plan} PLAN
+                    {subscription?.plan} {t('settings.planLabel')}
                   </Badge>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Member Limit</Label>
+                  <Label>{t('settings.memberLimit')}</Label>
                   <div className="text-2xl font-bold">
                     {subscription?.memberLimit}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Current Members</Label>
+                  <Label>{t('settings.currentMembers')}</Label>
                   <div className="text-2xl font-bold">
                     {subscription?.currentMembersCount}
                   </div>
@@ -327,7 +329,7 @@ export function SettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Usage</Label>
+                <Label>{t('settings.usage')}</Label>
                 <div className="w-full bg-muted rounded-full h-4">
                   <div
                     className="bg-green-600 h-4 rounded-full transition-all"
@@ -341,18 +343,45 @@ export function SettingsPage() {
                   />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {subscription?.currentMembersCount} of {subscription?.memberLimit}{' '}
-                  members used
+                  {t('settings.membersUsed', { current: subscription?.currentMembersCount, limit: subscription?.memberLimit })}
                 </p>
               </div>
 
               <Button variant="outline" disabled>
-                Upgrade Plan (Coming Soon)
+                {t('settings.upgradePlan')}
               </Button>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            {t('settings.language')}
+          </CardTitle>
+          <CardDescription>{t('settings.languageDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <Button
+              variant={i18n.language === 'sr' ? 'default' : 'outline'}
+              onClick={() => i18n.changeLanguage('sr')}
+              className={i18n.language === 'sr' ? 'bg-green-600 hover:bg-green-700' : ''}
+            >
+              🇷🇸 Srpski
+            </Button>
+            <Button
+              variant={i18n.language === 'en' ? 'default' : 'outline'}
+              onClick={() => i18n.changeLanguage('en')}
+              className={i18n.language === 'en' ? 'bg-green-600 hover:bg-green-700' : ''}
+            >
+              🇬🇧 English
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <HelpButton pageKey="settings" />
     </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,16 +46,16 @@ const getVisibilityIcon = (visibility: string) => {
   }
 };
 
-const getVisibilityLabel = (visibility: string) => {
+const getVisibilityLabel = (visibility: string, t: (key: string) => string) => {
   switch (visibility) {
     case 'PUBLIC':
-      return 'Public';
+      return t('news.visibility.public');
     case 'MEMBERS_ONLY':
-      return 'Members';
+      return t('news.visibility.members');
     case 'PARENTS_ONLY':
-      return 'Parents';
+      return t('news.visibility.parents');
     case 'COACHES_ONLY':
-      return 'Coaches';
+      return t('news.visibility.coaches');
     default:
       return visibility;
   }
@@ -73,20 +74,21 @@ const getTypeColor = (type: string) => {
   }
 };
 
-const getTypeLabel = (type: string) => {
+const getTypeLabel = (type: string, t: (key: string) => string) => {
   switch (type) {
     case 'NEWS':
-      return 'News';
+      return t('news.typeNews');
     case 'ANNOUNCEMENT':
-      return 'Announcement';
+      return t('news.typeAnnouncement');
     case 'EVENT':
-      return 'Event';
+      return t('news.typeEvent');
     default:
       return type;
   }
 };
 
 export function NewsPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { data: posts, isLoading, error, refetch } = usePosts();
   const deletePostMutation = useDeletePost();
@@ -107,13 +109,13 @@ export function NewsPage() {
     try {
       await deletePostMutation.mutateAsync(postToDelete._id);
       toast({
-        title: 'Success',
-        description: 'Post deleted successfully',
+        title: t('common.success'),
+        description: t('news.postDeleted'),
       });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to delete post',
+        title: t('common.error'),
+        description: t('news.postDeleteFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -163,14 +165,14 @@ export function NewsPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">News</h1>
+            <h1 className="text-3xl font-bold">{t('news.title')}</h1>
             <p className="text-muted-foreground">
-              Manage club announcements and news posts
+              {t('news.subtitle')}
             </p>
           </div>
         </div>
         <ErrorMessage
-          message="Failed to load posts"
+          message={t('errors.loadPosts')}
           onRetry={() => refetch()}
         />
       </div>
@@ -181,9 +183,9 @@ export function NewsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">News</h1>
+          <h1 className="text-3xl font-bold">{t('news.title')}</h1>
           <p className="text-muted-foreground">
-            Manage club announcements and news posts
+            {t('news.subtitle')}
           </p>
         </div>
         <Button
@@ -191,7 +193,7 @@ export function NewsPage() {
           onClick={() => setCreateDialogOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" />
-          Create Post
+          {t('news.createPost')}
         </Button>
       </div>
 
@@ -205,16 +207,16 @@ export function NewsPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Newspaper className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('news.noPosts')}</h3>
             <p className="text-muted-foreground text-center max-w-md">
-              Create your first announcement to share with your club members
+              {t('news.noPostsDescription')}
             </p>
             <Button
               className="mt-4 bg-green-600 hover:bg-green-700"
               onClick={() => setCreateDialogOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Create Your First Post
+              {t('news.createFirstPost')}
             </Button>
           </CardContent>
         </Card>
@@ -224,7 +226,7 @@ export function NewsPage() {
             const authorName = typeof post.authorId === 'object' ? post.authorId.fullName : 'Unknown';
             const authorPicture = typeof post.authorId === 'object' ? post.authorId.profilePicture : null;
             const authorRole = typeof post.authorId === 'object' ? post.authorId.role : null;
-            const roleLabel = authorRole === 'OWNER' ? 'Vlasnik' : authorRole === 'COACH' ? 'Trener' : null;
+            const roleLabel = authorRole === 'OWNER' ? t('roles.owner') : authorRole === 'COACH' ? t('roles.coach') : null;
 
             return (
               <Card key={post._id} className="overflow-hidden flex flex-col">
@@ -296,7 +298,7 @@ export function NewsPage() {
                     {/* Type Badge on Image */}
                     <div className="absolute top-3 left-3">
                       <Badge className={`${getTypeColor(post.type)} text-white shadow-md`}>
-                        {getTypeLabel(post.type)}
+                        {getTypeLabel(post.type, t)}
                       </Badge>
                     </div>
 
@@ -346,7 +348,7 @@ export function NewsPage() {
                           onClick={() => handleDeleteClick(post)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Post
+                          {t('news.deletePost')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -359,7 +361,7 @@ export function NewsPage() {
                         <Pin className="h-4 w-4 text-primary" />
                       )}
                       <Badge className={`${getTypeColor(post.type)} text-white text-xs`}>
-                        {getTypeLabel(post.type)}
+                        {getTypeLabel(post.type, t)}
                       </Badge>
                     </div>
                   )}
@@ -374,7 +376,7 @@ export function NewsPage() {
                   <div className="flex items-center justify-between pt-3 border-t">
                     <Badge variant="outline" className="text-xs flex items-center gap-1">
                       {getVisibilityIcon(post.visibility)}
-                      {getVisibilityLabel(post.visibility)}
+                      {getVisibilityLabel(post.visibility, t)}
                     </Badge>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
@@ -402,19 +404,18 @@ export function NewsPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogTitle>{t('news.deletePost')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this post? This action cannot be undone.
-              All comments and likes will also be deleted.
+              {t('news.deletePostConfirm')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

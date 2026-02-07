@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ interface CreatePostDialogProps {
 }
 
 export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const createPostMutation = useCreatePost();
   const uploadImagesMutation = useUploadPostImages();
@@ -48,15 +50,15 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = t('validation.titleRequired');
     } else if (formData.title.length > 200) {
-      newErrors.title = 'Title must be less than 200 characters';
+      newErrors.title = t('validation.titleMaxLength');
     }
 
     if (!formData.content.trim()) {
-      newErrors.content = 'Content is required';
+      newErrors.content = t('validation.contentRequired');
     } else if (formData.content.length > 5000) {
-      newErrors.content = 'Content must be less than 5000 characters';
+      newErrors.content = t('validation.contentMaxLength');
     }
 
     setErrors(newErrors);
@@ -111,8 +113,8 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
         } catch (uploadError) {
           console.error('Image upload failed:', uploadError);
           toast({
-            title: 'Warning',
-            description: 'Failed to upload images. Post will be created without images.',
+            title: t('common.warning'),
+            description: t('errors.uploadImages'),
             variant: 'destructive',
           });
         }
@@ -128,8 +130,8 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
       });
 
       toast({
-        title: 'Success',
-        description: 'Post created successfully!',
+        title: t('common.success'),
+        description: t('news.postCreated'),
       });
 
       // Reset form and close dialog
@@ -172,20 +174,20 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
     }}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Post</DialogTitle>
+          <DialogTitle>{t('news.createNewPost')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             {/* Title */}
             <div className="grid gap-2">
               <Label htmlFor="title">
-                Title <span className="text-red-500">*</span>
+                {t('news.postTitle')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => handleChange('title', e.target.value)}
-                placeholder="Enter post title..."
+                placeholder={t('news.titlePlaceholder')}
                 maxLength={200}
               />
               {errors.title && (
@@ -199,13 +201,13 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
             {/* Content */}
             <div className="grid gap-2">
               <Label htmlFor="content">
-                Content <span className="text-red-500">*</span>
+                {t('news.content')} <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="content"
                 value={formData.content}
                 onChange={(e) => handleChange('content', e.target.value)}
-                placeholder="Write your post content..."
+                placeholder={t('news.contentPlaceholder')}
                 className="min-h-[150px]"
                 maxLength={5000}
               />
@@ -219,7 +221,7 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
 
             {/* Images */}
             <div className="grid gap-2">
-              <Label>Images (Optional)</Label>
+              <Label>{t('news.imagesOptional')}</Label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -237,8 +239,8 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
               >
                 <ImagePlus className="mr-2 h-4 w-4" />
                 {selectedImages.length >= 5
-                  ? 'Maximum 5 images'
-                  : `Add Images (${selectedImages.length}/5)`}
+                  ? t('news.maxImages')
+                  : t('news.addImages', { count: selectedImages.length })}
               </Button>
 
               {/* Image previews */}
@@ -266,7 +268,7 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
 
             {/* Visibility */}
             <div className="grid gap-2">
-              <Label htmlFor="visibility">Visibility</Label>
+              <Label htmlFor="visibility">{t('news.visibilityLabel')}</Label>
               <Select
                 value={formData.visibility}
                 onValueChange={(value) => handleChange('visibility', value)}
@@ -275,17 +277,17 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PUBLIC">Public</SelectItem>
-                  <SelectItem value="MEMBERS_ONLY">Members Only</SelectItem>
-                  <SelectItem value="PARENTS_ONLY">Parents & Coaches</SelectItem>
-                  <SelectItem value="COACHES_ONLY">Coaches Only</SelectItem>
+                  <SelectItem value="PUBLIC">{t('news.visibilityPublic')}</SelectItem>
+                  <SelectItem value="MEMBERS_ONLY">{t('news.visibilityMembers')}</SelectItem>
+                  <SelectItem value="PARENTS_ONLY">{t('news.visibilityParents')}</SelectItem>
+                  <SelectItem value="COACHES_ONLY">{t('news.visibilityCoaches')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Type */}
             <div className="grid gap-2">
-              <Label htmlFor="type">Post Type</Label>
+              <Label htmlFor="type">{t('news.postType')}</Label>
               <Select
                 value={formData.type}
                 onValueChange={(value) => handleChange('type', value)}
@@ -294,9 +296,9 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="NEWS">News</SelectItem>
-                  <SelectItem value="ANNOUNCEMENT">Announcement</SelectItem>
-                  <SelectItem value="EVENT">Event</SelectItem>
+                  <SelectItem value="NEWS">{t('news.typeNews')}</SelectItem>
+                  <SelectItem value="ANNOUNCEMENT">{t('news.typeAnnouncement')}</SelectItem>
+                  <SelectItem value="EVENT">{t('news.typeEvent')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -313,7 +315,7 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -323,10 +325,10 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  {t('common.creating')}
                 </>
               ) : (
-                'Create Post'
+                t('news.createPost')
               )}
             </Button>
           </DialogFooter>

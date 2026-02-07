@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -32,6 +33,7 @@ import { HelpButton } from '@/components/shared/HelpButton';
 import { useOnboarding } from '@/context/OnboardingContext';
 
 export function MemberListPage() {
+  const { t } = useTranslation();
   const { checkAndStartTutorial } = useOnboarding();
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -141,16 +143,16 @@ export function MemberListPage() {
   }
 
   if (isError) {
-    return <ErrorMessage message="Failed to load members" onRetry={refetch} />;
+    return <ErrorMessage message={t('errors.loadMembers')} onRetry={refetch} />;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Members</h1>
+          <h1 className="text-3xl font-bold">{t('members.title')}</h1>
           <p className="text-muted-foreground">
-            Manage club members and their information
+            {t('members.subtitle')}
           </p>
         </div>
         <Button
@@ -159,21 +161,21 @@ export function MemberListPage() {
           className="bg-green-600 hover:bg-green-700"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Add Member
+          {t('members.addMember')}
         </Button>
       </div>
 
-      <FilterPanel onClear={handleClearFilters} title="Advanced Filters">
+      <FilterPanel onClear={handleClearFilters} title={t('members.advancedFilters')}>
         <div data-tour="filters">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Search */}
           <div className="space-y-2">
-            <Label htmlFor="search">Search by Name</Label>
+            <Label htmlFor="search">{t('members.searchByName')}</Label>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 id="search"
-                placeholder="Search by name..."
+                placeholder={t('members.searchPlaceholder')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-8"
@@ -183,7 +185,7 @@ export function MemberListPage() {
 
           {/* Payment Status Filter */}
           <div className="space-y-2">
-            <Label htmlFor="payment-status">Payment Status</Label>
+            <Label htmlFor="payment-status">{t('members.paymentStatus')}</Label>
             <Select
               value={tempPaymentStatus}
               onValueChange={(value) => setTempPaymentStatus(value as any)}
@@ -192,16 +194,16 @@ export function MemberListPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Payment Status</SelectItem>
-                <SelectItem value="PAID">Paid</SelectItem>
-                <SelectItem value="UNPAID">Unpaid</SelectItem>
+                <SelectItem value="ALL">{t('members.allPaymentStatus')}</SelectItem>
+                <SelectItem value="PAID">{t('status.paid')}</SelectItem>
+                <SelectItem value="UNPAID">{t('status.unpaid')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Medical Status Filter */}
           <div className="space-y-2">
-            <Label htmlFor="medical-status">Medical Status</Label>
+            <Label htmlFor="medical-status">{t('members.medicalStatus')}</Label>
             <Select
               value={tempMedicalStatus}
               onValueChange={(value) => setTempMedicalStatus(value as any)}
@@ -210,16 +212,16 @@ export function MemberListPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Medical Status</SelectItem>
-                <SelectItem value="VALID">Valid</SelectItem>
-                <SelectItem value="EXPIRED">Expired</SelectItem>
+                <SelectItem value="ALL">{t('members.allMedicalStatus')}</SelectItem>
+                <SelectItem value="VALID">{t('status.valid')}</SelectItem>
+                <SelectItem value="EXPIRED">{t('status.expired')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Gender Filter */}
           <div className="space-y-2">
-            <Label htmlFor="gender">Gender</Label>
+            <Label htmlFor="gender">{t('members.gender')}</Label>
             <Select
               value={tempGender}
               onValueChange={(value) => setTempGender(value as any)}
@@ -228,20 +230,20 @@ export function MemberListPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Genders</SelectItem>
-                <SelectItem value="MALE">Male</SelectItem>
-                <SelectItem value="FEMALE">Female</SelectItem>
+                <SelectItem value="ALL">{t('members.allGenders')}</SelectItem>
+                <SelectItem value="MALE">{t('members.male')}</SelectItem>
+                <SelectItem value="FEMALE">{t('members.female')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Min Age Filter */}
           <div className="space-y-2">
-            <Label htmlFor="min-age">Min Age</Label>
+            <Label htmlFor="min-age">{t('members.minAge')}</Label>
             <Input
               id="min-age"
               type="number"
-              placeholder="Min age"
+              placeholder={t('members.minAge')}
               value={tempMinAge}
               onChange={(e) => setTempMinAge(e.target.value)}
               min="0"
@@ -251,11 +253,11 @@ export function MemberListPage() {
 
           {/* Max Age Filter */}
           <div className="space-y-2">
-            <Label htmlFor="max-age">Max Age</Label>
+            <Label htmlFor="max-age">{t('members.maxAge')}</Label>
             <Input
               id="max-age"
               type="number"
-              placeholder="Max age"
+              placeholder={t('members.maxAge')}
               value={tempMaxAge}
               onChange={(e) => setTempMaxAge(e.target.value)}
               min="0"
@@ -272,7 +274,7 @@ export function MemberListPage() {
             className="bg-green-600 hover:bg-green-700"
           >
             <Search className="mr-2 h-4 w-4" />
-            Apply Filters
+            {t('members.applyFilters')}
           </Button>
         </div>
       </FilterPanel>
@@ -282,12 +284,12 @@ export function MemberListPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Member</TableHead>
-                <TableHead>Age</TableHead>
-                <TableHead>Group</TableHead>
-                <TableHead>Payment Status</TableHead>
-                <TableHead>Medical Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('members.member')}</TableHead>
+                <TableHead>{t('members.age')}</TableHead>
+                <TableHead>{t('members.group')}</TableHead>
+                <TableHead>{t('members.paymentStatus')}</TableHead>
+                <TableHead>{t('members.medicalStatus')}</TableHead>
+                <TableHead className="text-right">{t('members.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -315,7 +317,7 @@ export function MemberListPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{member.age} years</TableCell>
+                    <TableCell>{member.age} {t('members.years')}</TableCell>
                     <TableCell>{member.groupName}</TableCell>
                     <TableCell>
                       <StatusBadge
@@ -355,14 +357,14 @@ export function MemberListPage() {
                   <TableCell colSpan={6} className="text-center py-10">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-12 w-12 text-muted-foreground" />
-                      <p className="text-muted-foreground">No members found</p>
+                      <p className="text-muted-foreground">{t('members.noMembers')}</p>
                       <Button
                         onClick={() => setAddDialogOpen(true)}
                         variant="outline"
                         className="mt-2"
                       >
                         <Plus className="mr-2 h-4 w-4" />
-                        Add First Member
+                        {t('members.addFirstMember')}
                       </Button>
                     </div>
                   </TableCell>
@@ -383,11 +385,11 @@ export function MemberListPage() {
       <ConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title="Delete Member"
-        message={`Are you sure you want to delete ${selectedMember?.fullName}? This action cannot be undone.`}
+        title={t('members.deleteMember')}
+        message={t('members.deleteConfirm', { name: selectedMember?.fullName })}
         onConfirm={handleDeleteConfirm}
-        confirmText="Delete"
-        cancelText="Cancel"
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         variant="destructive"
       />
 

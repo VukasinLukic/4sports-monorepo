@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,25 +26,26 @@ interface SidebarProps {
 }
 
 interface NavItem {
-  name: string;
+  nameKey: string;
   path: string;
   icon: React.ElementType;
 }
 
 const navItems: NavItem[] = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Members', path: '/members', icon: Users },
-  { name: 'Coaches', path: '/coaches', icon: GraduationCap },
-  { name: 'News', path: '/news', icon: Newspaper },
-  { name: 'Calendar', path: '/calendar', icon: CalendarDays },
-  { name: 'Chat', path: '/chat', icon: MessageCircle },
-  { name: 'Evidencija', path: '/evidence', icon: ClipboardList },
-  { name: 'Finances', path: '/finances', icon: DollarSign },
-  { name: 'Settings', path: '/settings', icon: Settings },
+  { nameKey: 'navigation.dashboard', path: '/', icon: LayoutDashboard },
+  { nameKey: 'navigation.members', path: '/members', icon: Users },
+  { nameKey: 'navigation.coaches', path: '/coaches', icon: GraduationCap },
+  { nameKey: 'navigation.news', path: '/news', icon: Newspaper },
+  { nameKey: 'navigation.calendar', path: '/calendar', icon: CalendarDays },
+  { nameKey: 'navigation.chat', path: '/chat', icon: MessageCircle },
+  { nameKey: 'navigation.evidence', path: '/evidence', icon: ClipboardList },
+  { nameKey: 'navigation.finances', path: '/finances', icon: DollarSign },
+  { nameKey: 'navigation.settings', path: '/settings', icon: Settings },
 ];
 
 export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarProps) => {
   const location = useLocation();
+  const { t } = useTranslation();
   const { logout, user } = useAuth();
 
   const handleLogout = async () => {
@@ -85,6 +87,7 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
+              const name = t(item.nameKey);
 
               return (
                 <Link
@@ -98,10 +101,10 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
                       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                     collapsed && 'justify-center'
                   )}
-                  title={collapsed ? item.name : undefined}
+                  title={collapsed ? name : undefined}
                 >
                   <Icon size={20} />
-                  {!collapsed && <span className="font-medium">{item.name}</span>}
+                  {!collapsed && <span className="font-medium">{name}</span>}
                 </Link>
               );
             })}
@@ -123,10 +126,10 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
                 'w-full justify-start',
                 collapsed && 'justify-center px-0'
               )}
-              title={collapsed ? 'Logout' : undefined}
+              title={collapsed ? t('auth.logout') : undefined}
             >
               <LogOut size={20} />
-              {!collapsed && <span className="ml-3">Logout</span>}
+              {!collapsed && <span className="ml-3">{t('auth.logout')}</span>}
             </Button>
           </div>
         </div>

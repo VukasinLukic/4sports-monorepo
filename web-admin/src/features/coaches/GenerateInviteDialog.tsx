@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ export function GenerateInviteDialog({
   open,
   onOpenChange,
 }: GenerateInviteDialogProps) {
+  const { t } = useTranslation();
   const generateInviteMutation = useGenerateCoachInvite();
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -53,10 +55,9 @@ export function GenerateInviteDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Generate Coach Invite Code</DialogTitle>
+          <DialogTitle>{t('coaches.generateInviteTitle')}</DialogTitle>
           <DialogDescription>
-            Generate a unique invite code to share with a new coach. They will use
-            this code to register as a coach for your club.
+            {t('coaches.generateInviteDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -64,7 +65,7 @@ export function GenerateInviteDialog({
           {!inviteCode ? (
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-4">
-                Click the button below to generate a new invite code.
+                {t('coaches.generatePrompt')}
               </p>
               <Button
                 onClick={handleGenerate}
@@ -74,17 +75,17 @@ export function GenerateInviteDialog({
                 {generateInviteMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
+                    {t('common.generating')}
                   </>
                 ) : (
-                  'Generate Invite Code'
+                  t('coaches.generateButton')
                 )}
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Invite Code</Label>
+                <Label>{t('coaches.inviteCode')}</Label>
                 <div className="flex gap-2">
                   <Input
                     value={inviteCode}
@@ -104,24 +105,23 @@ export function GenerateInviteDialog({
                   </Button>
                 </div>
                 {copied && (
-                  <p className="text-sm text-green-600">Copied to clipboard!</p>
+                  <p className="text-sm text-green-600">{t('coaches.copiedToClipboard')}</p>
                 )}
               </div>
 
               <div className="rounded-lg bg-muted p-4">
-                <h4 className="font-semibold mb-2">Instructions for Coach:</h4>
+                <h4 className="font-semibold mb-2">{t('coaches.instructionsTitle')}</h4>
                 <ol className="text-sm space-y-1 list-decimal list-inside">
-                  <li>Go to the registration page</li>
-                  <li>Select "Register as Coach"</li>
-                  <li>Enter this invite code: <strong>{inviteCode}</strong></li>
-                  <li>Complete the registration form</li>
+                  <li>{t('coaches.instruction1')}</li>
+                  <li>{t('coaches.instruction2')}</li>
+                  <li>{t('coaches.instruction3')}<strong>{inviteCode}</strong></li>
+                  <li>{t('coaches.instruction4')}</li>
                 </ol>
               </div>
 
               <div className="rounded-lg bg-yellow-50 dark:bg-yellow-900/20 p-4">
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  <strong>Note:</strong> This invite code is valid for 7 days. Make
-                  sure to share it with the coach before it expires.
+                  <strong>{t('common.note')}:</strong> {t('coaches.inviteNote')}
                 </p>
               </div>
             </div>
@@ -130,7 +130,7 @@ export function GenerateInviteDialog({
 
         <DialogFooter>
           <Button onClick={handleClose} variant="outline">
-            {inviteCode ? 'Done' : 'Cancel'}
+            {inviteCode ? t('common.done') : t('common.cancel')}
           </Button>
         </DialogFooter>
       </DialogContent>
