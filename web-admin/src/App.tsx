@@ -7,8 +7,8 @@ import { OnboardingProvider } from './context/OnboardingContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
-import { MemberListPage } from './features/members/MemberListPage';
-import { CoachListPage } from './features/coaches/CoachListPage';
+import { ClubMembersPage } from './features/club-members/ClubMembersPage';
+import { InviteCodesPage } from './features/invites/InviteCodesPage';
 import { FinancePage } from './features/finances/FinancePage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { NewsPage } from './features/news/NewsPage';
@@ -45,21 +45,21 @@ function App() {
               }
             />
             <Route
-              path="/members"
+              path="/club-members"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <MemberListPage />
+                    <ClubMembersPage />
                   </Layout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/coaches"
+              path="/invites"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <CoachListPage />
+                    <InviteCodesPage />
                   </Layout>
                 </ProtectedRoute>
               }

@@ -16,8 +16,8 @@ import { GlobalSearch } from '@/components/shared/GlobalSearch';
 
 const routeKeyMap: Record<string, string> = {
   '/': 'navigation.dashboard',
-  '/members': 'navigation.members',
-  '/coaches': 'navigation.coaches',
+  '/club-members': 'navigation.clubMembers',
+  '/invites': 'navigation.inviteCodes',
   '/news': 'navigation.news',
   '/calendar': 'navigation.calendar',
   '/chat': 'navigation.chat',

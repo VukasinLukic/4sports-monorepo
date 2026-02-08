@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   Users,
-  GraduationCap,
   DollarSign,
   Settings,
   LogOut,
@@ -33,8 +32,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { nameKey: 'navigation.dashboard', path: '/', icon: LayoutDashboard },
-  { nameKey: 'navigation.members', path: '/members', icon: Users },
-  { nameKey: 'navigation.coaches', path: '/coaches', icon: GraduationCap },
+  { nameKey: 'navigation.clubMembers', path: '/club-members', icon: Users },
   { nameKey: 'navigation.news', path: '/news', icon: Newspaper },
   { nameKey: 'navigation.calendar', path: '/calendar', icon: CalendarDays },
   { nameKey: 'navigation.chat', path: '/chat', icon: MessageCircle },

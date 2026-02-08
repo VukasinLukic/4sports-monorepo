@@ -73,9 +73,48 @@ export interface Coach {
 }
 
 export interface InviteCode {
+  _id: string;
   code: string;
-  type: 'COACH' | 'PARENT';
+  type: 'COACH' | 'MEMBER';
+  clubId: string;
+  groupId?: {
+    _id: string;
+    name: string;
+    ageGroup?: string;
+    color?: string;
+  };
+  createdBy?: {
+    _id: string;
+    fullName: string;
+  };
   expiresAt: string;
+  maxUses: number;
+  usedCount: number;
+  isActive: boolean;
+  isValid?: boolean;
+  createdAt: string;
+}
+
+// Group Types
+export interface Group {
+  _id: string;
+  clubId: string;
+  name: string;
+  ageGroup?: string;
+  sport?: string;
+  description?: string;
+  color?: string;
+  memberCount?: number;
+  coaches?: string[];
+  isActive?: boolean;
+}
+
+export interface CreateGroupData {
+  name: string;
+  ageGroup?: string;
+  sport?: string;
+  description?: string;
+  color?: string;
 }
 
 // Finance Types
