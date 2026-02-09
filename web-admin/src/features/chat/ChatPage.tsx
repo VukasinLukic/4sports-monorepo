@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,12 +75,23 @@ const getRoleBadgeColor = (role: string) => {
 
 export function ChatPage() {
   const { t } = useTranslation();
+  const location = useLocation();
   const { backendUser } = useAuth();
   const { conversations, loading: conversationsLoading } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [newChatDialogOpen, setNewChatDialogOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'members' | 'staff'>('all');
+
+  // Auto-select conversation from navigation state (e.g., from profile "Start Chat")
+  useEffect(() => {
+    const state = location.state as { conversation?: Conversation } | null;
+    if (state?.conversation) {
+      setSelectedConversation(state.conversation);
+      // Clear state so it doesn't re-select on subsequent renders
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   const filterLabels: Record<string, string> = {
     all: t('chat.all'),

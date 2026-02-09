@@ -38,7 +38,9 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const routeKey = routeKeyMap[location.pathname];
   const currentRouteName = routeKey
     ? t(routeKey)
-    : (location.pathname.startsWith('/calendar/') ? t('calendar.title') : t('common.page'));
+    : location.pathname.startsWith('/calendar/') ? t('calendar.title')
+    : location.pathname.startsWith('/profile/') ? t('profile.title')
+    : t('common.page');
 
   const handleLogout = async () => {
     try {

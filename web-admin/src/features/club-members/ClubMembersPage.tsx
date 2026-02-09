@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +55,7 @@ function getMemberGroupId(member: Member): string {
 export function ClubMembersPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Search states
   const [coachSearch, setCoachSearch] = useState('');
@@ -391,6 +393,7 @@ export function ClubMembersPage() {
                       key={coach.id}
                       coach={coach}
                       onDelete={handleDeleteCoach}
+                      onClick={() => navigate(`/profile/${coach.id}`)}
                     />
                   ))
                 ) : (
@@ -533,6 +536,7 @@ export function ClubMembersPage() {
                                   member={member}
                                   onEdit={handleEditMember}
                                   onDelete={handleDeleteMember}
+                                  onClick={() => navigate(`/profile/member/${member.id}`, { state: { groupName: group.name } })}
                                 />
                               ))
                             ) : (
@@ -616,12 +620,15 @@ function isContractExpiringSoon(expiryDate: string) {
 }
 
 // Coach Card
-function CoachCard({ coach, onDelete }: { coach: Coach; onDelete: (c: Coach) => void }) {
+function CoachCard({ coach, onDelete, onClick }: { coach: Coach; onDelete: (c: Coach) => void; onClick?: () => void }) {
   const expired = isContractExpired(coach.contractExpiryDate);
   const expiringSoon = isContractExpiringSoon(coach.contractExpiryDate);
 
   return (
-    <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+    <div
+      className="flex items-center gap-3 px-3 py-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+      onClick={onClick}
+    >
       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
         <User className="h-5 w-5 text-muted-foreground" />
       </div>
@@ -645,7 +652,7 @@ function CoachCard({ coach, onDelete }: { coach: Coach; onDelete: (c: Coach) => 
         variant="ghost"
         size="icon"
         className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
-        onClick={() => onDelete(coach)}
+        onClick={(e) => { e.stopPropagation(); onDelete(coach); }}
       >
         <Trash2 className="h-4 w-4" />
       </Button>
@@ -658,16 +665,21 @@ function MemberCard({
   member,
   onEdit,
   onDelete,
+  onClick,
 }: {
   member: Member;
   onEdit: (m: Member) => void;
   onDelete: (m: Member) => void;
+  onClick?: () => void;
 }) {
   const { t } = useTranslation();
   const isActive = member.paymentStatus === 'PAID';
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/30 transition-colors">
+    <div
+      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
+      onClick={onClick}
+    >
       <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
         {member.profileImage ? (
           <img
@@ -697,7 +709,7 @@ function MemberCard({
           variant="ghost"
           size="icon"
           className="h-7 w-7"
-          onClick={() => onEdit(member)}
+          onClick={(e) => { e.stopPropagation(); onEdit(member); }}
         >
           <Pencil className="h-3.5 w-3.5" />
         </Button>
@@ -705,7 +717,7 @@ function MemberCard({
           variant="ghost"
           size="icon"
           className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
-          onClick={() => onDelete(member)}
+          onClick={(e) => { e.stopPropagation(); onDelete(member); }}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>

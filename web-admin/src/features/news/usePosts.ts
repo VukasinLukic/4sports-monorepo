@@ -74,6 +74,92 @@ export const useDeletePost = () => {
   });
 };
 
+// ---- Comments ----
+
+export interface PostComment {
+  _id: string;
+  postId: string;
+  authorId: {
+    _id: string;
+    fullName: string;
+    profilePicture?: string;
+    role?: string;
+  };
+  content: string;
+  likesCount: number;
+  isLiked?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Fetch comments for a post
+export const usePostComments = (postId: string | null) => {
+  return useQuery({
+    queryKey: ['postComments', postId],
+    queryFn: async () => {
+      const response = await api.get<{ success: boolean; data: PostComment[] }>(
+        `/posts/${postId}/comments`
+      );
+      return response.data.data;
+    },
+    enabled: !!postId,
+  });
+};
+
+// Create a comment
+export const useCreateComment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
+      const response = await api.post<{ success: boolean; data: PostComment }>(
+        `/posts/${postId}/comments`,
+        { content }
+      );
+      return response.data.data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['postComments', variables.postId] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+};
+
+// Delete a comment
+export const useDeleteComment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ commentId, postId }: { commentId: string; postId: string }) => {
+      await api.delete(`/posts/comments/${commentId}`);
+      return { postId };
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['postComments', variables.postId] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+};
+
+// Toggle like on post or comment
+export const useToggleLike = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ targetType, targetId }: { targetType: 'POST' | 'COMMENT'; targetId: string }) => {
+      const response = await api.post<{ success: boolean; data: { liked: boolean } }>(
+        '/posts/like',
+        { targetType, targetId }
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['postComments'] });
+    },
+  });
+};
+
 // Upload post images
 export const useUploadPostImages = () => {
   return useMutation({
