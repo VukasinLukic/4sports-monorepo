@@ -372,6 +372,12 @@ export default {
     eventDeleteFailed: 'Nije uspelo brisanje događaja',
     eventCreated: 'Događaj je kreiran!',
     eventCreateFailed: 'Greška pri kreiranju događaja',
+    addNew: 'Dodaj novi',
+    addCustomType: '+ Dodaj novi tip događaja',
+    customTypePlaceholder: 'Naziv tipa...',
+    equipmentOptional: 'Oprema (opciono)',
+    addEquipment: '+ Dodaj opremu',
+    equipmentPlaceholder: 'Naziv opreme...',
   },
 
   finances: {

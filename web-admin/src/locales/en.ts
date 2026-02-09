@@ -372,6 +372,12 @@ export default {
     eventDeleteFailed: 'Failed to delete event',
     eventCreated: 'Event created!',
     eventCreateFailed: 'Error creating event',
+    addNew: 'Add new',
+    addCustomType: '+ Add custom event type',
+    customTypePlaceholder: 'Type name...',
+    equipmentOptional: 'Equipment (optional)',
+    addEquipment: '+ Add equipment',
+    equipmentPlaceholder: 'Equipment name...',
   },
 
   finances: {

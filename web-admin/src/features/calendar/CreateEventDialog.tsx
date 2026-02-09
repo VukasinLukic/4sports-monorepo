@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { format, addMonths } from 'date-fns';
+import { sr } from 'date-fns/locale';
 import {
   Dialog,
   DialogContent,
@@ -19,8 +21,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { useCreateEvent, useGroups, Group } from './useEvents';
-import { Loader2, ChevronDown, ChevronUp, Repeat } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronUp, Repeat, X, Plus, CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CreateEventDialogProps {
@@ -36,17 +40,43 @@ const toLocalDateStr = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+const parseLocalDateStr = (dateStr: string): Date => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
 export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEventDialogProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const createEventMutation = useCreateEvent();
   const { data: groups, isLoading: isLoadingGroups } = useGroups();
 
-  const EVENT_TYPES = [
+  const STORAGE_KEY_TYPES = '4sports_custom_event_types';
+  const STORAGE_KEY_EQUIPMENT = '4sports_saved_equipment';
+
+  const [customTypes, setCustomTypes] = useState<{ id: string; label: string }[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_TYPES);
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [savedEquipment, setSavedEquipment] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_EQUIPMENT);
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [newTypeName, setNewTypeName] = useState('');
+  const [showAddType, setShowAddType] = useState(false);
+  const [newEquipmentName, setNewEquipmentName] = useState('');
+  const [showAddEquipment, setShowAddEquipment] = useState(false);
+
+  const DEFAULT_TYPES = [
     { id: 'TRAINING', label: t('calendar.training') },
     { id: 'MATCH', label: t('calendar.match') },
     { id: 'OTHER', label: t('calendar.other') },
   ];
+  const EVENT_TYPES = [...DEFAULT_TYPES, ...customTypes];
   const DAYS_OF_WEEK_LABELS = t('calendar.days', { returnObjects: true }) as string[];
   const DAYS_OF_WEEK = DAYS_OF_WEEK_LABELS.map((label, i) => ({ id: i, label }));
 
@@ -63,6 +93,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
     recurringFrequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
     recurringDays: [] as number[],
     recurringUntil: '',
+    equipment: [] as string[],
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -139,6 +170,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         location: formData.location.trim() || undefined,
+        equipment: formData.equipment.length > 0 ? formData.equipment : undefined,
         isRecurring: formData.isRecurring,
       };
 
@@ -182,6 +214,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
       recurringFrequency: 'weekly',
       recurringDays: [],
       recurringUntil: '',
+      equipment: [],
     });
     setShowAdvanced(false);
     setErrors({});
@@ -202,6 +235,46 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
       const endH = Math.floor(totalMin / 60) % 24;
       const endM = totalMin % 60;
       handleChange('endTime', `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`);
+    }
+  };
+
+  const addCustomType = () => {
+    const name = newTypeName.trim();
+    if (!name) return;
+    const id = name.toUpperCase().replace(/\s+/g, '_');
+    if (EVENT_TYPES.some((t) => t.id === id)) return;
+    const updated = [...customTypes, { id, label: name }];
+    setCustomTypes(updated);
+    localStorage.setItem(STORAGE_KEY_TYPES, JSON.stringify(updated));
+    handleChange('type', id);
+    setNewTypeName('');
+    setShowAddType(false);
+  };
+
+  const addEquipmentItem = () => {
+    const name = newEquipmentName.trim();
+    if (!name) return;
+    if (!savedEquipment.includes(name)) {
+      const updated = [...savedEquipment, name];
+      setSavedEquipment(updated);
+      localStorage.setItem(STORAGE_KEY_EQUIPMENT, JSON.stringify(updated));
+    }
+    if (!formData.equipment.includes(name)) {
+      handleChange('equipment', [...formData.equipment, name]);
+    }
+    setNewEquipmentName('');
+    setShowAddEquipment(false);
+  };
+
+  const removeEquipmentItem = (item: string) => {
+    handleChange('equipment', formData.equipment.filter((e) => e !== item));
+  };
+
+  const toggleEquipmentItem = (item: string) => {
+    if (formData.equipment.includes(item)) {
+      removeEquipmentItem(item);
+    } else {
+      handleChange('equipment', [...formData.equipment, item]);
     }
   };
 
@@ -247,6 +320,34 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
                   ))}
                 </SelectContent>
               </Select>
+              {!showAddType ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start text-xs text-muted-foreground px-0"
+                  onClick={() => setShowAddType(true)}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  {t('calendar.addCustomType')}
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={newTypeName}
+                    onChange={(e) => setNewTypeName(e.target.value)}
+                    placeholder={t('calendar.customTypePlaceholder')}
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomType())}
+                  />
+                  <Button type="button" size="sm" className="h-8" onClick={addCustomType}>
+                    {t('common.add')}
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => { setShowAddType(false); setNewTypeName(''); }}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Group */}
@@ -283,16 +384,33 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
 
             {/* Date */}
             <div className="grid gap-2">
-              <Label htmlFor="date">
+              <Label>
                 {t('calendar.date')} <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => handleChange('date', e.target.value)}
-                min={toLocalDateStr(new Date())}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.date
+                      ? format(parseLocalDateStr(formData.date), 'PPP', { locale: sr })
+                      : t('validation.selectDate')}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.date ? parseLocalDateStr(formData.date) : undefined}
+                    onSelect={(date) => {
+                      if (date) handleChange('date', toLocalDateStr(date));
+                    }}
+                    disabled={{ before: new Date() }}
+                  />
+                </PopoverContent>
+              </Popover>
               {errors.date && <p className="text-sm text-red-500">{errors.date}</p>}
             </div>
 
@@ -333,7 +451,21 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
               <Switch
                 id="isRecurring"
                 checked={formData.isRecurring}
-                onCheckedChange={(checked) => handleChange('isRecurring', checked)}
+                onCheckedChange={(checked) => {
+                  if (checked && formData.date) {
+                    const eventDate = parseLocalDateStr(formData.date);
+                    const dayOfWeek = eventDate.getDay(); // 0=Sun ... 6=Sat
+                    const untilDate = addMonths(eventDate, 1);
+                    setFormData((prev) => ({
+                      ...prev,
+                      isRecurring: true,
+                      recurringUntil: toLocalDateStr(untilDate),
+                      recurringDays: prev.recurringDays.includes(dayOfWeek) ? prev.recurringDays : [...prev.recurringDays, dayOfWeek],
+                    }));
+                  } else {
+                    handleChange('isRecurring', checked);
+                  }
+                }}
               />
             </div>
 
@@ -376,12 +508,30 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
 
                 <div className="grid gap-1">
                   <Label className="text-xs text-muted-foreground">{t('calendar.repeatUntil')}</Label>
-                  <Input
-                    type="date"
-                    value={formData.recurringUntil}
-                    onChange={(e) => handleChange('recurringUntil', e.target.value)}
-                    min={formData.date}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal h-9 text-sm"
+                      >
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {formData.recurringUntil
+                          ? format(parseLocalDateStr(formData.recurringUntil), 'PPP', { locale: sr })
+                          : t('validation.selectRepeatEnd')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.recurringUntil ? parseLocalDateStr(formData.recurringUntil) : undefined}
+                        onSelect={(date) => {
+                          if (date) handleChange('recurringUntil', toLocalDateStr(date));
+                        }}
+                        disabled={{ before: formData.date ? parseLocalDateStr(formData.date) : new Date() }}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {errors.recurringUntil && <p className="text-sm text-red-500">{errors.recurringUntil}</p>}
                 </div>
               </div>
@@ -439,6 +589,70 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
                     placeholder={t('calendar.descriptionPlaceholder')}
                     className="min-h-[80px]"
                   />
+                </div>
+
+                {/* Equipment */}
+                <div className="grid gap-2">
+                  <Label>{t('calendar.equipmentOptional')}</Label>
+                  {formData.equipment.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {formData.equipment.map((item) => (
+                        <span
+                          key={item}
+                          className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full"
+                        >
+                          {item}
+                          <button type="button" onClick={() => removeEquipmentItem(item)} className="hover:text-destructive">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {savedEquipment.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {savedEquipment.filter((e) => !formData.equipment.includes(e)).map((item) => (
+                        <Button
+                          key={item}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => toggleEquipmentItem(item)}
+                        >
+                          + {item}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  {!showAddEquipment ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="justify-start text-xs text-muted-foreground px-0"
+                      onClick={() => setShowAddEquipment(true)}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      {t('calendar.addEquipment')}
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        value={newEquipmentName}
+                        onChange={(e) => setNewEquipmentName(e.target.value)}
+                        placeholder={t('calendar.equipmentPlaceholder')}
+                        className="h-8 text-sm"
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEquipmentItem())}
+                      />
+                      <Button type="button" size="sm" className="h-8" onClick={addEquipmentItem}>
+                        {t('common.add')}
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => { setShowAddEquipment(false); setNewEquipmentName(''); }}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

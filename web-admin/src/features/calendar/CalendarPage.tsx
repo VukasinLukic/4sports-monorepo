@@ -394,6 +394,15 @@ export function CalendarPage() {
               <div className="text-center py-8 text-muted-foreground">
                 <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>{selectedDate ? t('calendar.noEventsOnDay') : t('calendar.noUpcomingEvents')}</p>
+                {selectedDate && (
+                  <Button
+                    className="mt-4 bg-green-600 hover:bg-green-700"
+                    onClick={() => setCreateDialogOpen(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    {t('calendar.addNew')}
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
