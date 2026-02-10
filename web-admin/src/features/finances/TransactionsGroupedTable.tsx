@@ -31,10 +31,10 @@ export function TransactionsGroupedTable({
         const isExpanded = expandedGroups.has(group.key);
 
         return (
-          <div key={group.key} className="rounded-lg border bg-zinc-900/30 dark:bg-zinc-800/30 overflow-hidden">
+          <div key={group.key} className="rounded-lg border bg-muted/50 overflow-hidden">
             {/* Group Header */}
             <div
-              className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-900/50 dark:hover:bg-zinc-800/50 transition-colors"
+              className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/70 transition-colors"
               onClick={() => onToggleGroup(group.key)}
             >
               <div className="flex items-center gap-3">

@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { queryClient } from './lib/queryClient';
 import { AuthProvider } from './features/auth/AuthContext';
 import { OnboardingProvider } from './context/OnboardingContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
@@ -26,6 +27,7 @@ import { Toaster } from './components/ui/toaster';
 
 function App() {
   return (
+    <ThemeProvider defaultTheme="dark">
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <OnboardingProvider>
@@ -163,6 +165,7 @@ function App() {
       <Toaster />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

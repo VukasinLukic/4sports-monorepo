@@ -242,31 +242,31 @@ export function EvidencePage() {
       {/* Summary Stats Bar */}
       {activeTab === 'membership' ? (
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
-            <p className="text-xs text-zinc-400 mb-1">Ukupno plaćeno</p>
-            <p className="text-2xl font-bold text-white">{stats?.paid || 0}/{stats?.total || 0}</p>
+          <div className="bg-muted rounded-lg p-4">
+            <p className="text-xs text-muted-foreground mb-1">Ukupno plaćeno</p>
+            <p className="text-2xl font-bold text-foreground">{stats?.paid || 0}/{stats?.total || 0}</p>
           </div>
-          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
-            <p className="text-xs text-zinc-400 mb-1">Total collected</p>
-            <p className="text-2xl font-bold text-white">{totalCollected} RSD</p>
+          <div className="bg-muted rounded-lg p-4">
+            <p className="text-xs text-muted-foreground mb-1">Total collected</p>
+            <p className="text-2xl font-bold text-foreground">{totalCollected} RSD</p>
           </div>
-          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
-            <p className="text-xs text-zinc-400 mb-1">Preostalo za naplatu</p>
-            <p className="text-2xl font-bold text-white">{remainingAmount} RSD</p>
+          <div className="bg-muted rounded-lg p-4">
+            <p className="text-xs text-muted-foreground mb-1">Preostalo za naplatu</p>
+            <p className="text-2xl font-bold text-foreground">{remainingAmount} RSD</p>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
-            <p className="text-xs text-zinc-400 mb-1">Validni pregledi</p>
+          <div className="bg-muted rounded-lg p-4">
+            <p className="text-xs text-muted-foreground mb-1">Validni pregledi</p>
             <p className="text-2xl font-bold text-green-500">{medStats?.valid || 0}</p>
           </div>
-          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
-            <p className="text-xs text-zinc-400 mb-1">Ističe uskoro</p>
+          <div className="bg-muted rounded-lg p-4">
+            <p className="text-xs text-muted-foreground mb-1">Ističe uskoro</p>
             <p className="text-2xl font-bold text-yellow-500">{medStats?.expiringSoon || 0}</p>
           </div>
-          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
-            <p className="text-xs text-zinc-400 mb-1">Istekli / Nisu uneti</p>
+          <div className="bg-muted rounded-lg p-4">
+            <p className="text-xs text-muted-foreground mb-1">Istekli / Nisu uneti</p>
             <p className="text-2xl font-bold text-red-500">{(medStats?.expired || 0) + (medStats?.notSet || 0)}</p>
           </div>
         </div>
@@ -333,7 +333,7 @@ export function EvidencePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList className="grid w-full grid-cols-2 bg-zinc-900 dark:bg-zinc-800 p-1 h-12">
+        <TabsList className="grid w-full grid-cols-2 bg-muted p-1 h-12">
           <TabsTrigger
             value="membership"
             className="data-[state=active]:bg-green-600 data-[state=active]:text-white h-10 text-base gap-2"
@@ -359,10 +359,10 @@ export function EvidencePage() {
             </div>
           ) : (
             membershipGroups.map((group) => (
-              <div key={group._id} className="space-y-3 bg-zinc-900/30 dark:bg-zinc-800/30 rounded-lg p-3">
+              <div key={group._id} className="space-y-3 bg-muted/50 rounded-lg p-3">
                 {/* Group Header */}
                 <div
-                  className="flex items-center gap-2 cursor-pointer hover:bg-zinc-900/50 dark:hover:bg-zinc-800/50 p-2 rounded-md transition-colors"
+                  className="flex items-center gap-2 cursor-pointer hover:bg-muted/70 p-2 rounded-md transition-colors"
                   onClick={() => toggleGroup(group._id)}
                 >
                   {expandedGroups.has(group._id) ? (
@@ -409,10 +409,10 @@ export function EvidencePage() {
             </div>
           ) : (
             medicalGroups.map((group) => (
-              <div key={group._id} className="space-y-3 bg-zinc-900/30 dark:bg-zinc-800/30 rounded-lg p-3">
+              <div key={group._id} className="space-y-3 bg-muted/50 rounded-lg p-3">
                 {/* Group Header */}
                 <div
-                  className="flex items-center gap-2 cursor-pointer hover:bg-zinc-900/50 dark:hover:bg-zinc-800/50 p-2 rounded-md transition-colors"
+                  className="flex items-center gap-2 cursor-pointer hover:bg-muted/70 p-2 rounded-md transition-colors"
                   onClick={() => toggleGroup(group._id)}
                 >
                   {expandedGroups.has(group._id) ? (
@@ -506,11 +506,11 @@ function MembershipRow({
 
   return (
     <div
-      className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 dark:bg-zinc-800/50 hover:bg-zinc-900 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+      className="flex items-center gap-3 p-3 rounded-lg bg-muted/70 hover:bg-muted transition-colors cursor-pointer"
       onClick={() => navigate(`/profile/member/${member.memberId}`)}
     >
       {/* Avatar */}
-      <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-white font-semibold flex-shrink-0">
+      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-foreground font-semibold flex-shrink-0">
         {member.profileImage ? (
           <img src={member.profileImage} alt={member.memberName} className="w-10 h-10 rounded-full object-cover" />
         ) : (
@@ -520,7 +520,7 @@ function MembershipRow({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-white">{member.memberName}</p>
+        <p className="font-medium text-foreground">{member.memberName}</p>
         <div className="flex items-center gap-1 text-xs">
           {isPaid ? (
             <span className="text-green-500">Plaćeno ✓</span>
@@ -529,7 +529,7 @@ function MembershipRow({
           ) : (
             <span className="text-red-500">Nije plaćeno ・</span>
           )}
-          <span className="text-zinc-500">Last Training: Yesterday</span>
+          <span className="text-muted-foreground">Last Training: Yesterday</span>
         </div>
       </div>
 
@@ -599,11 +599,11 @@ function MedicalRow({
 
   return (
     <div
-      className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 dark:bg-zinc-800/50 hover:bg-zinc-900 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+      className="flex items-center gap-3 p-3 rounded-lg bg-muted/70 hover:bg-muted transition-colors cursor-pointer"
       onClick={() => navigate(`/profile/member/${member.memberId}`)}
     >
       {/* Avatar */}
-      <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-white font-semibold flex-shrink-0">
+      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-foreground font-semibold flex-shrink-0">
         {member.profileImage ? (
           <img src={member.profileImage} alt={member.memberName} className="w-10 h-10 rounded-full object-cover" />
         ) : (
@@ -613,11 +613,11 @@ function MedicalRow({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-white">{member.memberName}</p>
+        <p className="font-medium text-foreground">{member.memberName}</p>
         <div className="flex items-center gap-1 text-xs">
           <span className={config.color}>{config.label}</span>
           {member.expiryDate && (
-            <span className="text-zinc-500">do {formatDate(member.expiryDate)}</span>
+            <span className="text-muted-foreground">do {formatDate(member.expiryDate)}</span>
           )}
         </div>
       </div>

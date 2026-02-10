@@ -48,7 +48,7 @@ export function TransactionsFlatTable({ transactions, groups, onEdit, onDelete }
   }
 
   return (
-    <div className="rounded-lg border bg-zinc-900/30 dark:bg-zinc-800/30 overflow-x-auto">
+    <div className="rounded-lg border bg-muted/50 overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>

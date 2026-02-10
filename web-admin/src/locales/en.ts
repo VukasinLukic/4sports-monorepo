@@ -623,6 +623,9 @@ export default {
     upgradePlan: 'Upgrade Plan (Coming Soon)',
     language: 'Language',
     languageDescription: 'Select your preferred language',
+    theme: 'Theme',
+    lightMode: 'Light',
+    darkMode: 'Dark',
   },
 
   clubMembers: {

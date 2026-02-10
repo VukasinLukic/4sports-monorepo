@@ -623,6 +623,9 @@ export default {
     upgradePlan: 'Nadogradi plan (uskoro)',
     language: 'Jezik',
     languageDescription: 'Izaberite željeni jezik',
+    theme: 'Tema',
+    lightMode: 'Svetla',
+    darkMode: 'Tamna',
   },
 
   clubMembers: {

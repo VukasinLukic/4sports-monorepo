@@ -10,9 +10,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Bell, User, LogOut, Menu } from 'lucide-react';
+import { Bell, User, LogOut, Menu, Sun, Moon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { GlobalSearch } from '@/components/shared/GlobalSearch';
+import { useTheme } from '@/context/ThemeContext';
 
 const routeKeyMap: Record<string, string> = {
   '/': 'navigation.dashboard',
@@ -34,6 +35,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const location = useLocation();
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   const routeKey = routeKeyMap[location.pathname];
   const currentRouteName = routeKey
@@ -69,6 +71,13 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
           <div className="hidden md:block">
             <GlobalSearch />
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative hidden sm:flex">

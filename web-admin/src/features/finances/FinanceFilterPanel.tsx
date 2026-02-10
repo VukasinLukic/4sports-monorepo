@@ -101,12 +101,12 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
     onFilterChange({ ...filters, categories: newCategories });
   };
 
-  const scrollbarClass = 'max-h-60 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700/40 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600/60';
+  const scrollbarClass = 'max-h-60 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40';
 
   return (
     <div className="space-y-2">
       <div
-        className="bg-zinc-900/50 dark:bg-zinc-800/50 p-4 rounded-lg cursor-pointer hover:bg-zinc-900/60 dark:hover:bg-zinc-800/60 transition-colors"
+        className="bg-muted/70 p-4 rounded-lg cursor-pointer hover:bg-muted transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex items-center justify-between gap-4">
@@ -121,7 +121,7 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
             </div>
 
             {/* Vertical separator */}
-            <div className="h-8 w-px bg-zinc-700/50" />
+            <div className="h-8 w-px bg-border" />
 
             {/* Stats */}
             <div className="flex items-center gap-6">
@@ -153,7 +153,7 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
                 {t('finances.clearAllFilters')}
               </Button>
             )}
-            <div className="h-8 w-px bg-zinc-700/50" />
+            <div className="h-8 w-px bg-border" />
             <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)}>
               {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
@@ -162,7 +162,7 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
       </div>
 
       {isOpen && (
-        <div className="bg-zinc-900/30 dark:bg-zinc-800/30 p-4 rounded-lg">
+        <div className="bg-muted/50 p-4 rounded-lg">
           {/* Main Filters - 4 columns in one row */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Transaction Type */}

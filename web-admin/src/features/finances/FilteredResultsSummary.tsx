@@ -14,7 +14,7 @@ export function FilteredResultsSummary({ stats, transactionCount }: FilteredResu
   const { t } = useTranslation();
 
   return (
-    <div className="bg-zinc-900/30 dark:bg-zinc-800/30 p-4 rounded-lg space-y-2">
+    <div className="bg-muted/50 p-4 rounded-lg space-y-2">
       <p className="text-sm text-muted-foreground">
         {t('finances.showingTransactions', { count: transactionCount })}
       </p>

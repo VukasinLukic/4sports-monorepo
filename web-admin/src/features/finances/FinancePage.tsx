@@ -226,7 +226,7 @@ export function FinancePage() {
       />
 
       {/* NEW: Grouping Controls + Date Range */}
-      <div className="flex items-end gap-4 bg-zinc-900/30 dark:bg-zinc-800/30 p-3 rounded-lg">
+      <div className="flex items-end gap-4 bg-muted/50 p-3 rounded-lg">
         <div className="flex-1">
           <TransactionGroupingControls groupBy={groupBy} onGroupByChange={setGroupBy} />
         </div>
@@ -258,7 +258,7 @@ export function FinancePage() {
 
       {/* Summary Bar */}
       {filteredTransactions && filteredTransactions.length > 0 && (
-        <div className="flex items-center justify-between p-4 rounded-lg border bg-zinc-900/30 dark:bg-zinc-800/30">
+        <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
           <div>
             <h3 className="font-semibold text-lg">{t('common.total')}:</h3>
             <p className="text-sm text-muted-foreground">
