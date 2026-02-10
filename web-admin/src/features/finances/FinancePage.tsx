@@ -142,7 +142,7 @@ export function FinancePage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 mb-44">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

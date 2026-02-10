@@ -267,13 +267,29 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
         console.log('🔍 After group filter:', manualEntries.length, 'transactions');
       }
 
-      // Filter by coaches
+      // Filter by coaches: find groups that selected coaches train, then filter by those groupIds
+      let coachGroupIds: string[] = [];
       if (filters.coachIds.length > 0) {
-        manualEntries = manualEntries.filter((entry) => {
-          if (!entry.coachId) return false;
-          return filters.coachIds.includes(entry.coachId);
-        });
-        console.log('🔍 After coach filter:', manualEntries.length, 'transactions');
+        try {
+          const groupsResponse = await api.get<{ success: boolean; data: any[] }>('/groups');
+          const allGroups = groupsResponse.data.data || [];
+          coachGroupIds = allGroups
+            .filter((g: any) => g.coaches?.some((c: any) => {
+              // coaches can be populated objects { _id, fullName } or plain IDs
+              const coachId = typeof c === 'object' ? c._id : c;
+              return filters.coachIds.includes(coachId);
+            }))
+            .map((g: any) => g._id);
+          console.log('🔍 Coach filter: coaches', filters.coachIds, '=> groups', coachGroupIds);
+
+          manualEntries = manualEntries.filter((entry) => {
+            if (!entry.groupId) return false;
+            return coachGroupIds.includes(entry.groupId);
+          });
+          console.log('🔍 After coach filter:', manualEntries.length, 'transactions');
+        } catch (error) {
+          console.error('Failed to fetch groups for coach filter:', error);
+        }
       }
 
       // If showing income and membership category is included, fetch payments
@@ -351,6 +367,15 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
               return filters.groupIds.includes(entry.groupId);
             });
             console.log('🔍 After group filter (payments):', filteredPaymentEntries.length, 'payments');
+          }
+
+          // Filter payments by coach (using coach's groups)
+          if (coachGroupIds.length > 0 && filteredPaymentEntries.length > 0) {
+            filteredPaymentEntries = filteredPaymentEntries.filter((entry) => {
+              if (!entry.groupId) return false;
+              return coachGroupIds.includes(entry.groupId);
+            });
+            console.log('🔍 After coach filter (payments):', filteredPaymentEntries.length, 'payments');
           }
 
           // Merge and sort by date
