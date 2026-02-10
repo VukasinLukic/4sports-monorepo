@@ -126,6 +126,7 @@ export interface FinanceEntry {
   amount: number;
   date: string;
   recordedBy: string;
+  recordedById?: string;
   isManual: boolean;
   invoiceUrl?: string;
   createdAt: string;

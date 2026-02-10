@@ -16,7 +16,7 @@ export const QuickLinks = () => {
   const links: QuickLinkItem[] = [
     { to: '/finances', icon: FileBarChart, label: t('dashboard.reports') },
     { to: '/finances', icon: ArrowLeftRight, label: t('dashboard.transactions') },
-    { to: '/members', icon: Users, label: t('navigation.members') },
+    { to: '/club-members', icon: Users, label: t('navigation.members') },
     { to: '/calendar', icon: CalendarDays, label: t('navigation.calendar') },
   ];
 

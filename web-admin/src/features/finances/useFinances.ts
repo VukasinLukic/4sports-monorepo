@@ -13,7 +13,8 @@ const transformTransaction = (transaction: any): FinanceEntry => ({
   description: transaction.description,
   amount: transaction.amount,
   date: transaction.transactionDate || transaction.date,
-  recordedBy: transaction.createdBy?.fullName || transaction.createdBy?.firstName || 'Sistem',
+  recordedBy: transaction.createdBy?.fullName || 'Sistem',
+  recordedById: transaction.createdBy?._id || transaction.createdBy,
   isManual: !transaction.paymentId,
   invoiceUrl: transaction.receiptUrl,
   createdAt: transaction.createdAt,
@@ -55,23 +56,37 @@ export const useFinances = (filters?: {
   });
 };
 
-// Fetch finance summary stats
+// Fetch finance summary stats (including membership payments)
 export const useFinanceSummary = () => {
   return useQuery({
     queryKey: ['finances-summary'],
     queryFn: async () => {
       const response = await api.get<{ success: boolean; data: any }>('/finances/summary');
-      console.log('✅ Finance Summary API response:', response.data);
-
       const data = response.data.data || {};
 
-      // Transform backend data to frontend format
+      let totalIncome = data.totalIncome || 0;
+      const totalExpenses = data.totalExpense || 0;
+
+      // Also include membership payments in totals
+      try {
+        const paymentsResponse = await api.get<{ success: boolean; data: MembershipPayment[] }>('/payments/club');
+        const payments = paymentsResponse.data.data || [];
+        const membershipIncome = payments
+          .filter((p) => p.status === 'PAID' || p.status === 'PARTIAL')
+          .reduce((sum, p) => sum + (p.paidAmount || p.amount), 0);
+        totalIncome += membershipIncome;
+      } catch (error) {
+        console.error('Failed to fetch payments for summary:', error);
+      }
+
+      const netProfit = totalIncome - totalExpenses;
+
       return {
-        totalIncome: data.totalIncome || 0,
-        totalExpenses: data.totalExpense || 0,
-        netProfit: data.balance || 0,
-        currentMonthIncome: data.totalIncome || 0,
-        currentMonthExpenses: data.totalExpense || 0,
+        totalIncome,
+        totalExpenses,
+        netProfit,
+        currentMonthIncome: totalIncome,
+        currentMonthExpenses: totalExpenses,
       } as FinanceSummary;
     },
   });

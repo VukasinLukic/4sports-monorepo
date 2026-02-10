@@ -54,7 +54,7 @@ transactionSchema.index({ clubId: 1, transactionDate: -1 });
 transactionSchema.index({ clubId: 1, type: 1, category: 1 });
 
 transactionSchema.statics.findByClub = async function (clubId: mongoose.Types.ObjectId): Promise<ITransaction[]> {
-  return this.find({ clubId }).sort({ transactionDate: -1 }).populate('createdBy', 'firstName lastName');
+  return this.find({ clubId }).sort({ transactionDate: -1 }).populate('createdBy', 'fullName');
 };
 
 transactionSchema.statics.getFinancialSummary = async function (
@@ -110,7 +110,7 @@ transactionSchema.statics.getMonthlyReport = async function (
     transactionDate: { $gte: startDate, $lte: endDate },
   })
     .sort({ transactionDate: -1 })
-    .populate('createdBy', 'firstName lastName');
+    .populate('createdBy', 'fullName');
 };
 
 const Transaction = mongoose.model<ITransaction, ITransactionModel>('Transaction', transactionSchema);

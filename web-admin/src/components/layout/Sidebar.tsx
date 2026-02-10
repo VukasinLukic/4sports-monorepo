@@ -32,12 +32,12 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { nameKey: 'navigation.dashboard', path: '/', icon: LayoutDashboard },
+  { nameKey: 'navigation.finances', path: '/finances', icon: DollarSign },
   { nameKey: 'navigation.clubMembers', path: '/club-members', icon: Users },
+  { nameKey: 'navigation.evidence', path: '/evidence', icon: ClipboardList },
   { nameKey: 'navigation.news', path: '/news', icon: Newspaper },
   { nameKey: 'navigation.calendar', path: '/calendar', icon: CalendarDays },
   { nameKey: 'navigation.chat', path: '/chat', icon: MessageCircle },
-  { nameKey: 'navigation.evidence', path: '/evidence', icon: ClipboardList },
-  { nameKey: 'navigation.finances', path: '/finances', icon: DollarSign },
   { nameKey: 'navigation.settings', path: '/settings', icon: Settings },
 ];
 

@@ -498,8 +498,20 @@ export default {
     adjustFilters: 'Try adjusting your filters',
     transactionDeleted: 'Transaction deleted successfully',
     transactionDeleteFailed: 'Failed to delete transaction',
+    transactionUpdated: 'Transaction updated successfully',
+    transactionUpdateFailed: 'Failed to update transaction',
+    editEntry: 'Edit Transaction',
     profit: 'Profit',
     loss: 'Loss',
+    you: 'You',
+
+    // Validation
+    validation: {
+      categoryRequired: 'Category is required',
+      descriptionRequired: 'Description is required',
+      amountRequired: 'Amount must be greater than 0',
+      dateRequired: 'Date is required',
+    },
   },
 
   evidence: {

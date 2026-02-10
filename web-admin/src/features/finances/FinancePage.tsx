@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
 import { DateRangePicker } from '@/components/shared/DateRangePicker';
 import { AddFinanceDialog } from './AddFinanceDialog';
+import { EditFinanceDialog } from './EditFinanceDialog';
 import {
   useFinanceSummary,
   useFilteredFinances,
@@ -25,7 +26,7 @@ import {
   groupTransactionsByCategory,
   calculateGroupStats,
 } from './groupingUtils';
-import { FinanceFilters, GroupByOption } from '@/types';
+import { FinanceEntry, FinanceFilters, GroupByOption } from '@/types';
 import { useOnboarding } from '@/context/OnboardingContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -36,6 +37,8 @@ export function FinancePage() {
 
   // Dialog state
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<FinanceEntry | null>(null);
 
   // Initialize filters with "This Month" by default
   const now = new Date();
@@ -104,6 +107,12 @@ export function FinancePage() {
         variant: 'destructive',
       });
     }
+  };
+
+  // Handle edit
+  const handleEdit = (transaction: FinanceEntry) => {
+    setEditingTransaction(transaction);
+    setEditDialogOpen(true);
   };
 
   const formatCurrency = (amount: number) => {
@@ -232,7 +241,7 @@ export function FinancePage() {
 
       {/* NEW: Transactions Display */}
       {groupBy === 'none' ? (
-        <TransactionsFlatTable transactions={filteredTransactions} onDelete={handleDelete} />
+        <TransactionsFlatTable transactions={filteredTransactions} groups={groups} onEdit={handleEdit} onDelete={handleDelete} />
       ) : (
         <TransactionsGroupedTable
           groupedData={groupedData}
@@ -281,6 +290,11 @@ export function FinancePage() {
 
       {/* Dialogs */}
       <AddFinanceDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+      <EditFinanceDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        transaction={editingTransaction}
+      />
     </div>
   );
 }

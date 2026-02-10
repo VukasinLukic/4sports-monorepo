@@ -498,8 +498,20 @@ export default {
     adjustFilters: 'Pokušajte da prilagodite filtere',
     transactionDeleted: 'Transakcija je uspešno obrisana',
     transactionDeleteFailed: 'Brisanje transakcije nije uspelo',
+    transactionUpdated: 'Transakcija je uspešno ažurirana',
+    transactionUpdateFailed: 'Ažuriranje transakcije nije uspelo',
+    editEntry: 'Izmeni transakciju',
     profit: 'Dobit',
     loss: 'Gubitak',
+    you: 'Vi',
+
+    // Validation
+    validation: {
+      categoryRequired: 'Kategorija je obavezna',
+      descriptionRequired: 'Opis je obavezan',
+      amountRequired: 'Iznos mora biti veći od 0',
+      dateRequired: 'Datum je obavezan',
+    },
   },
 
   evidence: {
