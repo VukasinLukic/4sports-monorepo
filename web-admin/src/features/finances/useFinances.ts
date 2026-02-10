@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import api from '@/services/api';
-import { FinanceEntry, CreateFinanceEntryData, FinanceSummary } from '@/types';
+import { FinanceEntry, CreateFinanceEntryData, FinanceSummary, FinanceFilters, Group } from '@/types';
+import { useGroups } from '@/features/calendar/useEvents';
+import { useCoaches } from '@/features/coaches/useCoaches';
 
 // Transform backend transaction to frontend FinanceEntry format
 const transformTransaction = (transaction: any): FinanceEntry => ({
@@ -14,6 +17,8 @@ const transformTransaction = (transaction: any): FinanceEntry => ({
   isManual: !transaction.paymentId,
   invoiceUrl: transaction.receiptUrl,
   createdAt: transaction.createdAt,
+  groupId: transaction.groupId?._id || transaction.groupId,
+  coachId: transaction.coachId,
 });
 
 // Fetch all finance entries with filters
@@ -151,6 +156,10 @@ export interface MembershipPayment {
     fullName: string;
   } | string;
   createdAt: string;
+  groupId?: {
+    _id: string;
+    name: string;
+  } | string;
 }
 
 export const useClubPayments = () => {
@@ -176,4 +185,204 @@ export const useDeleteFinanceEntry = () => {
       queryClient.invalidateQueries({ queryKey: ['finances-summary'] });
     },
   });
+};
+
+// Fetch filtered finances with all filters
+export const useFilteredFinances = (filters: FinanceFilters) => {
+  return useQuery({
+    queryKey: ['finances', 'filtered', filters],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+
+      // Date range
+      if (filters.dateRange.startDate) {
+        params.append('startDate', filters.dateRange.startDate);
+      }
+      if (filters.dateRange.endDate) {
+        params.append('endDate', filters.dateRange.endDate);
+      }
+
+      // Transaction type
+      if (filters.transactionType !== 'ALL') {
+        params.append('type', filters.transactionType);
+      }
+
+      // Categories
+      if (filters.categories.length > 0) {
+        filters.categories.forEach((cat) => params.append('category', cat));
+      }
+
+      // Groups
+      if (filters.groupIds.length > 0) {
+        filters.groupIds.forEach((id) => params.append('groupId', id));
+      }
+
+      // Coaches
+      if (filters.coachIds.length > 0) {
+        filters.coachIds.forEach((id) => params.append('coachId', id));
+      }
+
+      const url = `/finances?${params.toString()}`;
+      console.log('🔍 Fetching finances with URL:', url);
+      console.log('🔍 Applied filters:', filters);
+
+      const response = await api.get<{ success: boolean; data: any[] }>(url);
+      console.log('✅ API returned transactions:', response.data.data?.length || 0);
+      console.log('✅ Full API response:', response.data);
+
+      // Transform backend data to frontend format
+      let manualEntries = (response.data.data || []).map(transformTransaction);
+
+      // Client-side filtering as fallback (in case backend doesn't support all filters)
+      // Filter by date range
+      if (filters.dateRange.startDate || filters.dateRange.endDate) {
+        manualEntries = manualEntries.filter((entry) => {
+          const entryDate = new Date(entry.date);
+          if (filters.dateRange.startDate) {
+            const startDate = new Date(filters.dateRange.startDate);
+            if (entryDate < startDate) return false;
+          }
+          if (filters.dateRange.endDate) {
+            const endDate = new Date(filters.dateRange.endDate);
+            endDate.setHours(23, 59, 59, 999); // Include the entire end date
+            if (entryDate > endDate) return false;
+          }
+          return true;
+        });
+        console.log('🔍 After date filter:', manualEntries.length, 'transactions');
+      }
+
+      // Filter by transaction type
+      if (filters.transactionType !== 'ALL') {
+        manualEntries = manualEntries.filter((entry) => entry.type === filters.transactionType);
+        console.log('🔍 After type filter:', manualEntries.length, 'transactions');
+      }
+
+      // Filter by groups
+      if (filters.groupIds.length > 0) {
+        manualEntries = manualEntries.filter((entry) => {
+          if (!entry.groupId) return false;
+          return filters.groupIds.includes(entry.groupId);
+        });
+        console.log('🔍 After group filter:', manualEntries.length, 'transactions');
+      }
+
+      // Filter by coaches
+      if (filters.coachIds.length > 0) {
+        manualEntries = manualEntries.filter((entry) => {
+          if (!entry.coachId) return false;
+          return filters.coachIds.includes(entry.coachId);
+        });
+        console.log('🔍 After coach filter:', manualEntries.length, 'transactions');
+      }
+
+      // If showing income and membership category is included, fetch payments
+      const shouldIncludePayments =
+        (filters.transactionType === 'ALL' || filters.transactionType === 'INCOME') &&
+        (filters.categories.length === 0 || filters.categories.includes('MEMBERSHIP_FEE'));
+
+      if (shouldIncludePayments) {
+        try {
+          const paymentsResponse = await api.get<{ success: boolean; data: MembershipPayment[] }>('/payments/club');
+          const payments = paymentsResponse.data.data || [];
+
+          // Transform payments to finance entries
+          const paymentEntries: FinanceEntry[] = payments
+            .filter((p) => p.status === 'PAID' || p.status === 'PARTIAL')
+            .map((payment) => {
+              const memberName = typeof payment.memberId === 'object' ? payment.memberId.fullName : 'Member';
+              const amount = payment.paidAmount || payment.amount;
+              const monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+              ];
+              const periodStr = payment.period
+                ? `${monthNames[payment.period.month - 1]} ${payment.period.year}`
+                : '';
+              const createdByName = typeof payment.createdBy === 'object' ? payment.createdBy.fullName : 'Sistem';
+
+              // Extract groupId from payment
+              const groupId = typeof payment.groupId === 'object' ? payment.groupId._id : payment.groupId;
+
+              return {
+                id: payment._id,
+                type: 'INCOME' as const,
+                category: 'MEMBERSHIP_FEE',
+                description: `Membership - ${memberName}${periodStr ? ` (${periodStr})` : ''}`,
+                amount,
+                date: payment.paidDate || payment.paymentDate || payment.createdAt,
+                recordedBy: createdByName,
+                isManual: false,
+                createdAt: payment.createdAt,
+                groupId,
+              };
+            });
+
+          // Apply client-side filtering to payment entries too
+          let filteredPaymentEntries = paymentEntries;
+
+          // Filter by transaction type (payments are always INCOME)
+          if (filters.transactionType === 'EXPENSE') {
+            filteredPaymentEntries = []; // Exclude all payments if filtering for expenses only
+            console.log('🔍 After type filter (payments): 0 payments (filtering for EXPENSE)');
+          }
+
+          // Filter by date range
+          if (filters.dateRange.startDate || filters.dateRange.endDate) {
+            filteredPaymentEntries = filteredPaymentEntries.filter((entry) => {
+              const entryDate = new Date(entry.date);
+              if (filters.dateRange.startDate) {
+                const startDate = new Date(filters.dateRange.startDate);
+                if (entryDate < startDate) return false;
+              }
+              if (filters.dateRange.endDate) {
+                const endDate = new Date(filters.dateRange.endDate);
+                endDate.setHours(23, 59, 59, 999); // Include the entire end date
+                if (entryDate > endDate) return false;
+              }
+              return true;
+            });
+            console.log('🔍 After date filter (payments):', filteredPaymentEntries.length, 'payments');
+          }
+
+          if (filters.groupIds.length > 0 && filteredPaymentEntries.length > 0) {
+            filteredPaymentEntries = filteredPaymentEntries.filter((entry) => {
+              if (!entry.groupId) return false;
+              return filters.groupIds.includes(entry.groupId);
+            });
+            console.log('🔍 After group filter (payments):', filteredPaymentEntries.length, 'payments');
+          }
+
+          // Merge and sort by date
+          return [...manualEntries, ...filteredPaymentEntries].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+        } catch (error) {
+          console.error('Failed to fetch membership payments:', error);
+          return manualEntries;
+        }
+      }
+
+      return manualEntries;
+    },
+  });
+};
+
+// Map coaches to their groups
+export const useCoachGroups = (): Record<string, Group[]> => {
+  const { data: groups } = useGroups();
+  const { data: coaches } = useCoaches();
+
+  return useMemo(() => {
+    if (!groups || !coaches) return {};
+
+    const mapping: Record<string, Group[]> = {};
+    const fullGroups = groups as Group[]; // Cast to full Group type with coaches property
+
+    coaches.forEach((coach) => {
+      mapping[coach.id] = fullGroups.filter((g) => g.coaches?.includes(coach.id));
+    });
+
+    return mapping;
+  }, [groups, coaches]);
 };

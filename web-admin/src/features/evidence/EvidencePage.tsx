@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -12,23 +11,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Search,
   Users,
   Bell,
-  BellRing,
-  Check,
-  AlertCircle,
-  ChevronDown,
-  ChevronRight,
   Loader2,
   CreditCard,
   Stethoscope,
-  Clock,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldX,
+  Filter,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import {
   useMembershipEvidence,
   useMedicalEvidence,
@@ -56,6 +54,7 @@ export function EvidencePage() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'unpaid'>('all');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [medicalDialogOpen, setMedicalDialogOpen] = useState(false);
@@ -78,6 +77,10 @@ export function EvidencePage() {
 
     const groupMap = new Map<string, { name: string; color?: string; members: EvidenceMember[] }>();
     membershipData.evidence.forEach((m) => {
+      // Apply filter
+      if (filterStatus === 'paid' && m.status !== 'PAID') return;
+      if (filterStatus === 'unpaid' && m.status === 'PAID') return;
+
       const gId = m.group?._id || 'unknown';
       if (!groupMap.has(gId)) {
         groupMap.set(gId, { name: m.group?.name || 'Bez grupe', color: m.group?.color, members: [] });
@@ -101,7 +104,7 @@ export function EvidencePage() {
         totalCount: data.members.length,
       }))
       .filter((g) => g.totalCount > 0);
-  }, [membershipData, searchQuery]);
+  }, [membershipData, searchQuery, filterStatus]);
 
   // Group medical evidence by group
   const medicalGroups = useMemo(() => {
@@ -109,6 +112,10 @@ export function EvidencePage() {
 
     const groupMap = new Map<string, { name: string; color?: string; members: MedicalEvidenceMember[] }>();
     medicalData.evidence.forEach((m) => {
+      // Apply filter
+      if (filterStatus === 'paid' && m.medicalStatus !== 'VALID') return;
+      if (filterStatus === 'unpaid' && m.medicalStatus === 'VALID') return;
+
       const gId = m.group?._id || 'unknown';
       if (!groupMap.has(gId)) {
         groupMap.set(gId, { name: m.group?.name || 'Bez grupe', color: m.group?.color, members: [] });
@@ -132,26 +139,7 @@ export function EvidencePage() {
         totalCount: data.members.length,
       }))
       .filter((g) => g.totalCount > 0);
-  }, [medicalData, searchQuery]);
-
-  const toggleGroup = (groupId: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
-    });
-  };
-
-  // Expand all groups by default on first load
-  useMemo(() => {
-    const allGroupIds = activeTab === 'membership'
-      ? membershipGroups.map((g) => g._id)
-      : medicalGroups.map((g) => g._id);
-    if (allGroupIds.length > 0 && expandedGroups.size === 0) {
-      setExpandedGroups(new Set(allGroupIds));
-    }
-  }, [membershipGroups, medicalGroups, activeTab]);
+  }, [medicalData, searchQuery, filterStatus]);
 
   const handleOpenPaymentDialog = (memberId: string, memberName: string, membershipFee?: number) => {
     setSelectedMember({ id: memberId, name: memberName, membershipFee });
@@ -199,7 +187,41 @@ export function EvidencePage() {
   const isLoading = activeTab === 'membership' ? membershipLoading : medicalLoading;
 
   const unpaidCount = stats ? stats.pending + stats.overdue + stats.notCreated + (stats.partial || 0) : 0;
-  const collectionRate = stats && stats.total > 0 ? Math.round((stats.paid / stats.total) * 100) : 0;
+
+  // Calculate total collected from evidence data
+  const totalCollected = useMemo(() => {
+    if (!membershipData?.evidence) return 0;
+    return membershipData.evidence.reduce((sum, member) => {
+      if (member.payment?.paidAmount) {
+        return sum + member.payment.paidAmount;
+      } else if (member.status === 'PAID' && member.payment?.amount) {
+        return sum + member.payment.amount;
+      }
+      return sum;
+    }, 0);
+  }, [membershipData]);
+
+  // Calculate total amount that should be collected
+  const totalAmount = useMemo(() => {
+    if (!membershipData?.evidence) return 0;
+    return membershipData.evidence.reduce((sum, member) => {
+      if (member.payment?.amount) {
+        return sum + member.payment.amount;
+      }
+      return sum;
+    }, 0);
+  }, [membershipData]);
+
+  const remainingAmount = totalAmount - totalCollected;
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -216,65 +238,55 @@ export function EvidencePage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
+    <div className="space-y-4">
+      {/* Summary Stats Bar */}
       {activeTab === 'membership' ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Neplaćeno</p>
-              <p className="text-3xl font-bold">{unpaidCount}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Ukupno plaćeno</p>
-              <p className="text-3xl font-bold">{stats?.paid || 0} / {stats?.total || 0}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Stopa naplate</p>
-              <p className="text-3xl font-bold">{collectionRate}%</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
+            <p className="text-xs text-zinc-400 mb-1">Ukupno plaćeno</p>
+            <p className="text-2xl font-bold text-white">{stats?.paid || 0}/{stats?.total || 0}</p>
+          </div>
+          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
+            <p className="text-xs text-zinc-400 mb-1">Total collected</p>
+            <p className="text-2xl font-bold text-white">{totalCollected} RSD</p>
+          </div>
+          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
+            <p className="text-xs text-zinc-400 mb-1">Preostalo za naplatu</p>
+            <p className="text-2xl font-bold text-white">{remainingAmount} RSD</p>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Validni pregledi</p>
-              <p className="text-3xl font-bold text-green-600">{medStats?.valid || 0}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Ističe uskoro</p>
-              <p className="text-3xl font-bold text-yellow-600">{medStats?.expiringSoon || 0}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Istekli / Nisu uneti</p>
-              <p className="text-3xl font-bold text-red-600">{(medStats?.expired || 0) + (medStats?.notSet || 0)}</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
+            <p className="text-xs text-zinc-400 mb-1">Validni pregledi</p>
+            <p className="text-2xl font-bold text-green-500">{medStats?.valid || 0}</p>
+          </div>
+          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
+            <p className="text-xs text-zinc-400 mb-1">Ističe uskoro</p>
+            <p className="text-2xl font-bold text-yellow-500">{medStats?.expiringSoon || 0}</p>
+          </div>
+          <div className="bg-zinc-900 dark:bg-zinc-800 rounded-lg p-4">
+            <p className="text-xs text-zinc-400 mb-1">Istekli / Nisu uneti</p>
+            <p className="text-2xl font-bold text-red-500">{(medStats?.expired || 0) + (medStats?.notSet || 0)}</p>
+          </div>
         </div>
       )}
 
-      {/* Search + Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* Search Bar + Filters */}
+      <div className="flex gap-3 items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Pretraži člana..."
+            placeholder="Search for the member..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-background"
           />
         </div>
+
+        {/* Month/Year Picker - only for membership */}
         {activeTab === 'membership' && (
-          <div className="flex gap-2">
+          <>
             <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
               <SelectTrigger className="w-[120px]">
                 <SelectValue />
@@ -295,69 +307,83 @@ export function EvidencePage() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </>
         )}
+
+        {/* Filter Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <Filter className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setFilterStatus('all')}>
+              Svi
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilterStatus('paid')}>
+              {activeTab === 'membership' ? 'Plaćeno' : 'Validni'}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilterStatus('unpaid')}>
+              {activeTab === 'membership' ? 'Neplaćeno' : 'Nevalidni'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="membership" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-2 bg-zinc-900 dark:bg-zinc-800 p-1 h-12">
+          <TabsTrigger
+            value="membership"
+            className="data-[state=active]:bg-green-600 data-[state=active]:text-white h-10 text-base gap-2"
+          >
             <CreditCard className="h-4 w-4" />
-            Članarine
+            Memberships
           </TabsTrigger>
-          <TabsTrigger value="medical" className="flex items-center gap-2">
+          <TabsTrigger
+            value="medical"
+            className="data-[state=active]:bg-green-600 data-[state=active]:text-white h-10 text-base gap-2"
+          >
             <Stethoscope className="h-4 w-4" />
-            Lekarski pregledi
+            Medical examinations
           </TabsTrigger>
         </TabsList>
 
         {/* Membership Tab */}
         <TabsContent value="membership" className="mt-4 space-y-4">
           {membershipGroups.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground">Nema članova za prikaz</p>
-              </CardContent>
-            </Card>
+            <div className="py-12 text-center">
+              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground">Nema članova za prikaz</p>
+            </div>
           ) : (
             membershipGroups.map((group) => (
-              <Card key={group._id}>
-                <CardHeader
-                  className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors"
+              <div key={group._id} className="space-y-3 bg-zinc-900/30 dark:bg-zinc-800/30 rounded-lg p-3">
+                {/* Group Header */}
+                <div
+                  className="flex items-center gap-2 cursor-pointer hover:bg-zinc-900/50 dark:hover:bg-zinc-800/50 p-2 rounded-md transition-colors"
                   onClick={() => toggleGroup(group._id)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {expandedGroups.has(group._id) ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: group.color || '#3b82f6' }}
-                      />
-                      <CardTitle className="text-base">{group.name}</CardTitle>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground">
-                        {group.paidCount}/{group.totalCount}
-                      </span>
-                      <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-green-500 rounded-full transition-all"
-                          style={{
-                            width: `${group.totalCount > 0 ? (group.paidCount / group.totalCount) * 100 : 0}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
+                  {expandedGroups.has(group._id) ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: group.color || '#ef4444' }}
+                  />
+                  <h3 className="font-semibold text-base">{group.name}</h3>
+                  <span className="text-sm text-muted-foreground">{group.totalCount} Members</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {group.paidCount}/{group.totalCount} plaćeno
+                  </span>
+                </div>
+
+                {/* Members List */}
                 {expandedGroups.has(group._id) && (
-                  <CardContent className="pt-0 space-y-2">
+                  <div className="space-y-2 pl-6">
                     {group.members.map((member) => (
                       <MembershipRow
                         key={member.memberId}
@@ -367,9 +393,9 @@ export function EvidencePage() {
                         isReminderLoading={sendReminderMutation.isPending}
                       />
                     ))}
-                  </CardContent>
+                  </div>
                 )}
-              </Card>
+              </div>
             ))
           )}
         </TabsContent>
@@ -377,37 +403,37 @@ export function EvidencePage() {
         {/* Medical Tab */}
         <TabsContent value="medical" className="mt-4 space-y-4">
           {medicalGroups.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground">Nema članova za prikaz</p>
-              </CardContent>
-            </Card>
+            <div className="py-12 text-center">
+              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground">Nema članova za prikaz</p>
+            </div>
           ) : (
             medicalGroups.map((group) => (
-              <Card key={group._id}>
-                <CardHeader
-                  className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors"
+              <div key={group._id} className="space-y-3 bg-zinc-900/30 dark:bg-zinc-800/30 rounded-lg p-3">
+                {/* Group Header */}
+                <div
+                  className="flex items-center gap-2 cursor-pointer hover:bg-zinc-900/50 dark:hover:bg-zinc-800/50 p-2 rounded-md transition-colors"
                   onClick={() => toggleGroup(group._id)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {expandedGroups.has(group._id) ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: group.color || '#3b82f6' }}
-                      />
-                      <CardTitle className="text-base">{group.name}</CardTitle>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{group.totalCount} članova</span>
-                  </div>
-                </CardHeader>
+                  {expandedGroups.has(group._id) ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: group.color || '#ef4444' }}
+                  />
+                  <h3 className="font-semibold text-base">{group.name}</h3>
+                  <span className="text-sm text-muted-foreground">{group.totalCount} Members</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {group.validCount} validnih
+                  </span>
+                </div>
+
+                {/* Members List */}
                 {expandedGroups.has(group._id) && (
-                  <CardContent className="pt-0 space-y-2">
+                  <div className="space-y-2 pl-6">
                     {group.members.map((member) => (
                       <MedicalRow
                         key={member.memberId}
@@ -417,9 +443,9 @@ export function EvidencePage() {
                         isReminderLoading={sendMedicalReminderMutation.isPending}
                       />
                     ))}
-                  </CardContent>
+                  </div>
                 )}
-              </Card>
+              </div>
             ))
           )}
         </TabsContent>
@@ -429,16 +455,16 @@ export function EvidencePage() {
       {((activeTab === 'membership' && unpaidCount > 0) ||
         (activeTab === 'medical' && ((medStats?.expired || 0) + (medStats?.notSet || 0)) > 0)) && (
         <Button
-          className="w-full bg-green-600 hover:bg-green-700 h-12 text-base"
+          className="w-full bg-green-600 hover:bg-green-700 h-11 text-base font-semibold rounded-xl"
           onClick={handleRemindAll}
           disabled={sendReminderAllMutation.isPending || sendMedicalReminderAllMutation.isPending}
         >
           {(sendReminderAllMutation.isPending || sendMedicalReminderAllMutation.isPending) ? (
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           ) : (
-            <BellRing className="mr-2 h-5 w-5" />
+            <Bell className="mr-2 h-5 w-5" />
           )}
-          Podsetite sve
+          Remind All
         </Button>
       )}
 
@@ -474,20 +500,17 @@ function MembershipRow({
   onSendReminder: () => void;
   isReminderLoading: boolean;
 }) {
+  const navigate = useNavigate();
   const isPaid = member.status === 'PAID';
   const isPartial = member.status === 'PARTIAL';
 
   return (
     <div
-      className={cn(
-        'flex items-center gap-3 p-3 rounded-lg border transition-colors bg-muted/50',
-        isPaid && 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800',
-        isPartial && 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800',
-        member.status === 'OVERDUE' && 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800',
-      )}
+      className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 dark:bg-zinc-800/50 hover:bg-zinc-900 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+      onClick={() => navigate(`/profile/member/${member.memberId}`)}
     >
       {/* Avatar */}
-      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold flex-shrink-0">
+      <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-white font-semibold flex-shrink-0">
         {member.profileImage ? (
           <img src={member.profileImage} alt={member.memberName} className="w-10 h-10 rounded-full object-cover" />
         ) : (
@@ -497,72 +520,50 @@ function MembershipRow({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{member.memberName}</p>
-        <div className="flex items-center gap-2">
+        <p className="font-medium text-white">{member.memberName}</p>
+        <div className="flex items-center gap-1 text-xs">
           {isPaid ? (
-            <span className="text-xs text-green-600 flex items-center gap-1">
-              <Check className="h-3 w-3" />
-              Plaćeno
-            </span>
+            <span className="text-green-500">Plaćeno ✓</span>
           ) : isPartial ? (
-            <span className="text-xs text-orange-600 flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              Delimično ({member.payment?.paidAmount ?? 0}/{member.payment?.amount ?? 0} RSD)
-            </span>
-          ) : member.status === 'OVERDUE' ? (
-            <span className="text-xs text-red-600 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              Kasni
-            </span>
-          ) : member.status === 'PENDING' ? (
-            <span className="text-xs text-yellow-600 flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              Na čekanju
-            </span>
+            <span className="text-orange-500">Delimično plaćeno ・</span>
           ) : (
-            <span className="text-xs text-muted-foreground">Nije plaćeno</span>
+            <span className="text-red-500">Nije plaćeno ・</span>
           )}
-          {isPaid && member.payment?.amount && (
-            <span className="text-xs text-muted-foreground">{member.payment.amount} RSD</span>
-          )}
+          <span className="text-zinc-500">Last Training: Yesterday</span>
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-1 flex-shrink-0">
+      {/* Action Icons */}
+      <div className="flex gap-2 flex-shrink-0">
+        {/* Payment Icon */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 rounded-full bg-green-600 hover:bg-green-700 flex-shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMarkPaid();
+          }}
+          title="Evidentiraj uplatu"
+        >
+          <CreditCard className="h-5 w-5 text-white" />
+        </Button>
+
+        {/* Bell Icon - only for unpaid */}
         {!isPaid && (
-          <>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-9 w-9"
-              onClick={onMarkPaid}
-              title="Evidentiraj uplatu"
-            >
-              <CreditCard className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-9 w-9 text-yellow-600 hover:text-yellow-700"
-              onClick={onSendReminder}
-              disabled={isReminderLoading}
-              title="Pošalji podsetnik"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
-          </>
-        )}
-        {isPaid && (
-          <Badge className="bg-green-600 hover:bg-green-700">
-            <Check className="h-3 w-3 mr-1" />
-            Plaćeno
-          </Badge>
-        )}
-        {isPartial && (
-          <Badge className="bg-orange-500 hover:bg-orange-600">
-            Delimično
-          </Badge>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-full bg-yellow-600 hover:bg-yellow-700 flex-shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSendReminder();
+            }}
+            disabled={isReminderLoading}
+            title="Pošalji podsetnik"
+          >
+            <Bell className="h-5 w-5 text-white" />
+          </Button>
         )}
       </div>
     </div>
@@ -581,15 +582,15 @@ function MedicalRow({
   onSendReminder: () => void;
   isReminderLoading: boolean;
 }) {
+  const navigate = useNavigate();
   const statusConfig = {
-    VALID: { icon: ShieldCheck, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800', label: 'Validan' },
-    EXPIRING_SOON: { icon: ShieldAlert, color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800', label: 'Ističe uskoro' },
-    EXPIRED: { icon: ShieldX, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800', label: 'Istekao' },
-    NOT_SET: { icon: AlertCircle, color: 'text-muted-foreground', bg: 'bg-muted/50', label: 'Nije unet' },
+    VALID: { color: 'text-green-500', label: 'Validan ✓' },
+    EXPIRING_SOON: { color: 'text-yellow-500', label: 'Ističe uskoro ・' },
+    EXPIRED: { color: 'text-red-500', label: 'Istekao ・' },
+    NOT_SET: { color: 'text-red-500', label: 'Nije unet ・' },
   };
 
   const config = statusConfig[member.medicalStatus] || statusConfig.NOT_SET;
-  const Icon = config.icon;
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '';
@@ -597,9 +598,12 @@ function MedicalRow({
   };
 
   return (
-    <div className={cn('flex items-center gap-3 p-3 rounded-lg border transition-colors', config.bg)}>
+    <div
+      className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 dark:bg-zinc-800/50 hover:bg-zinc-900 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+      onClick={() => navigate(`/profile/member/${member.memberId}`)}
+    >
       {/* Avatar */}
-      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold flex-shrink-0">
+      <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-white font-semibold flex-shrink-0">
         {member.profileImage ? (
           <img src={member.profileImage} alt={member.memberName} className="w-10 h-10 rounded-full object-cover" />
         ) : (
@@ -609,41 +613,45 @@ function MedicalRow({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{member.memberName}</p>
-        <div className="flex items-center gap-2">
-          <span className={cn('text-xs flex items-center gap-1', config.color)}>
-            <Icon className="h-3 w-3" />
-            {config.label}
-          </span>
+        <p className="font-medium text-white">{member.memberName}</p>
+        <div className="flex items-center gap-1 text-xs">
+          <span className={config.color}>{config.label}</span>
           {member.expiryDate && (
-            <span className="text-xs text-muted-foreground">do {formatDate(member.expiryDate)}</span>
+            <span className="text-zinc-500">do {formatDate(member.expiryDate)}</span>
           )}
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-1 flex-shrink-0">
+      {/* Action Icons */}
+      <div className="flex gap-2 flex-shrink-0">
+        {/* Medical Icon */}
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="h-9 w-9"
-          onClick={onUpdateMedical}
+          className="h-10 w-10 rounded-full bg-green-600 hover:bg-green-700 flex-shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onUpdateMedical();
+          }}
           title="Ažuriraj pregled"
         >
-          <Stethoscope className="h-4 w-4" />
+          <Stethoscope className="h-5 w-5 text-white" />
         </Button>
-        {(member.medicalStatus === 'EXPIRED' || member.medicalStatus === 'NOT_SET') && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 text-yellow-600 hover:text-yellow-700"
-            onClick={onSendReminder}
-            disabled={isReminderLoading}
-            title="Pošalji podsetnik"
-          >
-            <Bell className="h-4 w-4" />
-          </Button>
-        )}
+
+        {/* Bell Icon */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 rounded-full bg-yellow-600 hover:bg-yellow-700 flex-shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSendReminder();
+          }}
+          disabled={isReminderLoading}
+          title="Pošalji podsetnik"
+        >
+          <Bell className="h-5 w-5 text-white" />
+        </Button>
       </div>
     </div>
   );

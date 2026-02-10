@@ -445,6 +445,61 @@ export default {
       OVERDUE: 'Kasni',
       CANCELLED: 'Otkazano',
     },
+
+    // Filters
+    filters: 'Filteri',
+    activeFilters: 'Aktivni filteri',
+    clearAllFilters: 'Obriši sve filtere',
+    quickPresets: 'Brzi pregledi',
+    dateRange: 'Raspon datuma',
+    allTime: 'Sve vreme',
+    thisMonth: 'Ovaj mesec',
+    lastMonth: 'Prošli mesec',
+    thisYear: 'Ova godina',
+    customRange: 'Prilagođeni raspon',
+    startDate: 'Početni datum',
+    endDate: 'Krajnji datum',
+    groups: 'Grupe',
+    allGroups: 'Sve grupe',
+    selectGroups: 'Izaberi grupe',
+    coaches: 'Treneri',
+    allCoaches: 'Svi treneri',
+    selectCoaches: 'Izaberi trenere',
+    transactionType: 'Tip transakcije',
+    all: 'Sve',
+    allCategories: 'Sve kategorije',
+    selectCategories: 'Izaberi kategorije',
+    membershipsOnly: 'Samo članarine',
+
+    // Grouping
+    groupBy: 'Grupiši po',
+    groupByNone: 'Bez grupisanja',
+    groupByMonth: 'Mesec',
+    groupByGroup: 'Grupa',
+    groupByCategory: 'Kategorija',
+    groupByCoach: 'Trener',
+
+    // Summary
+    showingTransactions: 'Prikazano {{count}} transakcija',
+    fromDateRange: 'od {{start}} do {{end}}',
+    filteredIncome: 'Prihod',
+    filteredExpense: 'Rashod',
+    filteredNet: 'Neto',
+    transactionsCount: '{{count}} transakcija',
+
+    // Table
+    coach: 'Trener',
+    noCoach: 'Bez trenera',
+    expandGroup: 'Proširi grupu',
+    collapseGroup: 'Skupi grupu',
+
+    // Messages
+    noMatchingTransactions: 'Nema transakcija koje odgovaraju filterima',
+    adjustFilters: 'Pokušajte da prilagodite filtere',
+    transactionDeleted: 'Transakcija je uspešno obrisana',
+    transactionDeleteFailed: 'Brisanje transakcije nije uspelo',
+    profit: 'Dobit',
+    loss: 'Gubitak',
   },
 
   evidence: {
@@ -722,6 +777,11 @@ export default {
       profile: { title: 'Vaš profil', description: 'Upravljajte vašim ličnim podacima i profilnom slikom.' },
       subscription: { title: 'Pretplata', description: 'Pregledajte vaš trenutni plan i limite. Nadogradite za više mogućnosti.' },
     },
+  },
+
+  sidebar: {
+    clubProfile: 'Profil kluba',
+    help: 'Pomoć',
   },
 
   app: {

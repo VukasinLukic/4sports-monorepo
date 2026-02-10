@@ -445,6 +445,61 @@ export default {
       OVERDUE: 'Overdue',
       CANCELLED: 'Cancelled',
     },
+
+    // Filters
+    filters: 'Filters',
+    activeFilters: 'Active Filters',
+    clearAllFilters: 'Clear All Filters',
+    quickPresets: 'Quick Presets',
+    dateRange: 'Date Range',
+    allTime: 'All Time',
+    thisMonth: 'This Month',
+    lastMonth: 'Last Month',
+    thisYear: 'This Year',
+    customRange: 'Custom Range',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    groups: 'Groups',
+    allGroups: 'All Groups',
+    selectGroups: 'Select Groups',
+    coaches: 'Coaches',
+    allCoaches: 'All Coaches',
+    selectCoaches: 'Select Coaches',
+    transactionType: 'Transaction Type',
+    all: 'All',
+    allCategories: 'All Categories',
+    selectCategories: 'Select Categories',
+    membershipsOnly: 'Memberships Only',
+
+    // Grouping
+    groupBy: 'Group By',
+    groupByNone: 'None',
+    groupByMonth: 'Month',
+    groupByGroup: 'Group',
+    groupByCategory: 'Category',
+    groupByCoach: 'Coach',
+
+    // Summary
+    showingTransactions: 'Showing {{count}} transactions',
+    fromDateRange: 'from {{start}} to {{end}}',
+    filteredIncome: 'Income',
+    filteredExpense: 'Expense',
+    filteredNet: 'Net',
+    transactionsCount: '{{count}} transactions',
+
+    // Table
+    coach: 'Coach',
+    noCoach: 'No Coach',
+    expandGroup: 'Expand group',
+    collapseGroup: 'Collapse group',
+
+    // Messages
+    noMatchingTransactions: 'No transactions match your filters',
+    adjustFilters: 'Try adjusting your filters',
+    transactionDeleted: 'Transaction deleted successfully',
+    transactionDeleteFailed: 'Failed to delete transaction',
+    profit: 'Profit',
+    loss: 'Loss',
   },
 
   evidence: {
@@ -722,6 +777,11 @@ export default {
       profile: { title: 'Your Profile', description: 'Manage your personal details and profile picture.' },
       subscription: { title: 'Subscription', description: 'View your current plan and limits. Upgrade for more features.' },
     },
+  },
+
+  sidebar: {
+    clubProfile: 'Club Profile',
+    help: 'Help',
   },
 
   app: {

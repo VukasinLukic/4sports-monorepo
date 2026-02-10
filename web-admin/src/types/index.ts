@@ -129,6 +129,8 @@ export interface FinanceEntry {
   isManual: boolean;
   invoiceUrl?: string;
   createdAt: string;
+  groupId?: string;
+  coachId?: string;
 }
 
 export interface CreateFinanceEntryData {
@@ -147,6 +149,32 @@ export interface FinanceSummary {
   netProfit: number;
   currentMonthIncome: number;
   currentMonthExpenses: number;
+}
+
+export interface FinanceFilters {
+  dateRange: {
+    startDate: string | null;
+    endDate: string | null;
+    preset: 'all' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'custom';
+  };
+  groupIds: string[];
+  coachIds: string[];
+  transactionType: 'ALL' | 'INCOME' | 'EXPENSE';
+  categories: string[];
+}
+
+export type GroupByOption = 'none' | 'month' | 'group' | 'category' | 'coach';
+
+export interface GroupedTransactionData {
+  key: string;
+  name: string;
+  transactions: FinanceEntry[];
+  stats: {
+    count: number;
+    totalIncome: number;
+    totalExpense: number;
+    net: number;
+  };
 }
 
 // Dashboard V2 Types
