@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { FinanceFilters, Group, Coach } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { X, Filter, ChevronDown, ChevronUp } from 'lucide-react';
@@ -72,6 +73,36 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
     onFilterChange({ ...filters, coachIds: newIds });
   };
 
+  // Categories matching AddFinanceDialog values
+  const incomeCategories = [
+    { value: 'MEMBERSHIP_FEE', label: t('finances.categories.membershipPayment') },
+    { value: 'EVENT_FEE', label: t('finances.categories.eventFee') },
+    { value: 'SPONSORSHIP', label: t('finances.categories.sponsorship') },
+    { value: 'EQUIPMENT', label: t('finances.categories.equipmentSales') },
+    { value: 'OTHER', label: t('finances.categories.otherIncome') },
+  ];
+  const expenseCategories = [
+    { value: 'EQUIPMENT', label: t('finances.categories.equipmentPurchase') },
+    { value: 'RENT', label: t('finances.categories.facilityRent') },
+    { value: 'SALARY', label: t('finances.categories.coachSalary') },
+    { value: 'UTILITIES', label: t('finances.categories.utilities') },
+    { value: 'OTHER', label: t('finances.categories.otherExpense') },
+  ];
+  const availableCategories = filters.transactionType === 'INCOME'
+    ? incomeCategories
+    : filters.transactionType === 'EXPENSE'
+      ? expenseCategories
+      : [...incomeCategories, ...expenseCategories.filter((c) => !incomeCategories.some((ic) => ic.value === c.value))];
+
+  const toggleCategory = (category: string) => {
+    const newCategories = filters.categories.includes(category)
+      ? filters.categories.filter((c) => c !== category)
+      : [...filters.categories, category];
+    onFilterChange({ ...filters, categories: newCategories });
+  };
+
+  const scrollbarClass = 'max-h-60 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700/40 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600/60';
+
   return (
     <div className="space-y-2">
       <div
@@ -132,8 +163,8 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
 
       {isOpen && (
         <div className="bg-zinc-900/30 dark:bg-zinc-800/30 p-4 rounded-lg">
-          {/* Main Filters - 3 columns in one row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Main Filters - 4 columns in one row */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Transaction Type */}
             <div className="space-y-2">
               <Label className="text-sm text-muted-foreground font-medium">{t('finances.transactionType')}</Label>
@@ -154,6 +185,37 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
               </Select>
             </div>
 
+            {/* Category */}
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground font-medium">{t('finances.category')}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={`w-full justify-start ${filters.categories.length > 0 ? 'text-green-500 font-semibold' : ''}`}>
+                    {filters.categories.length === 0
+                      ? t('finances.allCategories')
+                      : `${filters.categories.length} ${t('finances.category')}`}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className={`space-y-1 ${scrollbarClass}`}>
+                    {availableCategories.map((cat) => (
+                      <div
+                        key={cat.value}
+                        className="flex items-center gap-3 p-2 hover:bg-accent rounded cursor-pointer"
+                        onClick={() => toggleCategory(cat.value)}
+                      >
+                        <Checkbox
+                          checked={filters.categories.includes(cat.value)}
+                          onCheckedChange={() => toggleCategory(cat.value)}
+                        />
+                        <span className="text-sm cursor-pointer">{cat.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
             {/* Groups */}
             <div className="space-y-2">
               <Label className="text-sm text-muted-foreground font-medium">{t('finances.groups')}</Label>
@@ -166,25 +228,23 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                  <div className={`space-y-1 ${scrollbarClass}`}>
                     {groups?.map((group) => (
                       <div
                         key={group._id}
-                        className="flex items-center space-x-2 p-2 hover:bg-accent rounded cursor-pointer"
+                        className="flex items-center gap-3 p-2 hover:bg-accent rounded cursor-pointer"
                         onClick={() => toggleGroup(group._id)}
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={filters.groupIds.includes(group._id)}
-                          onChange={() => { }}
-                          className="h-4 w-4"
+                          onCheckedChange={() => toggleGroup(group._id)}
                         />
-                        <label className="font-normal cursor-pointer flex items-center gap-2">
+                        <span className="text-sm cursor-pointer flex items-center gap-2">
                           {group.color && (
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: group.color }} />
                           )}
                           {group.name}
-                        </label>
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -204,22 +264,18 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                  <div className={`space-y-1 ${scrollbarClass}`}>
                     {coaches?.map((coach) => (
                       <div
                         key={coach.id}
-                        className="flex items-center space-x-2 p-2 hover:bg-accent rounded cursor-pointer"
+                        className="flex items-center gap-3 p-2 hover:bg-accent rounded cursor-pointer"
                         onClick={() => toggleCoach(coach.id)}
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={filters.coachIds.includes(coach.id)}
-                          onChange={() => { }}
-                          className="h-4 w-4"
+                          onCheckedChange={() => toggleCoach(coach.id)}
                         />
-                        <label className="font-normal cursor-pointer">
-                          {coach.fullName}
-                        </label>
+                        <span className="text-sm cursor-pointer">{coach.fullName}</span>
                       </div>
                     ))}
                   </div>

@@ -258,6 +258,12 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
         console.log('🔍 After type filter:', manualEntries.length, 'transactions');
       }
 
+      // Filter by categories
+      if (filters.categories.length > 0) {
+        manualEntries = manualEntries.filter((entry) => filters.categories.includes(entry.category));
+        console.log('🔍 After category filter:', manualEntries.length, 'transactions');
+      }
+
       // Filter by groups
       if (filters.groupIds.length > 0) {
         manualEntries = manualEntries.filter((entry) => {

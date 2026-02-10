@@ -247,6 +247,38 @@ export function FinancePage() {
         />
       )}
 
+      {/* Summary Bar */}
+      {filteredTransactions && filteredTransactions.length > 0 && (
+        <div className="flex items-center justify-between p-4 rounded-lg border bg-zinc-900/30 dark:bg-zinc-800/30">
+          <div>
+            <h3 className="font-semibold text-lg">{t('common.total')}:</h3>
+            <p className="text-sm text-muted-foreground">
+              {t('finances.transactionsCount', { count: filteredTransactions.length })}
+            </p>
+          </div>
+          <div className="flex gap-6 text-right">
+            <div>
+              <p className="text-xs text-muted-foreground">{t('finances.filteredIncome')}</p>
+              <p className="text-lg font-semibold text-green-500">
+                {filteredStats.totalIncome.toLocaleString()} RSD
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t('finances.filteredExpense')}</p>
+              <p className="text-lg font-semibold text-red-500">
+                {filteredStats.totalExpense.toLocaleString()} RSD
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t('finances.filteredNet')}</p>
+              <p className={`text-lg font-semibold ${filteredStats.net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {filteredStats.net >= 0 ? '+' : ''}{filteredStats.net.toLocaleString()} RSD
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dialogs */}
       <AddFinanceDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
     </div>
