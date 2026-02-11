@@ -80,7 +80,6 @@ export interface InviteCode {
   groupId?: {
     _id: string;
     name: string;
-    ageGroup?: string;
     color?: string;
   };
   createdBy?: {
@@ -96,25 +95,26 @@ export interface InviteCode {
 }
 
 // Group Types
+export interface GroupCoach {
+  _id: string;
+  fullName: string;
+  email?: string;
+}
+
 export interface Group {
   _id: string;
   clubId: string;
   name: string;
-  ageGroup?: string;
-  sport?: string;
-  description?: string;
   color?: string;
   memberCount?: number;
-  coaches?: string[];
+  coaches?: GroupCoach[];
   isActive?: boolean;
 }
 
 export interface CreateGroupData {
   name: string;
-  ageGroup?: string;
-  sport?: string;
-  description?: string;
   color?: string;
+  coaches?: string[];
 }
 
 // Finance Types

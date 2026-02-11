@@ -12,7 +12,6 @@ export interface MemberByUser {
   groupId?: {
     _id: string;
     name: string;
-    ageGroup?: string;
     color?: string;
   };
 }
@@ -38,7 +37,6 @@ export interface MemberDetail {
   groupId?: {
     _id: string;
     name: string;
-    ageGroup?: string;
     color?: string;
   };
   parentId?: {

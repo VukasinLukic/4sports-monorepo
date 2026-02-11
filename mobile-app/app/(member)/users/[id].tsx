@@ -12,7 +12,6 @@ import api from '@/services/api';
 interface UserGroup {
   _id: string;
   name: string;
-  ageGroup?: string;
 }
 
 interface UserProfile {
@@ -189,9 +188,6 @@ export default function UserProfileScreen() {
                   <MaterialCommunityIcons name="account-group" size={20} color={Colors.textSecondary} />
                   <View style={styles.groupInfo}>
                     <Text style={styles.groupName}>{group.name}</Text>
-                    {group.ageGroup && (
-                      <Text style={styles.groupAge}>{group.ageGroup}</Text>
-                    )}
                   </View>
                 </View>
               ))}

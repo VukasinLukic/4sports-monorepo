@@ -426,7 +426,7 @@ export const useCoachGroups = (): Record<string, Group[]> => {
     const fullGroups = groups as Group[]; // Cast to full Group type with coaches property
 
     coaches.forEach((coach) => {
-      mapping[coach.id] = fullGroups.filter((g) => g.coaches?.includes(coach.id));
+      mapping[coach.id] = fullGroups.filter((g) => g.coaches?.some(c => c._id === coach.id));
     });
 
     return mapping;

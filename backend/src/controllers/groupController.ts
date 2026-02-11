@@ -17,7 +17,7 @@ export const createGroup = async (req: Request, res: Response) => {
       });
     }
 
-    const { name, ageGroup, sport, description, coaches, color } = req.body;
+    const { name, coaches, color } = req.body;
     const clubId = req.user.clubId;
 
     if (!clubId) {
@@ -41,34 +41,26 @@ export const createGroup = async (req: Request, res: Response) => {
       coachIds = [req.user._id];
     }
 
-    if (coachIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'At least one coach is required' },
+    // Verify coaches if provided
+    if (coachIds.length > 0) {
+      const coachUsers = await User.find({
+        _id: { $in: coachIds },
+        role: 'COACH',
+        clubId,
       });
-    }
 
-    // Verify all coaches exist and belong to the club
-    const coachUsers = await User.find({
-      _id: { $in: coachIds },
-      role: 'COACH',
-      clubId,
-    });
-
-    if (coachUsers.length !== coachIds.length) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_COACHES', message: 'One or more coaches are invalid' },
-      });
+      if (coachUsers.length !== coachIds.length) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_COACHES', message: 'One or more coaches are invalid' },
+        });
+      }
     }
 
     // Create group
     const group = await Group.create({
       clubId,
       name,
-      ageGroup,
-      sport,
-      description,
       color,
       coaches: coachIds,
     });
@@ -200,7 +192,7 @@ export const updateGroup = async (req: Request, res: Response) => {
     }
 
     const { id } = req.params;
-    const { name, ageGroup, sport, description, color } = req.body;
+    const { name, color, coaches } = req.body;
 
     const group = await Group.findById(id);
 
@@ -221,16 +213,33 @@ export const updateGroup = async (req: Request, res: Response) => {
 
     // Update fields
     if (name) group.name = name;
-    if (ageGroup !== undefined) group.ageGroup = ageGroup;
-    if (sport !== undefined) group.sport = sport;
-    if (description !== undefined) group.description = description;
     if (color !== undefined) group.color = color;
+
+    // Update coaches if provided
+    if (coaches !== undefined) {
+      if (coaches.length > 0) {
+        const coachUsers = await User.find({
+          _id: { $in: coaches },
+          role: 'COACH',
+          clubId: req.user.clubId,
+        });
+        if (coachUsers.length !== coaches.length) {
+          return res.status(400).json({
+            success: false,
+            error: { code: 'INVALID_COACHES', message: 'One or more coaches are invalid' },
+          });
+        }
+      }
+      group.coaches = coaches;
+    }
 
     await group.save();
 
+    const populated = await Group.findById(group._id).populate('coaches', 'fullName email');
+
     return res.status(200).json({
       success: true,
-      data: group,
+      data: populated,
     });
   } catch (error: any) {
     console.error('❌ Update Group Error:', error);

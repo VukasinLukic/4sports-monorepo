@@ -654,8 +654,6 @@ export default {
     editGroup: 'Izmeni grupu',
     groupName: 'Naziv grupe',
     groupNamePlaceholder: 'Unesite naziv grupe',
-    ageGroup: 'Uzrasna kategorija',
-    ageGroupPlaceholder: 'npr. U-15, Seniori',
     groupColor: 'Boja',
     deleteCoach: 'Ukloni trenera',
     deleteCoachConfirm: 'Da li ste sigurni da želite da uklonite {{name}}?',

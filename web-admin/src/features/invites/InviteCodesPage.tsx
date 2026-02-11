@@ -322,7 +322,6 @@ export function InviteCodesPage() {
                         style={{ backgroundColor: group.color || '#22c55e' }}
                       />
                       {group.name}
-                      {group.ageGroup && ` (${group.ageGroup})`}
                     </div>
                   </SelectItem>
                 ))}

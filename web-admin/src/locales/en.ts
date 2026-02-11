@@ -654,8 +654,6 @@ export default {
     editGroup: 'Edit Group',
     groupName: 'Group Name',
     groupNamePlaceholder: 'Enter group name',
-    ageGroup: 'Age Group',
-    ageGroupPlaceholder: 'e.g., U-15, Seniors',
     groupColor: 'Color',
     deleteCoach: 'Remove Coach',
     deleteCoachConfirm: 'Are you sure you want to remove {{name}}?',
