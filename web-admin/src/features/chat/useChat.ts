@@ -1,0 +1,236 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import api from '@/services/api';
+import { db } from '@/config/firebase';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  Unsubscribe,
+} from 'firebase/firestore';
+import { useAuth } from '@/features/auth/AuthContext';
+
+export interface Conversation {
+  id: string;
+  type: '1-on-1' | 'group' | 'staff-group';
+  clubId: string;
+  participantIds: string[];
+  participantDetails: Record<string, { name: string; avatar: string | null; role: string }>;
+  groupName?: string;
+  lastMessage?: {
+    text: string;
+    senderId: string;
+    senderName: string;
+    timestamp: any;
+    imageUrl?: string;
+  };
+  unreadCounts?: Record<string, number>;
+  createdAt: any;
+  updatedAt: any;
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar: string | null;
+  text: string;
+  images: string[];
+  timestamp: any;
+  readBy: string[];
+}
+
+export interface ChatUser {
+  _id: string;
+  fullName: string;
+  profileImage?: string;
+  role: string;
+  email: string;
+}
+
+// Hook for real-time conversations
+export const useConversations = () => {
+  const { backendUser } = useAuth();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!backendUser?._id || !backendUser?.clubId || !db) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const conversationsRef = collection(db, 'conversations');
+      const q = query(
+        conversationsRef,
+        where('clubId', '==', backendUser.clubId),
+        where('participantIds', 'array-contains', backendUser._id),
+        orderBy('updatedAt', 'desc')
+      );
+
+      const unsubscribe: Unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const newConversations: Conversation[] = [];
+          snapshot.forEach((doc) => {
+            newConversations.push({
+              id: doc.id,
+              ...doc.data(),
+            } as Conversation);
+          });
+          setConversations(newConversations);
+          setLoading(false);
+        },
+        (err) => {
+          console.error('Error subscribing to conversations:', err);
+          setError(err as Error);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (err) {
+      console.error('Error setting up conversations subscription:', err);
+      setError(err as Error);
+      setLoading(false);
+    }
+  }, [backendUser?._id, backendUser?.clubId]);
+
+  return { conversations, loading, error };
+};
+
+// Hook for real-time messages in a conversation
+export const useMessages = (conversationId: string | null) => {
+  const { backendUser } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!conversationId || !db) {
+      setMessages([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+      const q = query(messagesRef, orderBy('timestamp', 'asc'));
+
+      const unsubscribe: Unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const newMessages: Message[] = [];
+          snapshot.forEach((doc) => {
+            newMessages.push({
+              id: doc.id,
+              ...doc.data(),
+            } as Message);
+          });
+          setMessages(newMessages);
+          setLoading(false);
+
+          // Mark messages as read
+          if (backendUser?._id && conversationId) {
+            api.post(`/chat/conversations/${conversationId}/read`).catch(console.error);
+          }
+        },
+        (err) => {
+          console.error('Error subscribing to messages:', err);
+          setError(err as Error);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (err) {
+      console.error('Error setting up messages subscription:', err);
+      setError(err as Error);
+      setLoading(false);
+    }
+  }, [conversationId, backendUser?._id]);
+
+  return { messages, loading, error };
+};
+
+// Hook to get users for new conversations
+export const useChatUsers = () => {
+  return useQuery({
+    queryKey: ['chat-users'],
+    queryFn: async () => {
+      const response = await api.get('/chat/users');
+      return response.data.data as ChatUser[];
+    },
+  });
+};
+
+// Hook to create conversation
+export const useCreateConversation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      participantIds,
+      type = '1-on-1',
+      groupName,
+    }: {
+      participantIds: string[];
+      type?: '1-on-1' | 'group' | 'staff-group';
+      groupName?: string;
+    }) => {
+      const response = await api.post('/chat/conversations', {
+        participantIds,
+        type,
+        groupName,
+      });
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+};
+
+// Hook to send message
+export const useSendMessage = () => {
+  return useMutation({
+    mutationFn: async ({
+      conversationId,
+      text,
+      images = [],
+    }: {
+      conversationId: string;
+      text: string;
+      images?: string[];
+    }) => {
+      const response = await api.post(`/chat/conversations/${conversationId}/messages`, {
+        text,
+        images,
+      });
+      return response.data.data;
+    },
+  });
+};
+
+// Hook to upload chat images
+export const useUploadChatImages = () => {
+  return useMutation({
+    mutationFn: async (files: File[]) => {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+
+      const response = await api.post('/upload/chat-images', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data.data as { urls: string[] };
+    },
+  });
+};

@@ -1,0 +1,509 @@
+import { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+} from 'react-native';
+import { Text, ActivityIndicator, Avatar, Button } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Colors } from '@/constants/Colors';
+import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
+import { useLanguage } from '@/services/LanguageContext';
+import { useNotificationBadge } from '@/services/NotificationBadgeContext';
+import api from '@/services/api';
+
+interface NotificationSender {
+  _id: string;
+  fullName: string;
+  profilePicture?: string;
+}
+
+interface Notification {
+  _id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  senderId?: NotificationSender;
+  data?: {
+    eventId?: string;
+    postId?: string;
+    memberId?: string;
+    conversationId?: string;
+  };
+}
+
+export default function NotificationsScreen() {
+  const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
+  const { decrementBadgeCount, setBadgeCount } = useNotificationBadge();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await api.get('/notifications');
+      setNotifications(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  const onRefresh = () => {
+    setIsRefreshing(true);
+    fetchNotifications();
+  };
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      await api.patch(`/notifications/${notificationId}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, isRead: true } : n))
+      );
+      decrementBadgeCount(1);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.patch('/notifications/read-all');
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setBadgeCount(0);
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
+
+  const handleNotificationPress = (notification: Notification) => {
+    if (!notification.isRead) {
+      markAsRead(notification._id);
+    }
+
+    // Navigate based on notification type
+    if (notification.data?.conversationId) {
+      router.push(`/(coach)/chat/${notification.data.conversationId}` as any);
+    } else if (notification.data?.postId) {
+      // Navigate to news feed and scroll to the post with comments open
+      router.push({
+        pathname: '/(coach)/news',
+        params: { postId: notification.data.postId, openComments: 'true' },
+      } as any);
+    } else if (notification.data?.eventId) {
+      router.push(`/(coach)/events/${notification.data.eventId}` as any);
+    } else if (notification.data?.memberId) {
+      router.push(`/(coach)/members/${notification.data.memberId}` as any);
+    } else {
+      // No navigation target - show full message in custom modal
+      setSelectedNotification(notification);
+    }
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return '??';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'PAYMENT_DUE':
+        return 'cash-remove';
+      case 'MEDICAL_EXPIRY':
+        return 'medical-bag';
+      case 'EVENT_REMINDER':
+        return 'calendar-clock';
+      case 'NEW_POST':
+        return 'newspaper';
+      case 'NEW_COMMENT':
+        return 'comment';
+      case 'ATTENDANCE_MARKED':
+        return 'check-circle';
+      case 'INVITE_ACCEPTED':
+        return 'account-plus';
+      default:
+        return 'bell';
+    }
+  };
+
+  const getTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return t('dateTime.justNow');
+    if (diffMins < 60) return `${diffMins} min`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return date.toLocaleDateString('sr-RS');
+  };
+
+  const renderNotification = ({ item }: { item: Notification }) => {
+    const hasSender = item.senderId && typeof item.senderId === 'object';
+    const senderName = hasSender ? item.senderId!.fullName : undefined;
+    const senderAvatar = hasSender ? item.senderId!.profilePicture : undefined;
+
+    return (
+      <TouchableOpacity
+        style={[styles.notificationCard, !item.isRead && styles.unreadCard]}
+        onPress={() => handleNotificationPress(item)}
+        activeOpacity={0.7}
+      >
+        {/* Profile picture or icon */}
+        {hasSender ? (
+          senderAvatar ? (
+            <Avatar.Image size={44} source={{ uri: senderAvatar }} style={styles.avatarImage} />
+          ) : (
+            <Avatar.Text
+              size={44}
+              label={getInitials(senderName)}
+              style={styles.avatarText}
+            />
+          )
+        ) : (
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: item.isRead ? Colors.surface : Colors.primary + '20' },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={getNotificationIcon(item.type) as any}
+              size={24}
+              color={item.isRead ? Colors.textSecondary : Colors.primary}
+            />
+          </View>
+        )}
+
+        <View style={styles.contentContainer}>
+          <View style={styles.titleRow}>
+            <Text
+              style={[styles.title, !item.isRead && styles.unreadTitle]}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+            <Text style={styles.timeTopRight}>{getTimeAgo(item.createdAt)}</Text>
+          </View>
+          <Text style={styles.message} numberOfLines={4}>
+            {item.message}
+          </Text>
+        </View>
+        {!item.isRead && <View style={styles.unreadDot} />}
+      </TouchableOpacity>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={24}
+            color={Colors.text}
+          />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
+        {unreadCount > 0 && (
+          <TouchableOpacity onPress={markAllAsRead} style={styles.markAllButton}>
+            <Text style={styles.markAllText}>{t('notifications.markAllRead')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {notifications.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons
+            name="bell-off-outline"
+            size={64}
+            color={Colors.textSecondary}
+          />
+          <Text style={styles.emptyText}>{t('notifications.noNotifications')}</Text>
+          <Text style={styles.emptySubtext}>
+            {t('notifications.noNotificationsDescription')}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          renderItem={renderNotification}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.primary]}
+            />
+          }
+        />
+      )}
+
+      {/* Notification Detail Modal */}
+      <Modal
+        visible={!!selectedNotification}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedNotification(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedNotification(null)}
+        >
+          <View style={styles.modalContent}>
+            {/* Icon */}
+            <View style={styles.modalIconContainer}>
+              <MaterialCommunityIcons
+                name={getNotificationIcon(selectedNotification?.type || '') as any}
+                size={32}
+                color={Colors.primary}
+              />
+            </View>
+
+            {/* Title */}
+            <Text style={styles.modalTitle}>{selectedNotification?.title}</Text>
+
+            {/* Message */}
+            <ScrollView style={styles.modalMessageScroll}>
+              <Text style={styles.modalMessage}>{selectedNotification?.message}</Text>
+            </ScrollView>
+
+            {/* Time */}
+            <Text style={styles.modalTime}>
+              {selectedNotification && getTimeAgo(selectedNotification.createdAt)}
+            </Text>
+
+            {/* Close Button */}
+            <Button
+              mode="contained"
+              onPress={() => setSelectedNotification(null)}
+              style={styles.modalButton}
+              buttonColor={Colors.primary}
+            >
+              {t('common.ok') || 'U redu'}
+            </Button>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  backButton: {
+    padding: Spacing.xs,
+    marginRight: Spacing.sm,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  markAllButton: {
+    padding: Spacing.xs,
+  },
+  markAllText: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: '500',
+  },
+  list: {
+    padding: Spacing.md,
+  },
+  notificationCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  unreadCard: {
+    backgroundColor: Colors.primary + '08',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  avatarImage: {
+    marginRight: Spacing.md,
+  },
+  avatarText: {
+    backgroundColor: Colors.primary,
+    marginRight: Spacing.md,
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 2,
+  },
+  title: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  unreadTitle: {
+    fontWeight: '600',
+  },
+  timeTopRight: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+  },
+  message: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    lineHeight: FontSize.sm * 1.4,
+  },
+  time: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    marginLeft: Spacing.sm,
+    marginTop: 4,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  emptyText: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+    marginTop: Spacing.md,
+  },
+  emptySubtext: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  modalMessageScroll: {
+    maxHeight: 200,
+    width: '100%',
+  },
+  modalMessage: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: FontSize.md * 1.5,
+  },
+  modalTime: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+  modalButton: {
+    marginTop: Spacing.lg,
+    minWidth: 120,
+  },
+});

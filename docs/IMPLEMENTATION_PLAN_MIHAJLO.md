@@ -37,31 +37,16 @@
 
 #### Tvoj Branch Naming:
 ```bash
-mobile/feature-name
-mobile/fix-bug-name
+development-nemanja
 ```
 
 **Primeri:**
-- `mobile/qr-scanner`
-- `mobile/attendance-screen`
-- `mobile/fix-camera-permissions`
+imamo sledece grane:
+main, development, i nemanja, mihajlo, vukasin, development-nemanja
 
 #### Kako Radiš Sa Gitom:
 
-**Početak Rada (Svaki Dan):**
-```bash
-# Idi u mobile-app folder
-cd mobile-app
 
-# Proveri da li si na main branch-u
-git branch
-
-# Povuci najnovije izmene
-git pull origin main
-
-# Napravi svoj feature branch
-git checkout -b mobile/tvoj-feature-name
-```
 
 **Tokom Rada:**
 ```bash
@@ -72,7 +57,7 @@ git add .
 git commit -m "mobile: add QR code scanner for attendance"
 
 # Pushuj na GitHub
-git push origin mobile/tvoj-feature-name
+git push origin development-nemanja
 ```
 
 **Kada Završiš Feature:**

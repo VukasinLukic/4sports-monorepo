@@ -33,17 +33,8 @@
 
 ### 1. GitHub Pravila
 
-#### Tvoj Branch Naming:
-```bash
-backend/feature-name
-backend/fix-bug-name
-```
-
-**Primeri:**
-- `backend/auth-system`
-- `backend/attendance-api`
-- `backend/fix-payment-validation`
-
+imamo sledece grane:
+main, development, i nemanja, mihajlo, vukasin
 #### Kako Radiš Sa Gitom:
 
 **Početak Rada (Svaki Dan):**
@@ -57,8 +48,9 @@ git branch
 # Povuci najnovije izmene
 git pull origin main
 
-# Napravi svoj feature branch
-git checkout -b backend/tvoj-feature-name
+git checkout -b development
+# Napravi svoj branch
+git checkout -b nemanja
 ```
 
 **Tokom Rada:**
@@ -70,7 +62,7 @@ git add .
 git commit -m "backend: add user authentication controller"
 
 # Pushuj na GitHub
-git push origin backend/tvoj-feature-name
+git push origin nemanja
 ```
 
 **Kada Završiš Feature:**
