@@ -7,7 +7,7 @@ import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useMember, useMemberAttendance, useMemberPayments } from '@/hooks/useMembers';
 import { useLanguage } from '@/services/LanguageContext';
-import { PaymentStatus, Attendance, Payment } from '@/types';
+import { Attendance, Payment } from '@/types';
 import api from '@/services/api';
 
 type TabValue = 'profile' | 'membership' | 'attendance';
@@ -171,37 +171,68 @@ export default function MemberDetailsScreen() {
     const monthsDiff = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth()) + 1;
     const monthsTraining = Math.max(1, monthsDiff);
 
-    // Total expected
-    const totalExpected = monthsTraining * monthlyFee;
+    // Calculate totalExpected from actual payment amounts (with fallback to monthlyFee)
+    const membershipPayments = payments.filter((p: Payment) => p.type === 'MEMBERSHIP');
+    const totalExpected = membershipPayments.length > 0
+      ? membershipPayments.reduce((sum: number, p: Payment) => sum + (p.amount ?? monthlyFee), 0)
+      : monthsTraining * monthlyFee;
 
     // Total paid (include PARTIAL payments, use paidAmount field)
-    const totalPaid = payments
+    const totalPaid = membershipPayments
       .filter((p: Payment) => p.status === 'PAID' || p.status === 'PARTIAL')
       .reduce((sum: number, p: Payment) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
 
     // Debt
     const debt = Math.max(0, totalExpected - totalPaid);
 
-    return { monthlyFee, monthsTraining, totalExpected, totalPaid, debt };
+    // Payment months = number of months with payment records
+    const paymentMonths = membershipPayments.length;
+
+    return { monthlyFee, monthsTraining, paymentMonths, totalExpected, totalPaid, debt };
   };
 
-  // Generate monthly payment history
+  // Generate monthly payment history for ALL months with data
   const generateMonthlyHistory = () => {
     const stats = calculateMembershipStats();
-    const history: { month: string; year: number; amount: number; status: 'PAID' | 'PARTIAL' | 'UNPAID'; monthIndex: number }[] = [];
+    const history: { month: string; year: number; amount: number; expectedAmount: number; status: 'PAID' | 'PARTIAL' | 'UNPAID'; monthIndex: number }[] = [];
 
     const now = new Date();
-    const joinDate = member?.createdAt ? new Date(member.createdAt) : new Date();
 
     // Debug logging
     console.log('Payments received:', payments.length, payments);
 
-    // Generate last 6 months or since joining
-    for (let i = 0; i < 6; i++) {
+    // Find earliest payment to determine how many months back to go
+    const membershipPayments = payments.filter((p: Payment) => p.type === 'MEMBERSHIP');
+
+    if (membershipPayments.length > 0) {
+      console.log('PAYMENT STRUCTURE - First payment:', JSON.stringify(membershipPayments[0], null, 2));
+      console.log('Payment keys:', Object.keys(membershipPayments[0]));
+      console.log('Has amount field?', 'amount' in membershipPayments[0], membershipPayments[0]?.amount);
+    }
+    let monthsToGenerate = 12; // Default to 12
+
+    if (membershipPayments.length > 0) {
+      // Sort by period or date to find earliest
+      const sortedPayments = [...membershipPayments].sort((a, b) => {
+        const aDate = a.period ? new Date(a.period.year, a.period.month - 1) : new Date(a.paidDate || a.createdAt);
+        const bDate = b.period ? new Date(b.period.year, b.period.month - 1) : new Date(b.paidDate || b.createdAt);
+        return aDate.getTime() - bDate.getTime();
+      });
+
+      const earliestPayment = sortedPayments[0];
+      const earliestDate = earliestPayment.period
+        ? new Date(earliestPayment.period.year, earliestPayment.period.month - 1)
+        : new Date(earliestPayment.paidDate || earliestPayment.createdAt);
+
+      const monthsDiff = (now.getFullYear() - earliestDate.getFullYear()) * 12 + (now.getMonth() - earliestDate.getMonth()) + 1;
+      monthsToGenerate = Math.max(12, monthsDiff);
+
+      console.log('Earliest payment:', earliestDate, 'Months to generate:', monthsToGenerate);
+    }
+
+    // Generate all months from now back to earliest payment
+    for (let i = 0; i < monthsToGenerate; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      // Only break if the month is strictly before the join month
-      const joinMonth = new Date(joinDate.getFullYear(), joinDate.getMonth(), 1);
-      if (date < joinMonth) break;
 
       const monthIndex = date.getMonth();
       const year = date.getFullYear();
@@ -221,17 +252,34 @@ export default function MemberDetailsScreen() {
         .filter((p: Payment) => p.status === 'PAID' || p.status === 'PARTIAL')
         .reduce((sum: number, p: Payment) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
 
+      // Get the expected amount for this month (from the payment record)
+      const expectedAmount = monthPayments.length > 0
+        ? monthPayments[0].amount ?? stats.monthlyFee
+        : stats.monthlyFee;
+
       let status: 'PAID' | 'PARTIAL' | 'UNPAID' = 'UNPAID';
-      if (paidAmount >= stats.monthlyFee) {
+      if (paidAmount >= expectedAmount) {
         status = 'PAID';
       } else if (paidAmount > 0) {
         status = 'PARTIAL';
+      }
+
+      // Debug January or current month
+      if ((monthIndex === 0 && i < 3) || i === 0) {
+        console.log(`[Payment History] ${months[monthIndex]} ${year}:`, {
+          monthPayments: monthPayments.length,
+          amount: monthPayments[0]?.amount,
+          paidAmount,
+          expectedAmount,
+          status
+        });
       }
 
       history.push({
         month: months[monthIndex],
         year,
         amount: paidAmount,
+        expectedAmount,
         status,
         monthIndex,
       });
@@ -261,8 +309,37 @@ export default function MemberDetailsScreen() {
     );
   }
 
-  const isPaid = member.paymentStatus === PaymentStatus.PAID;
-  const isPartialPaid = member.paymentStatus === PaymentStatus.PARTIAL;
+  // Calculate payment status based on CURRENT MONTH only
+  const calculatePaymentStatus = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentYear = now.getFullYear();
+
+    // Find current month's payment
+    const currentMonthPayment = payments.find((p: Payment) =>
+      p.type === 'MEMBERSHIP' &&
+      p.period?.month === currentMonth &&
+      p.period?.year === currentYear
+    );
+
+    // If no payment record for current month, assume unpaid
+    if (!currentMonthPayment) return 'UNPAID';
+
+    const paidAmount = currentMonthPayment.paidAmount ?? 0;
+    const totalAmount = currentMonthPayment.amount ?? 0;
+
+    if (paidAmount === 0) {
+      return 'UNPAID';
+    } else if (paidAmount >= totalAmount) {
+      return 'PAID';
+    } else {
+      return 'PARTIAL';
+    }
+  };
+
+  const calculatedPaymentStatus = calculatePaymentStatus();
+  const isPaid = calculatedPaymentStatus === 'PAID';
+  const isPartialPaid = calculatedPaymentStatus === 'PARTIAL';
   const isMedicalValid = member.medicalCheckStatus === 'VALID';
   const stats = calculateMembershipStats();
   const monthlyHistory = generateMonthlyHistory();
@@ -401,7 +478,7 @@ export default function MemberDetailsScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.monthsTraining}</Text>
+              <Text style={styles.statValue}>{stats.paymentMonths}</Text>
               <Text style={styles.statLabel}>{t('time.months')}</Text>
             </View>
             <View style={styles.statDivider} />
@@ -430,7 +507,7 @@ export default function MemberDetailsScreen() {
             <Card.Content style={styles.historyRow}>
               <View style={styles.historyLeft}>
                 <Text style={styles.historyMonth}>{item.month} {item.year}</Text>
-                <Text style={styles.historyAmount}>{item.amount} / {stats.monthlyFee} RSD</Text>
+                <Text style={styles.historyAmount}>{item.amount} / {item.expectedAmount} RSD</Text>
               </View>
               <View style={[
                 styles.historyStatus,

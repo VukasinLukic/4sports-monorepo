@@ -113,34 +113,88 @@ export default function EvidencijaScreen() {
     const monthsDiff = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth()) + 1;
     const monthsTraining = Math.max(1, monthsDiff);
 
-    const totalExpected = monthsTraining * monthlyFee;
+    // Calculate totalExpected from actual payment amounts (not monthlyFee which may be outdated)
+    const membershipPayments = payments.filter((p: Payment) => p.type === 'MEMBERSHIP');
 
-    const totalPaid = payments
+    // If no payment records, calculate expected based on months × fee (fallback)
+    // Otherwise use actual payment record amounts (with fallback to monthlyFee for each payment)
+    const totalExpected = membershipPayments.length > 0
+      ? membershipPayments.reduce((sum: number, p: Payment) => sum + (p.amount ?? monthlyFee), 0)
+      : monthsTraining * monthlyFee;
+
+    const totalPaid = membershipPayments
       .filter((p: Payment) => p.status === 'PAID' || p.status === 'PARTIAL')
       .reduce((sum: number, p: Payment) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
 
     const debt = Math.max(0, totalExpected - totalPaid);
 
-    return { monthlyFee, monthsTraining, totalExpected, totalPaid, debt };
+    // Payment months = number of months with payment records
+    const paymentMonths = membershipPayments.length;
+
+    console.log('=== STATS DEBUG ===');
+    console.log('monthlyFee:', monthlyFee);
+    console.log('joinDate:', joinDate);
+    console.log('monthsTraining:', monthsTraining);
+    console.log('paymentMonths:', paymentMonths);
+    console.log('totalExpected:', totalExpected);
+    console.log('payments count:', payments.length);
+    console.log('membershipPayments count:', membershipPayments.length);
+    console.log('totalPaid:', totalPaid);
+    console.log('debt:', debt);
+    console.log('member.membershipFee:', member?.membershipFee);
+    if (membershipPayments.length > 0) {
+      console.log('PAYMENT STRUCTURE - First payment:', JSON.stringify(membershipPayments[0], null, 2));
+      console.log('Payment keys:', Object.keys(membershipPayments[0]));
+      console.log('Has amount field?', 'amount' in membershipPayments[0], membershipPayments[0]?.amount);
+    }
+
+    return { monthlyFee, monthsTraining, paymentMonths, totalExpected, totalPaid, debt };
   };
 
-  // Generate monthly payment history
+  // Generate monthly payment history for ALL months with data
   const generateMonthlyHistory = () => {
     const stats = calculateMembershipStats();
-    const history: { month: string; year: number; amount: number; status: 'PAID' | 'PARTIAL' | 'UNPAID'; monthIndex: number }[] = [];
+    const history: { month: string; year: number; amount: number; expectedAmount: number; status: 'PAID' | 'PARTIAL' | 'UNPAID'; monthIndex: number }[] = [];
 
     const now = new Date();
-    const joinDate = member?.createdAt ? new Date(member.createdAt) : new Date();
 
-    for (let i = 0; i < 6; i++) {
+    console.log('=== MONTHLY HISTORY GENERATION ===');
+
+    // Find earliest payment to determine how many months back to go
+    const membershipPayments = payments.filter((p: Payment) => p.type === 'MEMBERSHIP');
+    let monthsToGenerate = 12; // Default to 12
+
+    if (membershipPayments.length > 0) {
+      // Sort by period or date to find earliest
+      const sortedPayments = [...membershipPayments].sort((a, b) => {
+        const aDate = a.period ? new Date(a.period.year, a.period.month - 1) : new Date(a.paidDate || a.createdAt);
+        const bDate = b.period ? new Date(b.period.year, b.period.month - 1) : new Date(b.paidDate || b.createdAt);
+        return aDate.getTime() - bDate.getTime();
+      });
+
+      const earliestPayment = sortedPayments[0];
+      const earliestDate = earliestPayment.period
+        ? new Date(earliestPayment.period.year, earliestPayment.period.month - 1)
+        : new Date(earliestPayment.paidDate || earliestPayment.createdAt);
+
+      const monthsDiff = (now.getFullYear() - earliestDate.getFullYear()) * 12 + (now.getMonth() - earliestDate.getMonth()) + 1;
+      monthsToGenerate = Math.max(12, monthsDiff);
+
+      console.log('Earliest payment:', earliestDate, 'Months to generate:', monthsToGenerate);
+    }
+
+    // Generate all months from now back to earliest payment
+    for (let i = 0; i < monthsToGenerate; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const joinMonth = new Date(joinDate.getFullYear(), joinDate.getMonth(), 1);
-      if (date < joinMonth) break;
+      console.log(`Loop i=${i}: date=${date.toISOString()}`);
 
       const monthIndex = date.getMonth();
       const year = date.getFullYear();
 
       const monthPayments = payments.filter((p: Payment) => {
+        // Filter by MEMBERSHIP type
+        if (p.type !== 'MEMBERSHIP') return false;
+
         if (p.period?.month && p.period?.year) {
           return p.period.month === (monthIndex + 1) && p.period.year === year;
         }
@@ -148,26 +202,48 @@ export default function EvidencijaScreen() {
         return pDate.getMonth() === monthIndex && pDate.getFullYear() === year;
       });
 
+      // Sum paid amounts from PAID/PARTIAL payments
       const paidAmount = monthPayments
         .filter((p: Payment) => p.status === 'PAID' || p.status === 'PARTIAL')
         .reduce((sum: number, p: Payment) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
 
+      // Get the expected amount for this month (from the payment record)
+      const expectedAmount = monthPayments.length > 0
+        ? monthPayments[0].amount ?? stats.monthlyFee
+        : stats.monthlyFee;
+
       let status: 'PAID' | 'PARTIAL' | 'UNPAID' = 'UNPAID';
-      if (paidAmount >= stats.monthlyFee) {
+      if (paidAmount >= expectedAmount) {
         status = 'PAID';
       } else if (paidAmount > 0) {
         status = 'PARTIAL';
+      }
+
+      // Debug first iteration (current month)
+      if (i === 0) {
+        console.log('=== CURRENT MONTH DEBUG ===');
+        console.log('Month:', months[monthIndex], year);
+        console.log('monthPayments found:', monthPayments.length);
+        console.log('monthPayments:', monthPayments);
+        console.log('monthPayments[0]?.amount:', monthPayments[0]?.amount);
+        console.log('paidAmount:', paidAmount);
+        console.log('expectedAmount:', expectedAmount);
+        console.log('status:', status);
+        console.log('stats.monthlyFee:', stats.monthlyFee);
       }
 
       history.push({
         month: months[monthIndex],
         year,
         amount: paidAmount,
+        expectedAmount,
         status,
         monthIndex,
       });
     }
 
+    console.log('Final monthly history:', history.length, 'rows generated');
+    console.log('Monthly history:', history);
     return history;
   };
 
@@ -189,8 +265,50 @@ export default function EvidencijaScreen() {
     );
   }
 
-  const isPaid = member.paymentStatus === PaymentStatus.PAID;
-  const isUnpaid = member.paymentStatus === PaymentStatus.UNPAID;
+  // Calculate payment status based on CURRENT MONTH only
+  const calculatePaymentStatus = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentYear = now.getFullYear();
+
+    // Find current month's payment
+    const currentMonthPayment = payments.find((p: Payment) =>
+      p.type === 'MEMBERSHIP' &&
+      p.period?.month === currentMonth &&
+      p.period?.year === currentYear
+    );
+
+    console.log('=== PAYMENT STATUS CALC ===');
+    console.log('Current month:', currentMonth, 'Current year:', currentYear);
+    console.log('Current month payment found:', !!currentMonthPayment);
+    console.log('Current month payment:', currentMonthPayment);
+
+    // If no payment record for current month, assume unpaid
+    if (!currentMonthPayment) {
+      console.log('No payment for current month, returning UNPAID');
+      return 'UNPAID';
+    }
+
+    const paidAmount = currentMonthPayment.paidAmount ?? 0;
+    const totalAmount = currentMonthPayment.amount ?? 0;
+
+    console.log('Paid amount:', paidAmount, 'Total amount:', totalAmount);
+
+    if (paidAmount === 0) {
+      console.log('Status: UNPAID (paidAmount === 0)');
+      return 'UNPAID';
+    } else if (paidAmount >= totalAmount) {
+      console.log('Status: PAID (paidAmount >= totalAmount)');
+      return 'PAID';
+    } else {
+      console.log('Status: PARTIAL (0 < paidAmount < totalAmount)');
+      return 'PARTIAL';
+    }
+  };
+
+  const calculatedPaymentStatus = calculatePaymentStatus();
+  const isPaid = calculatedPaymentStatus === 'PAID';
+  const isUnpaid = calculatedPaymentStatus === 'UNPAID';
   const isMedicalValid = member.medicalCheckStatus === 'VALID';
   const stats = calculateMembershipStats();
   const monthlyHistory = generateMonthlyHistory();
@@ -298,7 +416,7 @@ export default function EvidencijaScreen() {
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.monthsTraining}</Text>
+                <Text style={styles.statValue}>{stats.paymentMonths}</Text>
                 <Text style={styles.statLabel}>{t('time.months')}</Text>
               </View>
               <View style={styles.statDivider} />
@@ -334,7 +452,7 @@ export default function EvidencijaScreen() {
             <Card.Content style={styles.historyRow}>
               <View style={styles.historyLeft}>
                 <Text style={styles.historyMonth}>{item.month} {item.year}</Text>
-                <Text style={styles.historyAmount}>{item.amount} / {stats.monthlyFee} RSD</Text>
+                <Text style={styles.historyAmount}>{item.amount} / {item.expectedAmount} RSD</Text>
               </View>
               <View style={[
                 styles.historyStatus,

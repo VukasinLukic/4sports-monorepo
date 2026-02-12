@@ -12,6 +12,7 @@ import {
 } from './useProfile';
 import type { MemberPayment, AttendanceRecord, MemberDetail } from './useProfile';
 import { useCreateConversation } from '@/features/chat/useChat';
+import { EditMemberDialog } from '@/features/members/EditMemberDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -42,6 +43,7 @@ import {
   Users,
   Wallet,
   HeartPulse,
+  PencilIcon,
 } from 'lucide-react';
 
 function getInitials(name: string) {
@@ -63,6 +65,7 @@ export function ProfilePage() {
   const { toast } = useToast();
   const stateGroupName = (location.state as { groupName?: string } | null)?.groupName;
   const [activeTab, setActiveTab] = useState<Tab>('profile');
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Mode A: /profile/:userId → resolve member by userId first
   const { data: basicMember, isLoading: loadingBasic, isError: memberByUserError } = useMemberByUserId(
@@ -82,6 +85,44 @@ export function ProfilePage() {
   // Payments & Attendance
   const { data: payments } = useMemberPayments(resolvedMemberId);
   const { data: attendanceData } = useMemberAttendance(resolvedMemberId);
+
+  // Calculate payment status based on CURRENT MONTH only
+  const calculatedPaymentStatus = useMemo(() => {
+    if (!member || !payments) return 'UNPAID';
+
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentYear = now.getFullYear();
+
+    // Find current month's payment
+    const currentMonthPayment = payments.find((p: any) =>
+      p.type === 'MEMBERSHIP' &&
+      p.period?.month === currentMonth &&
+      p.period?.year === currentYear
+    );
+
+    // If no payment record for current month, assume unpaid
+    if (!currentMonthPayment) return 'UNPAID';
+
+    const paidAmount = currentMonthPayment.paidAmount ?? 0;
+    const totalAmount = currentMonthPayment.amount ?? 0;
+
+    console.log(`[PaymentStatus] Member: ${member.fullName}`, {
+      currentMonth,
+      currentYear,
+      paidAmount,
+      totalAmount,
+      status: paidAmount === 0 ? 'UNPAID' : paidAmount >= totalAmount ? 'PAID' : 'PARTIAL'
+    });
+
+    if (paidAmount === 0) {
+      return 'UNPAID';
+    } else if (paidAmount >= totalAmount) {
+      return 'PAID';
+    } else {
+      return 'PARTIAL';
+    }
+  }, [member, payments]);
 
   // Actions
   const paymentReminder = useSendPaymentReminder();
@@ -240,19 +281,23 @@ export function ProfilePage() {
                 </div>
               )}
               <div className="flex items-center gap-2 mt-3 flex-wrap">
-                <PaymentStatusBadge status={member.paymentStatus} t={t} />
+                <PaymentStatusBadge status={calculatedPaymentStatus} t={t} />
                 <MedicalStatusBadge status={member.medicalCheckStatus} t={t} />
               </div>
             </div>
             {/* Action buttons - right side */}
             <div className="flex flex-col gap-2 flex-shrink-0">
+              <Button size="sm" variant="outline" onClick={() => setEditDialogOpen(true)}>
+                <PencilIcon className="mr-2 h-4 w-4" />
+                {t('common.edit')}
+              </Button>
               {chatUserId && (
                 <Button size="sm" onClick={handleStartChat} disabled={createConversation.isPending}>
                   <MessageCircle className="mr-2 h-4 w-4" />
                   {t('profile.startChat')}
                 </Button>
               )}
-              {member.paymentStatus !== 'PAID' && (
+              {calculatedPaymentStatus !== 'PAID' && (
                 <Button size="sm" variant="outline" onClick={handleSendPaymentReminder} disabled={paymentReminder.isPending}>
                   <Bell className="mr-2 h-4 w-4" />
                   {t('profile.paymentReminder')}
@@ -295,6 +340,13 @@ export function ProfilePage() {
       {activeTab === 'profile' && <ProfileTab member={member} t={t} />}
       {activeTab === 'payments' && <PaymentsTab member={member} payments={payments || []} t={t} />}
       {activeTab === 'attendance' && <AttendanceTab data={attendanceData} t={t} />}
+
+      {/* Edit Member Dialog */}
+      <EditMemberDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        member={member ? { ...member, id: member._id } : null}
+      />
     </div>
   );
 }
@@ -461,15 +513,40 @@ function PaymentsTab({
   const stats = useMemo(() => {
     const fee = member.membershipFee || 3000;
     const now = new Date();
-    const joinDate = new Date(member.createdAt);
+    // Use club joinedAt date if available, otherwise use member createdAt
+    let joinDate = new Date(member.createdAt);
+    if (member.clubs && member.clubs.length > 0) {
+      const activeClub = member.clubs.find((c: any) => c.status === 'ACTIVE') || member.clubs[0];
+      if (activeClub?.joinedAt) {
+        joinDate = new Date(activeClub.joinedAt);
+      }
+    }
     const monthsDiff = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth()) + 1;
     const totalMonths = Math.max(1, monthsDiff);
-    const totalPaid = payments
-      .filter((p) => p.type === 'MEMBERSHIP')
-      .reduce((sum, p) => sum + (p.paidAmount || 0), 0);
-    const totalExpected = totalMonths * fee;
+
+    const membershipPayments = payments.filter((p) => p.type === 'MEMBERSHIP');
+    const paidStatusPayments = membershipPayments.filter((p) => p.status === 'PAID' || p.status === 'PARTIAL');
+    const totalPaid = paidStatusPayments.reduce((sum, p) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
+    // Calculate totalExpected from actual payment amounts (with fallback to monthly fee if amount missing)
+    const totalExpected = membershipPayments.reduce((sum, p) => sum + (p.amount ?? fee), 0);
     const debt = Math.max(0, totalExpected - totalPaid);
-    return { fee, totalMonths, totalPaid, debt };
+
+    // Payment months = number of months with payment records
+    const paymentMonths = membershipPayments.length;
+
+    console.log(`[PaymentsTab] Member: ${member.fullName}`, {
+      totalMonths,
+      paymentMonths,
+      fee,
+      totalExpected,
+      allPayments: payments.length,
+      membershipPayments: membershipPayments.length,
+      paidStatusPayments: paidStatusPayments.length,
+      totalPaid,
+      debt
+    });
+
+    return { fee: member.membershipFee || 3000, totalMonths, paymentMonths, totalPaid, debt };
   }, [member, payments]);
 
   const recentPayments = useMemo(() => {
@@ -478,8 +555,7 @@ function PaymentsTab({
       .sort((a, b) => {
         if (!a.period || !b.period) return 0;
         return (b.period.year * 12 + b.period.month) - (a.period.year * 12 + a.period.month);
-      })
-      .slice(0, 6);
+      });
   }, [payments]);
 
   const formatAmount = (amount: number) => new Intl.NumberFormat('sr-RS').format(amount);
@@ -496,7 +572,7 @@ function PaymentsTab({
         <Card>
           <CardContent className="p-5 text-center">
             <p className="text-sm text-muted-foreground">{t('profile.totalMonths')}</p>
-            <p className="text-2xl font-bold mt-1">{stats.totalMonths}</p>
+            <p className="text-2xl font-bold mt-1">{stats.paymentMonths}</p>
           </CardContent>
         </Card>
         <Card>
@@ -515,7 +591,7 @@ function PaymentsTab({
           {recentPayments.length > 0 ? (
             <div className="space-y-2">
               {recentPayments.map((payment) => (
-                <PaymentRow key={payment._id} payment={payment} fee={stats.fee} monthNames={monthNames} t={t} />
+                <PaymentRow key={payment._id} payment={payment} monthNames={monthNames} t={t} />
               ))}
             </div>
           ) : (
@@ -529,12 +605,10 @@ function PaymentsTab({
 
 function PaymentRow({
   payment,
-  fee,
   monthNames,
   t,
 }: {
   payment: MemberPayment;
-  fee: number;
   monthNames: string[];
   t: (key: string) => string;
 }) {
@@ -542,20 +616,34 @@ function PaymentRow({
     ? `${monthNames[payment.period.month - 1]} ${payment.period.year}`
     : '-';
 
+  // Use actual payment amount as the expected amount
+  const expectedAmount = payment.amount ?? 0;
+  const paidAmount = payment.paidAmount ?? 0;
+
+  // Determine the correct status based on paidAmount vs expectedAmount
+  let status = payment.status;
+  if (paidAmount === 0) {
+    status = 'OVERDUE';
+  } else if (paidAmount > 0 && paidAmount < expectedAmount) {
+    status = 'PARTIAL';
+  } else if (paidAmount >= expectedAmount) {
+    status = 'PAID';
+  }
+
   const statusConfig: Record<string, { color: string; label: string }> = {
     PAID: { color: 'bg-green-600 text-white', label: t('status.paid') },
     PARTIAL: { color: 'bg-orange-500 text-white', label: t('profile.partial') },
     PENDING: { color: 'bg-gray-500 text-white', label: t('status.pending') },
     OVERDUE: { color: 'bg-red-600 text-white', label: t('status.unpaid') },
   };
-  const sc = statusConfig[payment.status] || statusConfig.PENDING;
+  const sc = statusConfig[status] || statusConfig.OVERDUE;
 
   return (
     <div className="flex items-center justify-between py-3 border-b last:border-0">
       <div>
         <p className="text-base font-medium">{monthLabel}</p>
         <p className="text-sm text-muted-foreground">
-          {new Intl.NumberFormat('sr-RS').format(payment.paidAmount || 0)} / {new Intl.NumberFormat('sr-RS').format(fee)} RSD
+          {new Intl.NumberFormat('sr-RS').format(paidAmount)} / {new Intl.NumberFormat('sr-RS').format(expectedAmount)} RSD
         </p>
       </div>
       <span className={`text-sm font-medium px-3 py-1 rounded-full ${sc.color}`}>
