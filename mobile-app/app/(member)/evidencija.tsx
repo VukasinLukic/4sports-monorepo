@@ -99,9 +99,17 @@ export default function EvidencijaScreen() {
   const calculateMembershipStats = () => {
     const DEFAULT_MONTHLY_FEE = 3000;
     const monthlyFee = member?.membershipFee || DEFAULT_MONTHLY_FEE;
-    const joinDate = member?.createdAt ? new Date(member.createdAt) : new Date();
-    const now = new Date();
 
+    // Use club joinedAt date if available, otherwise use member createdAt
+    let joinDate = member?.createdAt ? new Date(member.createdAt) : new Date();
+    if (member?.clubs && member.clubs.length > 0) {
+      const activeClub = member.clubs.find((c: any) => c.status === 'ACTIVE') || member.clubs[0];
+      if (activeClub?.joinedAt) {
+        joinDate = new Date(activeClub.joinedAt);
+      }
+    }
+
+    const now = new Date();
     const monthsDiff = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth()) + 1;
     const monthsTraining = Math.max(1, monthsDiff);
 
@@ -182,6 +190,7 @@ export default function EvidencijaScreen() {
   }
 
   const isPaid = member.paymentStatus === PaymentStatus.PAID;
+  const isUnpaid = member.paymentStatus === PaymentStatus.UNPAID;
   const isMedicalValid = member.medicalCheckStatus === 'VALID';
   const stats = calculateMembershipStats();
   const monthlyHistory = generateMonthlyHistory();
@@ -281,23 +290,31 @@ export default function EvidencijaScreen() {
       {/* Summary Stats */}
       <Card style={styles.card}>
         <Card.Content>
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.monthlyFee} RSD</Text>
-              <Text style={styles.statLabel}>{t('payments.membershipFee')}</Text>
+          <View style={styles.statWithEditRow}>
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{stats.monthlyFee} RSD</Text>
+                <Text style={styles.statLabel}>{t('payments.membershipFee')}</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{stats.monthsTraining}</Text>
+                <Text style={styles.statLabel}>{t('time.months')}</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={[styles.statValue, { color: stats.debt > 0 ? Colors.error : Colors.success }]}>
+                  {stats.debt} RSD
+                </Text>
+                <Text style={styles.statLabel}>{t('payments.debt')}</Text>
+              </View>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.monthsTraining}</Text>
-              <Text style={styles.statLabel}>{t('time.months')}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: stats.debt > 0 ? Colors.error : Colors.success }]}>
-                {stats.debt} RSD
-              </Text>
-              <Text style={styles.statLabel}>{t('payments.debt')}</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.editMembershipButton}
+              onPress={() => router.push('/profile/edit')}
+            >
+              <MaterialCommunityIcons name="pencil" size={16} color={Colors.primary} />
+            </TouchableOpacity>
           </View>
         </Card.Content>
       </Card>
@@ -467,9 +484,19 @@ export default function EvidencijaScreen() {
             )}
 
             {/* Info */}
-            <View style={styles.headerInfo}>
-              <Text style={styles.memberName}>{member.fullName}</Text>
-              <Text style={styles.memberGroup}>{getGroupName()}</Text>
+            <View style={[styles.headerInfo, styles.headerInfoWithEdit]}>
+              <View style={styles.headerTitleRow}>
+                <View>
+                  <Text style={styles.memberName}>{member.fullName}</Text>
+                  <Text style={styles.memberGroup}>{getGroupName()}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => router.push('/profile/edit')}
+                >
+                  <MaterialCommunityIcons name="pencil" size={18} color={Colors.primary} />
+                </TouchableOpacity>
+              </View>
 
               {/* Status badges row */}
               <View style={styles.statusRow}>
@@ -480,7 +507,7 @@ export default function EvidencijaScreen() {
                     color={isPaid ? Colors.success : Colors.error}
                   />
                   <Text style={[styles.statusBadgeText, { color: isPaid ? Colors.success : Colors.error }]}>
-                    {isPaid ? t('status.paid') : t('status.notPaid')}
+                    {isPaid ? t('status.paid') : isUnpaid ? t('status.unpaid') : t('status.partial')}
                   </Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: isMedicalValid ? Colors.success + '20' : Colors.error + '20' }]}>
@@ -563,6 +590,19 @@ const styles = StyleSheet.create({
   headerInfo: {
     flex: 1,
     marginLeft: Spacing.md,
+  },
+  headerInfoWithEdit: {
+    justifyContent: 'space-between',
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  editButton: {
+    padding: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primary + '15',
   },
   memberName: {
     fontSize: FontSize.lg,
@@ -651,9 +691,15 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   // Stats grid
+  statWithEditRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   statsGrid: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   statItem: {
     flex: 1,
@@ -673,6 +719,11 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     backgroundColor: Colors.border,
+  },
+  editMembershipButton: {
+    padding: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primary + '15',
   },
   // Section
   sectionHeader: {

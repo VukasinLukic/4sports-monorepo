@@ -71,7 +71,9 @@ export const RegisterPage = () => {
         clubName: formData.clubName || formData.fullName + "'s Club",
       });
 
-      navigate('/');
+      // Force full page reload so onAuthStateChanged re-fetches the backend user
+      // (navigate('/') would keep stale backendUser=null from the race condition)
+      window.location.href = '/';
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('errors.registerFailed'));
     } finally {

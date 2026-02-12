@@ -421,6 +421,9 @@ export default {
     unpaid: 'Neplaćeno',
     debt: 'Dugovanje',
     membershipFee: 'Mesečna članarina',
+    monthlyFee: 'Mesečna članarina (RSD)',
+    membershipInfo: 'Podaci o članarini',
+    monthlyFeeHelper: 'Mesečna članarina za ovog člana',
   },
 
   // Groups

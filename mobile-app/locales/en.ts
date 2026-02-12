@@ -418,6 +418,9 @@ export default {
     unpaid: 'Unpaid',
     debt: 'Debt',
     membershipFee: 'Monthly Fee',
+    monthlyFee: 'Monthly Fee (RSD)',
+    membershipInfo: 'Membership Info',
+    monthlyFeeHelper: 'Monthly membership fee for this member',
   },
 
   // Groups
