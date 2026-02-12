@@ -59,6 +59,7 @@ export interface Group {
   name: string;
   clubId: string;
   color?: string;
+  membershipFee?: number;
   memberCount: number;
   coachIds: string[];
   createdAt: string;

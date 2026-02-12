@@ -60,6 +60,9 @@ export const useUpdateMember = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
+      queryClient.invalidateQueries({ queryKey: ['memberDetail'] });
+      queryClient.invalidateQueries({ queryKey: ['memberByUser'] });
+      queryClient.invalidateQueries({ queryKey: ['memberPayments'] });
     },
   });
 };

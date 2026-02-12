@@ -287,6 +287,7 @@ export function MemberListPage() {
                 <TableHead>{t('members.member')}</TableHead>
                 <TableHead>{t('members.age')}</TableHead>
                 <TableHead>{t('members.group')}</TableHead>
+                <TableHead>{t('profile.monthlyFee')}</TableHead>
                 <TableHead>{t('members.paymentStatus')}</TableHead>
                 <TableHead>{t('members.medicalStatus')}</TableHead>
                 <TableHead className="text-right">{t('members.actions')}</TableHead>
@@ -319,6 +320,7 @@ export function MemberListPage() {
                     </TableCell>
                     <TableCell>{member.age} {t('members.years')}</TableCell>
                     <TableCell>{member.groupName}</TableCell>
+                    <TableCell>{(member as any).membershipFee || '--'} RSD</TableCell>
                     <TableCell>
                       <StatusBadge
                         status={member.paymentStatus}

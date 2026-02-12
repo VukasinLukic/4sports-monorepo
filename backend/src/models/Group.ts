@@ -9,6 +9,7 @@ export interface IGroup extends Document {
   clubId: mongoose.Types.ObjectId;
   name: string;
   color?: string;
+  membershipFee?: number;
   coaches: mongoose.Types.ObjectId[];
   isActive: boolean;
   createdAt: Date;
@@ -48,6 +49,11 @@ const groupSchema = new Schema<IGroup, IGroupModel>(
       type: String,
       trim: true,
       match: [/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Color must be a valid hex color (e.g., #FF5733)'],
+    },
+
+    membershipFee: {
+      type: Number,
+      min: [0, 'Membership fee must be non-negative'],
     },
 
     coaches: {
