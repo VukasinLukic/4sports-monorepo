@@ -47,6 +47,7 @@ export default function GroupFormScreen() {
   // Form state
   const [name, setName] = useState('');
   const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [membershipFee, setMembershipFee] = useState('');
 
   // Validation
   const nameError = name.length > 0 && name.trim().length < 2;
@@ -64,6 +65,7 @@ export default function GroupFormScreen() {
       const group: Group = response.data.data;
       setName(group.name);
       setColor(group.color || PRESET_COLORS[0]);
+      setMembershipFee(group.membershipFee?.toString() || '');
     } catch (error) {
       console.error('Error fetching group:', error);
       Alert.alert(t('common.error'), t('errors.loadingFailed'));
@@ -81,10 +83,13 @@ export default function GroupFormScreen() {
 
     setIsSaving(true);
     try {
-      const payload = {
+      const payload: any = {
         name: name.trim(),
         color,
       };
+      if (membershipFee) {
+        payload.membershipFee = Number(membershipFee);
+      }
 
       if (isEditing) {
         await api.put(`/groups/${id}`, payload);
@@ -173,6 +178,21 @@ export default function GroupFormScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+          </View>
+
+          {/* Membership Fee */}
+          <View style={styles.field}>
+            <TextInput
+              label={t('payments.monthlyFee') || 'Monthly Fee (RSD)'}
+              value={membershipFee}
+              onChangeText={setMembershipFee}
+              mode="outlined"
+              keyboardType="numeric"
+              disabled={isSaving}
+              style={styles.input}
+              outlineColor={Colors.border}
+              activeOutlineColor={Colors.primary}
+            />
           </View>
 
           {/* Preview */}

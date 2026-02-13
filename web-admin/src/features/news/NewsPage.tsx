@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -156,6 +156,7 @@ export function NewsPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: posts, isLoading, error, refetch } = usePosts();
   const deletePostMutation = useDeletePost();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -164,6 +165,21 @@ export function NewsPage() {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
+
+  // Handle navigation with focusPostId from location state
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.focusPostId && posts) {
+      const post = posts.find((p) => p._id === state.focusPostId);
+      if (post) {
+        setSelectedPost(post);
+        if (state.focusCommentId) {
+          setFocusCommentId(state.focusCommentId);
+        }
+      }
+    }
+  }, [posts, location.state]);
 
   const handleDeleteClick = (post: Post) => {
     setPostToDelete(post);
@@ -255,6 +271,7 @@ export function NewsPage() {
             <CommentsPanel
               postId={freshPost._id}
               onAvatarClick={handleAvatarClick}
+              focusCommentId={focusCommentId}
             />
           </div>
         </div>
@@ -295,7 +312,7 @@ export function NewsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">{t('news.title')}</h1>
@@ -313,7 +330,7 @@ export function NewsPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 max-w-2xl mx-auto">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -336,7 +353,7 @@ export function NewsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 max-w-2xl mx-auto">
           {posts.map((post) => {
             const { authorName, authorPicture, authorRole, authorIdStr } = getAuthorInfo(post);
             const roleLabel = authorRole === 'OWNER' ? t('roles.owner') : authorRole === 'COACH' ? t('roles.coach') : null;
@@ -354,10 +371,10 @@ export function NewsPage() {
                       <img
                         src={post.images[0]}
                         alt="Post image"
-                        className="w-full h-64 object-cover"
+                        className="w-full h-96 object-cover"
                       />
                     ) : post.images.length === 2 ? (
-                      <div className="grid grid-cols-2 gap-0.5 h-64">
+                      <div className="grid grid-cols-2 gap-0.5 h-96">
                         {post.images.slice(0, 2).map((image, index) => (
                           <img
                             key={index}
@@ -368,7 +385,7 @@ export function NewsPage() {
                         ))}
                       </div>
                     ) : post.images.length === 3 ? (
-                      <div className="grid grid-cols-2 gap-0.5 h-64">
+                      <div className="grid grid-cols-2 gap-0.5 h-96">
                         <img
                           src={post.images[0]}
                           alt="Post image 1"
@@ -386,7 +403,7 @@ export function NewsPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-0.5 h-64">
+                      <div className="grid grid-cols-2 gap-0.5 h-96">
                         {post.images.slice(0, 4).map((image, index) => (
                           <div key={index} className="relative">
                             <img
@@ -600,7 +617,7 @@ function PostDetailCard({
               <img
                 src={post.images[0]}
                 alt="Post image"
-                className="w-full max-h-[500px] object-contain bg-muted/30 cursor-pointer hover:opacity-90 transition-opacity"
+                className="w-full max-h-[600px] object-contain bg-muted/30 cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => onImageClick(post.images[0])}
               />
             ) : (
@@ -610,7 +627,7 @@ function PostDetailCard({
                     key={index}
                     src={image}
                     alt={`Post image ${index + 1}`}
-                    className="w-full h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    className="w-full h-96 object-cover cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={() => onImageClick(image)}
                   />
                 ))}
@@ -729,9 +746,11 @@ function PostDetailCard({
 function CommentsPanel({
   postId,
   onAvatarClick,
+  focusCommentId,
 }: {
   postId: string;
   onAvatarClick: (userId: string | null) => void;
+  focusCommentId?: string | null;
 }) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -741,12 +760,15 @@ function CommentsPanel({
   const likeMutation = useToggleLike();
   const [newComment, setNewComment] = useState('');
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const commentRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
-    if (comments && comments.length > 0) {
+    if (focusCommentId && commentRefs.current[focusCommentId]) {
+      commentRefs.current[focusCommentId]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else if (comments && comments.length > 0) {
       commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [comments?.length]);
+  }, [comments?.length, focusCommentId]);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
@@ -799,13 +821,19 @@ function CommentsPanel({
           </div>
         ) : (
           comments.map((comment) => (
-            <CommentItem
+            <div
               key={comment._id}
-              comment={comment}
-              onDelete={handleDeleteComment}
-              onLike={handleLikeComment}
-              onAvatarClick={onAvatarClick}
-            />
+              ref={(el) => {
+                if (el) commentRefs.current[comment._id] = el;
+              }}
+            >
+              <CommentItem
+                comment={comment}
+                onDelete={handleDeleteComment}
+                onLike={handleLikeComment}
+                onAvatarClick={onAvatarClick}
+              />
+            </div>
           ))
         )}
         <div ref={commentsEndRef} />

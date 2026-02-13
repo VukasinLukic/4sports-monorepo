@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -19,7 +18,6 @@ import {
   useCoaches,
   useDeleteCoach,
   useMembers,
-  useDeleteMember,
   useGroups,
 } from './useClubMembers';
 import { useInviteCodes, useGenerateInvite } from '../invites/useInvites';
@@ -72,7 +70,6 @@ export function ClubMembersPage() {
   // Dialog states
   const [editMemberDialogOpen, setEditMemberDialogOpen] = useState(false);
   const [deleteCoachDialogOpen, setDeleteCoachDialogOpen] = useState(false);
-  const [deleteMemberDialogOpen, setDeleteMemberDialogOpen] = useState(false);
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
@@ -101,7 +98,6 @@ export function ClubMembersPage() {
   const { data: inviteCodes } = useInviteCodes();
   const generateMutation = useGenerateInvite();
   const deleteCoachMutation = useDeleteCoach();
-  const deleteMemberMutation = useDeleteMember();
 
   // Filtered coaches
   const filteredCoaches = useMemo(() => {
@@ -212,18 +208,6 @@ export function ClubMembersPage() {
   const handleEditMember = (member: Member) => {
     setSelectedMember(member);
     setEditMemberDialogOpen(true);
-  };
-
-  const handleDeleteMember = (member: Member) => {
-    setSelectedMember(member);
-    setDeleteMemberDialogOpen(true);
-  };
-
-  const handleDeleteMemberConfirm = async () => {
-    if (selectedMember) {
-      await deleteMemberMutation.mutateAsync(selectedMember.id);
-      setSelectedMember(null);
-    }
   };
 
   const handleOpenGroupDialog = (group?: Group) => {
@@ -534,7 +518,6 @@ export function ClubMembersPage() {
                                   key={member.id}
                                   member={member}
                                   onEdit={handleEditMember}
-                                  onDelete={handleDeleteMember}
                                   onClick={() => navigate(`/profile/member/${member.id}`, { state: { groupName: group.name } })}
                                 />
                               ))
@@ -589,16 +572,6 @@ export function ClubMembersPage() {
         message={t('clubMembers.deleteCoachConfirm', { name: selectedCoach?.fullName })}
         onConfirm={handleDeleteCoachConfirm}
         confirmText={t('common.remove')}
-        cancelText={t('common.cancel')}
-        variant="destructive"
-      />
-      <ConfirmDialog
-        open={deleteMemberDialogOpen}
-        onOpenChange={setDeleteMemberDialogOpen}
-        title={t('clubMembers.deleteMember')}
-        message={t('clubMembers.deleteMemberConfirm', { name: selectedMember?.fullName })}
-        onConfirm={handleDeleteMemberConfirm}
-        confirmText={t('common.delete')}
         cancelText={t('common.cancel')}
         variant="destructive"
       />
@@ -663,17 +636,12 @@ function CoachCard({ coach, onDelete, onClick }: { coach: Coach; onDelete: (c: C
 function MemberCard({
   member,
   onEdit,
-  onDelete,
   onClick,
 }: {
   member: Member;
   onEdit: (m: Member) => void;
-  onDelete: (m: Member) => void;
   onClick?: () => void;
 }) {
-  const { t } = useTranslation();
-  const isActive = member.paymentStatus === 'PAID';
-
   return (
     <div
       className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
@@ -693,34 +661,14 @@ function MemberCard({
       <div className="flex-1 min-w-0">
         <div className="font-medium text-sm truncate">{member.fullName}</div>
       </div>
-      <Badge
-        variant="outline"
-        className={
-          isActive
-            ? 'border-green-600 text-green-600 text-xs'
-            : 'border-red-600 text-red-600 text-xs'
-        }
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 flex-shrink-0"
+        onClick={(e) => { e.stopPropagation(); onEdit(member); }}
       >
-        {isActive ? t('status.active') : t('status.inactive')}
-      </Badge>
-      <div className="flex gap-1 flex-shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={(e) => { e.stopPropagation(); onEdit(member); }}
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
-          onClick={(e) => { e.stopPropagation(); onDelete(member); }}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </div>
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 }

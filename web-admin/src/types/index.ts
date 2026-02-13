@@ -106,6 +106,7 @@ export interface Group {
   clubId: string;
   name: string;
   color?: string;
+  membershipFee?: number;
   memberCount?: number;
   coaches?: GroupCoach[];
   isActive?: boolean;
@@ -114,6 +115,7 @@ export interface Group {
 export interface CreateGroupData {
   name: string;
   color?: string;
+  membershipFee?: number;
   coaches?: string[];
 }
 

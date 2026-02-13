@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Group from '../models/Group';
 import User from '../models/User';
 import Member from '../models/Member';
+import Payment from '../models/Payment';
 
 /**
  * Create Group
@@ -17,7 +18,7 @@ export const createGroup = async (req: Request, res: Response) => {
       });
     }
 
-    const { name, coaches, color } = req.body;
+    const { name, coaches, color, membershipFee } = req.body;
     const clubId = req.user.clubId;
 
     if (!clubId) {
@@ -58,12 +59,17 @@ export const createGroup = async (req: Request, res: Response) => {
     }
 
     // Create group
-    const group = await Group.create({
+    const groupData: any = {
       clubId,
       name,
       color,
       coaches: coachIds,
-    });
+    };
+    if (membershipFee !== undefined) {
+      groupData.membershipFee = membershipFee;
+    }
+
+    const group = await Group.create(groupData);
 
     return res.status(201).json({
       success: true,
@@ -192,7 +198,7 @@ export const updateGroup = async (req: Request, res: Response) => {
     }
 
     const { id } = req.params;
-    const { name, color, coaches } = req.body;
+    const { name, color, coaches, membershipFee } = req.body;
 
     const group = await Group.findById(id);
 
@@ -211,9 +217,13 @@ export const updateGroup = async (req: Request, res: Response) => {
       });
     }
 
+    // Save old membershipFee BEFORE updating
+    const oldMembershipFee = group.membershipFee;
+
     // Update fields
     if (name) group.name = name;
     if (color !== undefined) group.color = color;
+    if (membershipFee !== undefined) group.membershipFee = membershipFee;
 
     // Update coaches if provided
     if (coaches !== undefined) {
@@ -233,7 +243,41 @@ export const updateGroup = async (req: Request, res: Response) => {
       group.coaches = coaches;
     }
 
+    // Track if membershipFee changed
+    const membershipFeeChanged = membershipFee !== undefined && oldMembershipFee !== membershipFee;
+
     await group.save();
+
+    // If membershipFee changed, update upcoming payments for all members in this group
+    if (membershipFeeChanged && membershipFee !== undefined) {
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      // Update membershipFee for all group members and their payments
+      const members = await Member.find({ 'clubs.groupId': group._id, 'clubs.status': 'ACTIVE' });
+      for (const member of members) {
+        // Update member's membershipFee if it matches old group fee or is not set
+        if (!member.membershipFee || member.membershipFee === oldMembershipFee) {
+          member.membershipFee = membershipFee;
+          await member.save();
+        }
+
+        // Update existing payment for next month if it exists (don't create new ones)
+        const existingPayment = await Payment.findOne({
+          clubId: req.user.clubId,
+          memberId: member._id,
+          type: 'MEMBERSHIP',
+          'period.month': nextMonth.getMonth() + 1,
+          'period.year': nextMonth.getFullYear(),
+        });
+
+        if (existingPayment) {
+          // Update existing payment with new amount
+          existingPayment.amount = membershipFee;
+          await existingPayment.save();
+        }
+      }
+    }
 
     const populated = await Group.findById(group._id).populate('coaches', 'fullName email');
 
@@ -405,6 +449,44 @@ export const addMemberToGroup = async (req: Request, res: Response) => {
 
     // Add member to the group
     await member.addToClub(group.clubId, group._id);
+
+    // Assign group's membershipFee to member if group has one
+    if (group.membershipFee && !member.membershipFee) {
+      member.membershipFee = group.membershipFee;
+      await member.save();
+    }
+
+    // Auto-generate payment record for next month if group has membershipFee
+    if (group.membershipFee) {
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      // Check if payment already exists for next month
+      const existingPayment = await Payment.findOne({
+        clubId: group.clubId,
+        memberId: member._id,
+        type: 'MEMBERSHIP',
+        'period.month': nextMonth.getMonth() + 1,
+        'period.year': nextMonth.getFullYear(),
+      });
+
+      if (!existingPayment) {
+        await Payment.create({
+          clubId: group.clubId,
+          memberId: member._id,
+          type: 'MEMBERSHIP',
+          amount: group.membershipFee,
+          paidAmount: 0,
+          status: 'PENDING',
+          dueDate: nextMonth,
+          createdBy: req.user._id,
+          period: {
+            month: nextMonth.getMonth() + 1,
+            year: nextMonth.getFullYear(),
+          },
+        });
+      }
+    }
 
     return res.status(200).json({
       success: true,

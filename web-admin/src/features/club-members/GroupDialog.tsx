@@ -35,6 +35,7 @@ export function GroupDialog({ open, onOpenChange, group }: GroupDialogProps) {
 
   const [name, setName] = useState('');
   const [color, setColor] = useState('#22c55e');
+  const [membershipFee, setMembershipFee] = useState('');
   const [selectedCoachIds, setSelectedCoachIds] = useState<string[]>([]);
 
   const isEdit = !!group;
@@ -44,6 +45,7 @@ export function GroupDialog({ open, onOpenChange, group }: GroupDialogProps) {
     if (open) {
       setName(group?.name || '');
       setColor(group?.color || '#22c55e');
+      setMembershipFee(group?.membershipFee?.toString() || '');
       setSelectedCoachIds(group?.coaches?.map(c => c._id) || []);
     }
   }, [open, group]);
@@ -59,17 +61,16 @@ export function GroupDialog({ open, onOpenChange, group }: GroupDialogProps) {
   const handleSubmit = async () => {
     if (!name.trim()) return;
     try {
+      const baseData = { name: name.trim(), color, coaches: selectedCoachIds };
+      const dataWithFee = membershipFee ? { ...baseData, membershipFee: Number(membershipFee) } : baseData;
+
       if (isEdit && group) {
         await updateMutation.mutateAsync({
           id: group._id,
-          data: { name: name.trim(), color, coaches: selectedCoachIds },
+          data: dataWithFee,
         });
       } else {
-        await createMutation.mutateAsync({
-          name: name.trim(),
-          color,
-          coaches: selectedCoachIds,
-        });
+        await createMutation.mutateAsync(dataWithFee as any);
       }
       toast({ title: t('common.success') });
       onOpenChange(false);
@@ -112,6 +113,17 @@ export function GroupDialog({ open, onOpenChange, group }: GroupDialogProps) {
                 />
               ))}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>{t('profile.monthlyFee') || 'Monthly Fee (RSD)'}</Label>
+            <Input
+              type="number"
+              value={membershipFee}
+              onChange={(e) => setMembershipFee(e.target.value)}
+              placeholder="3000"
+              min="0"
+            />
           </div>
 
           {/* Coach Selection */}

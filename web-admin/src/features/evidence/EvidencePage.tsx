@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -47,8 +48,19 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Avg', 'Sep', '
 const getInitials = (name: string): string =>
   name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
 
+const getLastTrainingText = (t: any): string => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // For now, hardcoded to "Yesterday" - in a real scenario, this would calculate based on actual training data
+  return `${t('evidence.lastTraining', { date: t('evidence.lastTrainingYesterday') })}`;
+};
+
 export function EvidencePage() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const now = new Date();
   const [activeTab, setActiveTab] = useState<'membership' | 'medical'>('membership');
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
@@ -277,7 +289,7 @@ export function EvidencePage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search for the member..."
+            placeholder={t('evidence.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-background"
@@ -339,14 +351,14 @@ export function EvidencePage() {
             className="data-[state=active]:bg-green-600 data-[state=active]:text-white h-10 text-base gap-2"
           >
             <CreditCard className="h-4 w-4" />
-            Memberships
+            {t('evidence.memberships')}
           </TabsTrigger>
           <TabsTrigger
             value="medical"
             className="data-[state=active]:bg-green-600 data-[state=active]:text-white h-10 text-base gap-2"
           >
             <Stethoscope className="h-4 w-4" />
-            Medical examinations
+            {t('evidence.medicalExaminations')}
           </TabsTrigger>
         </TabsList>
 
@@ -375,7 +387,7 @@ export function EvidencePage() {
                     style={{ backgroundColor: group.color || '#ef4444' }}
                   />
                   <h3 className="font-semibold text-base">{group.name}</h3>
-                  <span className="text-sm text-muted-foreground">{group.totalCount} Members</span>
+                  <span className="text-sm text-muted-foreground">{group.totalCount} {t('evidence.membersLabel')}</span>
                   <span className="text-xs text-muted-foreground ml-auto">
                     {group.paidCount}/{group.totalCount} plaćeno
                   </span>
@@ -425,7 +437,7 @@ export function EvidencePage() {
                     style={{ backgroundColor: group.color || '#ef4444' }}
                   />
                   <h3 className="font-semibold text-base">{group.name}</h3>
-                  <span className="text-sm text-muted-foreground">{group.totalCount} Members</span>
+                  <span className="text-sm text-muted-foreground">{group.totalCount} {t('evidence.membersLabel')}</span>
                   <span className="text-xs text-muted-foreground ml-auto">
                     {group.validCount} validnih
                   </span>
@@ -464,7 +476,7 @@ export function EvidencePage() {
           ) : (
             <Bell className="mr-2 h-5 w-5" />
           )}
-          Remind All
+          {t('evidence.remindAll')}
         </Button>
       )}
 
@@ -501,6 +513,7 @@ function MembershipRow({
   isReminderLoading: boolean;
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const isPaid = member.status === 'PAID';
   const isPartial = member.status === 'PARTIAL';
 
@@ -529,7 +542,7 @@ function MembershipRow({
           ) : (
             <span className="text-red-500">Nije plaćeno ・</span>
           )}
-          <span className="text-muted-foreground">Last Training: Yesterday</span>
+          <span className="text-muted-foreground">{t('evidence.lastTraining', { date: t('evidence.lastTrainingYesterday') })}</span>
         </div>
       </div>
 
@@ -583,6 +596,7 @@ function MedicalRow({
   isReminderLoading: boolean;
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const statusConfig = {
     VALID: { color: 'text-green-500', label: 'Validan ✓' },
     EXPIRING_SOON: { color: 'text-yellow-500', label: 'Ističe uskoro ・' },

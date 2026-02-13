@@ -4,7 +4,8 @@ import { FinanceEntry, Group, GroupedTransactionData } from '@/types';
  * Group transactions by month (YYYY-MM format)
  */
 export const groupTransactionsByMonth = (
-  transactions: FinanceEntry[]
+  transactions: FinanceEntry[],
+  monthNames?: string[]
 ): GroupedTransactionData[] => {
   const groupMap = new Map<string, FinanceEntry[]>();
 
@@ -18,18 +19,21 @@ export const groupTransactionsByMonth = (
     groupMap.get(key)!.push(transaction);
   });
 
+  // Default month names in English (fallback)
+  const defaultMonthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const names = monthNames || defaultMonthNames;
+
   // Convert to array and sort by month desc
   return Array.from(groupMap.entries())
     .map(([key, txns]) => {
       const [year, month] = key.split('-');
-      const monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
 
       return {
         key,
-        name: `${monthNames[parseInt(month) - 1]} ${year}`,
+        name: `${names[parseInt(month) - 1]} ${year}`,
         transactions: txns,
         stats: calculateGroupStats(txns),
       };
@@ -73,7 +77,8 @@ export const groupTransactionsByGroup = (
  * Group transactions by category
  */
 export const groupTransactionsByCategory = (
-  transactions: FinanceEntry[]
+  transactions: FinanceEntry[],
+  categoryTranslations?: Record<string, string>
 ): GroupedTransactionData[] => {
   const groupMap = new Map<string, FinanceEntry[]>();
 
@@ -88,7 +93,7 @@ export const groupTransactionsByCategory = (
 
   return Array.from(groupMap.entries()).map(([category, txns]) => ({
     key: category,
-    name: category.replace(/_/g, ' '),
+    name: categoryTranslations?.[category] || category.replace(/_/g, ' '),
     transactions: txns,
     stats: calculateGroupStats(txns),
   }));

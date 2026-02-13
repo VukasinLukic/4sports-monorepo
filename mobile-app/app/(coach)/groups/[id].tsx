@@ -239,6 +239,12 @@ export default function GroupDetailsScreen() {
                 <Text style={styles.statLabel}>{t('groups.coaches') || 'Coaches'}</Text>
               </View>
             </View>
+            {group.membershipFee !== undefined && (
+              <View style={styles.feeRow}>
+                <Text style={styles.feeLabel}>{t('payments.monthlyFee') || 'Monthly Fee'}</Text>
+                <Text style={styles.feeValue}>{group.membershipFee} RSD</Text>
+              </View>
+            )}
           </Card.Content>
         </Card>
 
@@ -415,6 +421,24 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginTop: Spacing.xxs,
+  },
+  feeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    marginTop: Spacing.md,
+  },
+  feeLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+  },
+  feeValue: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
   },
   actionsRow: {
     flexDirection: 'row',

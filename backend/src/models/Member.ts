@@ -46,6 +46,7 @@ export interface IMember extends Document {
     relationship: string;
     phoneNumber: string;
   };
+  membershipFee?: number;
   createdAt: Date;
   updatedAt: Date;
 
@@ -226,6 +227,11 @@ const memberSchema = new Schema<IMember, IMemberModel>(
           'Please provide a valid phone number in format +381XXXXXXXXX',
         ],
       },
+    },
+
+    membershipFee: {
+      type: Number,
+      min: [0, 'Membership fee must be non-negative'],
     },
   },
   {
