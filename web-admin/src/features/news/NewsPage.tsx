@@ -295,7 +295,7 @@ export function NewsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">{t('news.title')}</h1>
@@ -313,7 +313,7 @@ export function NewsPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 max-w-2xl mx-auto">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -336,7 +336,7 @@ export function NewsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 max-w-2xl mx-auto">
           {posts.map((post) => {
             const { authorName, authorPicture, authorRole, authorIdStr } = getAuthorInfo(post);
             const roleLabel = authorRole === 'OWNER' ? t('roles.owner') : authorRole === 'COACH' ? t('roles.coach') : null;
@@ -354,10 +354,10 @@ export function NewsPage() {
                       <img
                         src={post.images[0]}
                         alt="Post image"
-                        className="w-full h-64 object-cover"
+                        className="w-full h-96 object-cover"
                       />
                     ) : post.images.length === 2 ? (
-                      <div className="grid grid-cols-2 gap-0.5 h-64">
+                      <div className="grid grid-cols-2 gap-0.5 h-96">
                         {post.images.slice(0, 2).map((image, index) => (
                           <img
                             key={index}
@@ -368,7 +368,7 @@ export function NewsPage() {
                         ))}
                       </div>
                     ) : post.images.length === 3 ? (
-                      <div className="grid grid-cols-2 gap-0.5 h-64">
+                      <div className="grid grid-cols-2 gap-0.5 h-96">
                         <img
                           src={post.images[0]}
                           alt="Post image 1"
@@ -386,7 +386,7 @@ export function NewsPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-0.5 h-64">
+                      <div className="grid grid-cols-2 gap-0.5 h-96">
                         {post.images.slice(0, 4).map((image, index) => (
                           <div key={index} className="relative">
                             <img
@@ -600,7 +600,7 @@ function PostDetailCard({
               <img
                 src={post.images[0]}
                 alt="Post image"
-                className="w-full max-h-[500px] object-contain bg-muted/30 cursor-pointer hover:opacity-90 transition-opacity"
+                className="w-full max-h-[600px] object-contain bg-muted/30 cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => onImageClick(post.images[0])}
               />
             ) : (
@@ -610,7 +610,7 @@ function PostDetailCard({
                     key={index}
                     src={image}
                     alt={`Post image ${index + 1}`}
-                    className="w-full h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    className="w-full h-96 object-cover cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={() => onImageClick(image)}
                   />
                 ))}

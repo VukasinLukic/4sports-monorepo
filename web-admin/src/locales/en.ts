@@ -523,7 +523,9 @@ export default {
     expiringSoon: 'Expiring soon',
     expiredNotSet: 'Expired / Not set',
     searchMember: 'Search member...',
+    searchPlaceholder: 'Search for the member...',
     memberships: 'Memberships',
+    medicalExaminations: 'Medical examinations',
     medicalExams: 'Medical exams',
     noMembersToShow: 'No members to display',
     paid: 'Paid',
@@ -559,6 +561,10 @@ export default {
     medicalUpdated: 'Medical exam for {{name}} updated',
     medicalFailed: 'Exam not updated',
     membersLabel: 'members',
+    lastTraining: 'Last Training: {{date}}',
+    lastTrainingToday: 'Today',
+    lastTrainingYesterday: 'Yesterday',
+    lastTrainingDaysAgo: '{{count}} days ago',
   },
 
   chat: {

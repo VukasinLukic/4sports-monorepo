@@ -147,22 +147,19 @@ export const getMedicalEvidence = async (req: Request, res: Response) => {
         memberName: member.fullName,
         profileImage: member.profileImage,
         group: activeClub?.groupId,
-        medicalInfo: {
-          lastCheckDate: member.medicalInfo?.lastCheckDate,
-          expiryDate: member.medicalInfo?.expiryDate,
-          bloodType: member.medicalInfo?.bloodType,
-        },
-        status,
+        medicalStatus: status,
+        expiryDate: member.medicalInfo?.expiryDate,
+        lastCheckDate: member.medicalInfo?.lastCheckDate,
       };
     });
 
     // Stats
     const stats = {
       total: evidence.length,
-      valid: evidence.filter(e => e.status === 'VALID').length,
-      expiringSoon: evidence.filter(e => e.status === 'EXPIRING_SOON').length,
-      expired: evidence.filter(e => e.status === 'EXPIRED').length,
-      notSet: evidence.filter(e => e.status === 'NOT_SET').length,
+      valid: evidence.filter(e => e.medicalStatus === 'VALID').length,
+      expiringSoon: evidence.filter(e => e.medicalStatus === 'EXPIRING_SOON').length,
+      expired: evidence.filter(e => e.medicalStatus === 'EXPIRED').length,
+      notSet: evidence.filter(e => e.medicalStatus === 'NOT_SET').length,
     };
 
     return res.status(200).json({

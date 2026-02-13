@@ -73,17 +73,32 @@ export function FinancePage() {
   const groupedData = useMemo(() => {
     if (!filteredTransactions || groupBy === 'none') return null;
 
+    // Get translated month names from calendar.months (returns array of month names)
+    const monthNames = t('calendar.months', { returnObjects: true }) as string[];
+
+    // Get translated category names
+    const categoryTranslations: Record<string, string> = {
+      'MEMBERSHIP_FEE': t('finances.categories.membershipPayment'),
+      'EVENT_FEE': t('finances.categories.eventFee'),
+      'SPONSORSHIP': t('finances.categories.sponsorship'),
+      'EQUIPMENT': t('finances.categories.equipmentSales'),
+      'RENT': t('finances.categories.facilityRent'),
+      'SALARY': t('finances.categories.coachSalary'),
+      'UTILITIES': t('finances.categories.utilities'),
+      'OTHER': t('finances.categories.otherExpense'),
+    };
+
     switch (groupBy) {
       case 'month':
-        return groupTransactionsByMonth(filteredTransactions);
+        return groupTransactionsByMonth(filteredTransactions, monthNames);
       case 'group':
         return groupTransactionsByGroup(filteredTransactions, groups || []);
       case 'category':
-        return groupTransactionsByCategory(filteredTransactions);
+        return groupTransactionsByCategory(filteredTransactions, categoryTranslations);
       default:
         return null;
     }
-  }, [filteredTransactions, groupBy, groups]);
+  }, [filteredTransactions, groupBy, groups, t]);
 
   // Start tutorial on first visit
   useEffect(() => {
