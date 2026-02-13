@@ -168,6 +168,7 @@ export default function MemberEventDetailScreen() {
     );
   }
 
+  const isPastEvent = new Date(event.startTime) < new Date();
   const startFormatted = formatDateTime(event.startTime);
   const endFormatted = formatDateTime(event.endTime);
 
@@ -260,58 +261,64 @@ export default function MemberEventDetailScreen() {
                         ? (t('rsvp.declinedAttendance') || 'Odbili ste prisustvo')
                         : (t('rsvp.pendingAttendance') || 'Niste još potvrdili prisustvo')}
                     </Text>
-                    <Text style={styles.rsvpHelpText}>
-                      {t('rsvp.changeStatus') || 'Možete promeniti odluku'}
-                    </Text>
+                    {!isPastEvent && (
+                      <Text style={styles.rsvpHelpText}>
+                        {t('rsvp.changeStatus') || 'Možete promeniti odluku'}
+                      </Text>
+                    )}
                   </View>
                 </View>
 
                 {/* Change RSVP Buttons */}
-                <View style={styles.rsvpButtonsRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.rsvpButton,
-                      styles.rsvpButtonComing,
-                      myRsvpStatus === 'CONFIRMED' && styles.rsvpButtonActiveGreen,
-                    ]}
-                    onPress={() => handleRsvp('CONFIRMED')}
-                    disabled={isSubmittingRsvp}
-                  >
-                    <MaterialCommunityIcons
-                      name="check"
-                      size={18}
-                      color={myRsvpStatus === 'CONFIRMED' ? '#fff' : Colors.success}
-                    />
-                    <Text style={[
-                      styles.rsvpButtonText,
-                      { color: myRsvpStatus === 'CONFIRMED' ? '#fff' : Colors.success }
-                    ]}>
-                      {t('rsvp.coming') || 'Dolazim'}
-                    </Text>
-                  </TouchableOpacity>
+                {isPastEvent ? (
+                  <Text style={styles.rsvpExpiredText}>{t('rsvp.eventPassed')}</Text>
+                ) : (
+                  <View style={styles.rsvpButtonsRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.rsvpButton,
+                        styles.rsvpButtonComing,
+                        myRsvpStatus === 'CONFIRMED' && styles.rsvpButtonActiveGreen,
+                      ]}
+                      onPress={() => handleRsvp('CONFIRMED')}
+                      disabled={isSubmittingRsvp}
+                    >
+                      <MaterialCommunityIcons
+                        name="check"
+                        size={18}
+                        color={myRsvpStatus === 'CONFIRMED' ? '#fff' : Colors.success}
+                      />
+                      <Text style={[
+                        styles.rsvpButtonText,
+                        { color: myRsvpStatus === 'CONFIRMED' ? '#fff' : Colors.success }
+                      ]}>
+                        {t('rsvp.coming') || 'Dolazim'}
+                      </Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.rsvpButton,
-                      styles.rsvpButtonNotComing,
-                      myRsvpStatus === 'DECLINED' && styles.rsvpButtonActiveRed,
-                    ]}
-                    onPress={() => handleRsvp('DECLINED')}
-                    disabled={isSubmittingRsvp}
-                  >
-                    <MaterialCommunityIcons
-                      name="close"
-                      size={18}
-                      color={myRsvpStatus === 'DECLINED' ? '#fff' : Colors.error}
-                    />
-                    <Text style={[
-                      styles.rsvpButtonText,
-                      { color: myRsvpStatus === 'DECLINED' ? '#fff' : Colors.error }
-                    ]}>
-                      {t('rsvp.notComing') || 'Ne dolazim'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.rsvpButton,
+                        styles.rsvpButtonNotComing,
+                        myRsvpStatus === 'DECLINED' && styles.rsvpButtonActiveRed,
+                      ]}
+                      onPress={() => handleRsvp('DECLINED')}
+                      disabled={isSubmittingRsvp}
+                    >
+                      <MaterialCommunityIcons
+                        name="close"
+                        size={18}
+                        color={myRsvpStatus === 'DECLINED' ? '#fff' : Colors.error}
+                      />
+                      <Text style={[
+                        styles.rsvpButtonText,
+                        { color: myRsvpStatus === 'DECLINED' ? '#fff' : Colors.error }
+                      ]}>
+                        {t('rsvp.notComing') || 'Ne dolazim'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </Card.Content>
             </Card>
 
@@ -789,5 +796,11 @@ const styles = StyleSheet.create({
   rsvpButtonText: {
     fontSize: FontSize.sm,
     fontWeight: '600',
+  },
+  rsvpExpiredText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

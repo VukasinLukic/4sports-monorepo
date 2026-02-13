@@ -30,11 +30,11 @@ const getEventTypeColorFromString = (type: string): string => {
 export default function EventDetailScreen() {
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const [event, setEvent] = useState<Event | null>(null);
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
   const [stats, setStats] = useState<EventParticipantsStats | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>(tab === 'participants' ? 'participants' : 'overview');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -91,8 +91,8 @@ export default function EventDetailScreen() {
   };
 
   const getGroupName = () => {
-    if (!event?.groupId) return 'Nepoznato';
-    if (typeof event.groupId === 'string') return 'Grupa';
+    if (!event?.groupId) return t('common.unknown');
+    if (typeof event.groupId === 'string') return t('events.group');
     return event.groupId.name;
   };
 
@@ -113,9 +113,9 @@ export default function EventDetailScreen() {
   const handleSendReminder = async () => {
     try {
       // Send reminder to all participants who haven't confirmed
-      Alert.alert(t('common.success'), 'Podsetnik je poslat svim učesnicima');
+      Alert.alert(t('common.success'), t('events.reminderSent'));
     } catch (error) {
-      Alert.alert(t('common.error'), 'Slanje podsetnika nije uspelo');
+      Alert.alert(t('common.error'), t('events.reminderFailed'));
     }
   };
 
@@ -127,20 +127,20 @@ export default function EventDetailScreen() {
   const handleCancelEvent = async () => {
     setMenuVisible(false);
     Alert.alert(
-      'Otkaži događaj',
-      'Da li ste sigurni da želite da otkažete ovaj događaj?',
+      t('events.cancelEvent'),
+      t('events.cancelEventConfirm'),
       [
-        { text: 'Ne', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Da, otkaži',
+          text: t('common.yes'),
           style: 'destructive',
           onPress: async () => {
             try {
               await api.put(`/events/${id}`, { status: 'CANCELLED' });
-              Alert.alert(t('common.success'), 'Događaj je otkazan');
+              Alert.alert(t('common.success'), t('events.eventCancelled'));
               router.back();
             } catch (error) {
-              Alert.alert(t('common.error'), 'Otkazivanje događaja nije uspelo');
+              Alert.alert(t('common.error'), t('events.cancelFailed'));
             }
           },
         },
@@ -151,20 +151,20 @@ export default function EventDetailScreen() {
   const handleDeleteEvent = async () => {
     setMenuVisible(false);
     Alert.alert(
-      'Obriši događaj',
-      'Da li ste sigurni da želite da obrišete ovaj događaj? Ova akcija se ne može poništiti.',
+      t('events.deleteEvent'),
+      t('events.deleteEventConfirm'),
       [
-        { text: 'Ne', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Da, obriši',
+          text: t('common.yes'),
           style: 'destructive',
           onPress: async () => {
             try {
               await api.delete(`/events/${id}`);
-              Alert.alert(t('common.success'), 'Događaj je obrisan');
+              Alert.alert(t('common.success'), t('events.eventDeleted'));
               router.back();
             } catch (error) {
-              Alert.alert(t('common.error'), 'Brisanje događaja nije uspelo');
+              Alert.alert(t('common.error'), t('events.deleteFailed'));
             }
           },
         },
@@ -172,17 +172,17 @@ export default function EventDetailScreen() {
     );
   };
 
-  const handleToggleConfirm = async (participant: EventParticipant, isConfirmed: boolean) => {
+  const handleToggleAttendance = async (participant: EventParticipant, markPresent: boolean) => {
     try {
       await api.post('/attendance/mark', {
         eventId: id,
         memberId: participant.memberId._id,
-        status: isConfirmed ? 'PRESENT' : 'ABSENT',
+        status: markPresent ? 'PRESENT' : 'ABSENT',
       });
       fetchParticipants();
     } catch (error) {
       console.error('Error marking attendance:', error);
-      Alert.alert(t('common.error'), 'Evidentiranje nije uspelo');
+      Alert.alert(t('common.error'), t('attendance.markFailed'));
     }
   };
 
@@ -243,9 +243,9 @@ export default function EventDetailScreen() {
             }
             contentStyle={styles.menuContent}
           >
-            <Menu.Item onPress={handleEditEvent} title="Izmeni" leadingIcon="pencil" />
-            <Menu.Item onPress={handleCancelEvent} title="Otkaži" leadingIcon="close-circle-outline" />
-            <Menu.Item onPress={handleDeleteEvent} title="Obriši" leadingIcon="delete" titleStyle={{ color: Colors.error }} />
+            <Menu.Item onPress={handleEditEvent} title={t('common.edit')} leadingIcon="pencil" />
+            <Menu.Item onPress={handleCancelEvent} title={t('common.cancel')} leadingIcon="close-circle-outline" />
+            <Menu.Item onPress={handleDeleteEvent} title={t('common.delete')} leadingIcon="delete" titleStyle={{ color: Colors.error }} />
           </Menu>
         </View>
       </View>
@@ -260,7 +260,7 @@ export default function EventDetailScreen() {
           onPress={() => setActiveTab('overview')}
         >
           <Text style={[styles.tabText, activeTab === 'overview' && styles.tabTextActive]}>
-            Pregled
+            {t('events.overview')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -268,7 +268,7 @@ export default function EventDetailScreen() {
           onPress={() => setActiveTab('participants')}
         >
           <Text style={[styles.tabText, activeTab === 'participants' && styles.tabTextActive]}>
-            Učesnici ({stats?.total || 0})
+            {t('events.participants')} ({stats?.total || 0})
           </Text>
         </TouchableOpacity>
       </View>
@@ -285,14 +285,14 @@ export default function EventDetailScreen() {
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="calendar" size={24} color={Colors.primary} />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Datum</Text>
+                    <Text style={styles.infoLabel}>{t('events.date')}</Text>
                     <Text style={styles.infoValue}>{startFormatted.date}</Text>
                   </View>
                 </View>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="clock-outline" size={24} color={Colors.primary} />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Vreme</Text>
+                    <Text style={styles.infoLabel}>{t('events.time')}</Text>
                     <Text style={styles.infoValue}>{startFormatted.time} - {endFormatted.time}</Text>
                   </View>
                 </View>
@@ -306,7 +306,7 @@ export default function EventDetailScreen() {
                   <View style={styles.infoRow}>
                     <MaterialCommunityIcons name="map-marker" size={24} color={Colors.primary} />
                     <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Lokacija</Text>
+                      <Text style={styles.infoLabel}>{t('events.location')}</Text>
                       <Text style={styles.infoValue}>{event.location}</Text>
                     </View>
                   </View>
@@ -320,7 +320,7 @@ export default function EventDetailScreen() {
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="account-group" size={24} color={Colors.primary} />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Grupa</Text>
+                    <Text style={styles.infoLabel}>{t('events.group')}</Text>
                     <Text style={styles.infoValue}>{getGroupName()}</Text>
                   </View>
                 </View>
@@ -331,33 +331,47 @@ export default function EventDetailScreen() {
             {event.description && (
               <Card style={styles.card}>
                 <Card.Content>
-                  <Text style={styles.sectionTitle}>Opis</Text>
+                  <Text style={styles.sectionTitle}>{t('events.description')}</Text>
                   <Text style={styles.description}>{event.description}</Text>
                 </Card.Content>
               </Card>
             )}
 
-            {/* Stats */}
+            {/* Participants Summary */}
             {stats && (
-              <Card style={styles.card}>
-                <Card.Content>
-                  <Text style={styles.sectionTitle}>Pregled prisustva</Text>
-                  <View style={styles.statsRow}>
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statNumber, { color: Colors.success }]}>{stats.confirmed}</Text>
-                      <Text style={styles.statLabel}>Potvrđeno</Text>
+              <TouchableOpacity
+                onPress={() => router.push({
+                  pathname: '/(coach)/events/rsvp',
+                  params: { eventId: id, eventTitle: event.title },
+                })}
+                activeOpacity={0.7}
+              >
+                <Card style={styles.card}>
+                  <Card.Content>
+                    <View style={styles.participantsSummaryHeader}>
+                      <Text style={styles.sectionTitle}>{t('events.participants')}</Text>
+                      <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textSecondary} />
                     </View>
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statNumber, { color: Colors.warning }]}>{stats.pending}</Text>
-                      <Text style={styles.statLabel}>Na čekanju</Text>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>{t('rsvp.total')}</Text>
+                      <Text style={styles.summaryValue}>{stats.total}</Text>
                     </View>
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statNumber, { color: Colors.primary }]}>{stats.present}</Text>
-                      <Text style={styles.statLabel}>Prisutno</Text>
+                    <View style={styles.summaryRow}>
+                      <View style={styles.summaryBadgeGreen}>
+                        <Text style={styles.summaryBadgeTextGreen}>{t('rsvp.attending')}</Text>
+                      </View>
+                      <Text style={[styles.summaryValue, { color: Colors.success }]}>{stats.confirmed}</Text>
                     </View>
-                  </View>
-                </Card.Content>
-              </Card>
+                    <View style={styles.summaryRow}>
+                      <View style={styles.summaryBadgeRed}>
+                        <Text style={styles.summaryBadgeTextRed}>{t('rsvp.notAttending')}</Text>
+                      </View>
+                      <Text style={[styles.summaryValue, { color: Colors.error }]}>{stats.declined}</Text>
+                    </View>
+                    <Text style={styles.viewDetailsText}>{t('rsvp.viewDetails')}</Text>
+                  </Card.Content>
+                </Card>
+              </TouchableOpacity>
             )}
           </>
         ) : (
@@ -367,62 +381,36 @@ export default function EventDetailScreen() {
               <Card style={styles.emptyCard}>
                 <Card.Content style={styles.emptyContent}>
                   <MaterialCommunityIcons name="account-group-outline" size={48} color={Colors.textSecondary} />
-                  <Text style={styles.emptyText}>Nema učesnika</Text>
+                  <Text style={styles.emptyText}>{t('events.noParticipants')}</Text>
                 </Card.Content>
               </Card>
             ) : (
               participants.map((participant) => {
-                const isConfirmed = participant.rsvpStatus === 'CONFIRMED' || participant.status === 'PRESENT';
+                const isPresent = participant.status === 'PRESENT' || participant.status === 'LATE';
 
                 return (
-                  <Card key={participant._id} style={[styles.participantCard, isConfirmed ? styles.confirmedCard : styles.notConfirmedCard]}>
+                  <Card key={participant._id} style={[styles.participantCard, isPresent ? styles.presentCard : styles.absentCard]}>
                     <Card.Content style={styles.participantContent}>
-                      {participant.memberId.profileImage ? (
-                        <Avatar.Image size={44} source={{ uri: participant.memberId.profileImage }} />
-                      ) : (
-                        <Avatar.Text
-                          size={44}
-                          label={participant.memberId.fullName?.slice(0, 2).toUpperCase() || '??'}
-                          style={{ backgroundColor: Colors.primary }}
-                        />
-                      )}
-
                       <View style={styles.participantInfo}>
                         <Text style={styles.participantName}>{participant.memberId.fullName}</Text>
-                        <View style={[styles.statusBadge, isConfirmed ? styles.confirmedBadge : styles.notConfirmedBadge]}>
-                          <MaterialCommunityIcons
-                            name={isConfirmed ? 'check' : 'close'}
-                            size={14}
-                            color={isConfirmed ? Colors.success : Colors.error}
-                          />
-                          <Text style={[styles.statusText, isConfirmed ? styles.confirmedText : styles.notConfirmedText]}>
-                            {isConfirmed ? 'Potvrđeno' : 'Nije potvrđeno'}
+                        <View style={styles.attendanceRow}>
+                          <Text style={[styles.attendanceText, { color: isPresent ? Colors.success : Colors.error }]}>
+                            {isPresent ? t('attendance.arrived') : t('attendance.notArrived')}
                           </Text>
+                          {participant.checkinMethod === 'QR' && (
+                            <MaterialCommunityIcons name="qrcode" size={14} color={Colors.textSecondary} />
+                          )}
                         </View>
                       </View>
 
-                      <View style={styles.participantActions}>
-                        <TouchableOpacity
-                          style={[styles.actionButton, isConfirmed && styles.actionButtonActive]}
-                          onPress={() => handleToggleConfirm(participant, true)}
-                        >
-                          <MaterialCommunityIcons
-                            name="check"
-                            size={20}
-                            color={isConfirmed ? '#fff' : Colors.success}
-                          />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.actionButton, !isConfirmed && styles.actionButtonActiveRed]}
-                          onPress={() => handleToggleConfirm(participant, false)}
-                        >
-                          <MaterialCommunityIcons
-                            name="close"
-                            size={20}
-                            color={!isConfirmed ? '#fff' : Colors.error}
-                          />
-                        </TouchableOpacity>
-                      </View>
+                      <TouchableOpacity
+                        style={[styles.checkbox, isPresent && styles.checkboxChecked]}
+                        onPress={() => handleToggleAttendance(participant, !isPresent)}
+                      >
+                        {isPresent && (
+                          <MaterialCommunityIcons name="check" size={18} color="#fff" />
+                        )}
+                      </TouchableOpacity>
                     </Card.Content>
                   </Card>
                 );
@@ -475,32 +463,31 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: FontSize.md, fontWeight: '600', color: Colors.text, marginBottom: Spacing.sm },
   description: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
 
-  statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: Spacing.sm },
-  statItem: { alignItems: 'center' },
-  statNumber: { fontSize: FontSize.xl, fontWeight: 'bold' },
-  statLabel: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
+  participantsSummaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.xs },
+  summaryLabel: { fontSize: FontSize.md, color: Colors.text },
+  summaryValue: { fontSize: FontSize.md, fontWeight: '600', color: Colors.text },
+  summaryBadgeGreen: { backgroundColor: Colors.success + '30', paddingHorizontal: Spacing.sm, paddingVertical: 3, borderRadius: BorderRadius.sm },
+  summaryBadgeRed: { backgroundColor: Colors.error + '30', paddingHorizontal: Spacing.sm, paddingVertical: 3, borderRadius: BorderRadius.sm },
+  summaryBadgeTextGreen: { color: Colors.success, fontSize: FontSize.sm, fontWeight: '600' },
+  summaryBadgeTextRed: { color: Colors.error, fontSize: FontSize.sm, fontWeight: '600' },
+  viewDetailsText: { fontSize: FontSize.sm, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.sm },
 
   emptyCard: { backgroundColor: Colors.surface },
   emptyContent: { alignItems: 'center', paddingVertical: Spacing.xl },
   emptyText: { fontSize: FontSize.md, color: Colors.textSecondary, marginTop: Spacing.sm },
 
   participantCard: { marginBottom: Spacing.sm, borderRadius: BorderRadius.md },
-  confirmedCard: { backgroundColor: Colors.success + '15' },
-  notConfirmedCard: { backgroundColor: Colors.error + '15' },
+  presentCard: { backgroundColor: Colors.success + '15' },
+  absentCard: { backgroundColor: Colors.error + '15' },
   participantContent: { flexDirection: 'row', alignItems: 'center' },
-  participantInfo: { flex: 1, marginLeft: Spacing.md },
+  participantInfo: { flex: 1 },
   participantName: { fontSize: FontSize.md, fontWeight: '500', color: Colors.text },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', marginTop: 4, paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: BorderRadius.sm, alignSelf: 'flex-start' },
-  confirmedBadge: { backgroundColor: Colors.success + '20' },
-  notConfirmedBadge: { backgroundColor: Colors.error + '20' },
-  statusText: { fontSize: FontSize.xs, marginLeft: 4, fontWeight: '500' },
-  confirmedText: { color: Colors.success },
-  notConfirmedText: { color: Colors.error },
+  attendanceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 4 },
+  attendanceText: { fontSize: FontSize.sm, fontWeight: '500' },
 
-  participantActions: { flexDirection: 'row', gap: Spacing.xs },
-  actionButton: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: Colors.border, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.surface },
-  actionButtonActive: { backgroundColor: Colors.success, borderColor: Colors.success },
-  actionButtonActiveRed: { backgroundColor: Colors.error, borderColor: Colors.error },
+  checkbox: { width: 28, height: 28, borderRadius: 6, borderWidth: 2, borderColor: Colors.border, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.surface },
+  checkboxChecked: { backgroundColor: Colors.success, borderColor: Colors.success },
 
   qrFab: { position: 'absolute', right: Spacing.lg, bottom: Spacing.lg + 16, backgroundColor: Colors.primary },
 });

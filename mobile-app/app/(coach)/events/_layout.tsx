@@ -24,6 +24,7 @@ export default function EventsLayout() {
         }}
       />
       <Stack.Screen name="edit" />
+      <Stack.Screen name="rsvp" />
     </Stack>
   );
 }

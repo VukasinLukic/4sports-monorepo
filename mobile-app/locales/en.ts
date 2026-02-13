@@ -331,6 +331,13 @@ export default {
     equipmentPlaceholder: 'e.g., Ball, cleats',
     maxParticipants: 'Maximum Participants',
     maxParticipantsPlaceholder: 'Enter number',
+    cancelEvent: 'Cancel Event',
+    cancelEventConfirm: 'Are you sure you want to cancel this event?',
+    eventCancelled: 'Event has been cancelled',
+    cancelFailed: 'Failed to cancel event',
+    deleteFailed: 'Failed to delete event',
+    reminderSent: 'Reminder sent to all participants',
+    reminderFailed: 'Failed to send reminder',
     // New event form fields
     addNewType: 'Add new type',
     newEventType: 'New event type',
@@ -375,6 +382,9 @@ export default {
     historyAppearHere: 'Your attendance history will appear here',
     checkedIn: 'Checked In',
     summary: 'Attendance Summary',
+    arrived: 'Arrived',
+    notArrived: 'Not arrived',
+    markFailed: 'Marking attendance failed',
   },
 
   // Payments
@@ -649,6 +659,9 @@ export default {
     scanToCheckIn: 'Scan the event QR code to check in',
     checkingIn: 'Checking in...',
     pointCamera: 'Point your camera at the QR code displayed by your coach',
+    scanOnEventDay: 'Members can scan this code on the event day to confirm their attendance.',
+    scanToCheckInSubtitle: 'Scan to check in',
+    manualAttendance: 'Manual attendance',
   },
 
   // Calendar
@@ -773,6 +786,15 @@ export default {
     confirmedShort: 'Confirmed',
     declinedShort: 'Not coming',
     pendingShort: 'Pending',
+    notResponded: 'Not responded',
+    total: 'Total',
+    attending: 'Attending',
+    notAttending: 'Not attending',
+    viewDetails: 'View details',
+    searchMember: 'Search for the member...',
+    all: 'All',
+    confirmations: 'Confirmations',
+    eventPassed: 'This event has already started. RSVP is no longer available.',
   },
 
   // Confirmation dialogs

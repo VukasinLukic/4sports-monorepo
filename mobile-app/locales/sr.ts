@@ -334,6 +334,13 @@ export default {
     equipmentPlaceholder: 'npr. Lopta, patike',
     maxParticipants: 'Maksimalan broj učesnika',
     maxParticipantsPlaceholder: 'Unesite broj',
+    cancelEvent: 'Otkaži događaj',
+    cancelEventConfirm: 'Da li ste sigurni da želite da otkažete ovaj događaj?',
+    eventCancelled: 'Događaj je otkazan',
+    cancelFailed: 'Otkazivanje događaja nije uspelo',
+    deleteFailed: 'Brisanje događaja nije uspelo',
+    reminderSent: 'Podsetnik je poslat svim učesnicima',
+    reminderFailed: 'Slanje podsetnika nije uspelo',
     // New event form fields
     addNewType: 'Dodaj novi tip',
     newEventType: 'Novi tip događaja',
@@ -378,6 +385,9 @@ export default {
     historyAppearHere: 'Vaša istorija prisustva će se pojaviti ovde',
     checkedIn: 'Prijavljen',
     summary: 'Pregled prisustva',
+    arrived: 'Došao',
+    notArrived: 'Nije došao',
+    markFailed: 'Evidentiranje nije uspelo',
   },
 
   // Payments
@@ -652,6 +662,9 @@ export default {
     scanToCheckIn: 'Skenirajte QR kod događaja za prijavu',
     checkingIn: 'Prijavljivanje...',
     pointCamera: 'Usmerite kameru prema QR kodu koji prikazuje vaš trener',
+    scanOnEventDay: 'Članovi mogu skenirati ovaj kod na dan treninga i time potvrditi svoje prisustvo na treningu.',
+    scanToCheckInSubtitle: 'Skenirajte za prijavu',
+    manualAttendance: 'Ručna evidencija',
   },
 
   // Calendar
@@ -786,6 +799,15 @@ export default {
     confirmedShort: 'Potvrdio dolazak',
     declinedShort: 'Neće doći',
     pendingShort: 'Čeka potvrdu',
+    notResponded: 'Nije odgovorio',
+    total: 'Ukupno',
+    attending: 'Dolazi',
+    notAttending: 'Ne dolazi',
+    viewDetails: 'Vidi detalje',
+    searchMember: 'Pretraži člana...',
+    all: 'Svi',
+    confirmations: 'Potvrde dolaska',
+    eventPassed: 'Ovaj događaj je već počeo. Potvrda dolaska više nije moguća.',
   },
 
   // Confirmation dialogs
