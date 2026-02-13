@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -156,6 +156,7 @@ export function NewsPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: posts, isLoading, error, refetch } = usePosts();
   const deletePostMutation = useDeletePost();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -164,6 +165,21 @@ export function NewsPage() {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
+
+  // Handle navigation with focusPostId from location state
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.focusPostId && posts) {
+      const post = posts.find((p) => p._id === state.focusPostId);
+      if (post) {
+        setSelectedPost(post);
+        if (state.focusCommentId) {
+          setFocusCommentId(state.focusCommentId);
+        }
+      }
+    }
+  }, [posts, location.state]);
 
   const handleDeleteClick = (post: Post) => {
     setPostToDelete(post);
@@ -255,6 +271,7 @@ export function NewsPage() {
             <CommentsPanel
               postId={freshPost._id}
               onAvatarClick={handleAvatarClick}
+              focusCommentId={focusCommentId}
             />
           </div>
         </div>
@@ -729,9 +746,11 @@ function PostDetailCard({
 function CommentsPanel({
   postId,
   onAvatarClick,
+  focusCommentId,
 }: {
   postId: string;
   onAvatarClick: (userId: string | null) => void;
+  focusCommentId?: string | null;
 }) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -741,12 +760,15 @@ function CommentsPanel({
   const likeMutation = useToggleLike();
   const [newComment, setNewComment] = useState('');
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const commentRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
-    if (comments && comments.length > 0) {
+    if (focusCommentId && commentRefs.current[focusCommentId]) {
+      commentRefs.current[focusCommentId]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else if (comments && comments.length > 0) {
       commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [comments?.length]);
+  }, [comments?.length, focusCommentId]);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
@@ -799,13 +821,19 @@ function CommentsPanel({
           </div>
         ) : (
           comments.map((comment) => (
-            <CommentItem
+            <div
               key={comment._id}
-              comment={comment}
-              onDelete={handleDeleteComment}
-              onLike={handleLikeComment}
-              onAvatarClick={onAvatarClick}
-            />
+              ref={(el) => {
+                if (el) commentRefs.current[comment._id] = el;
+              }}
+            >
+              <CommentItem
+                comment={comment}
+                onDelete={handleDeleteComment}
+                onLike={handleLikeComment}
+                onAvatarClick={onAvatarClick}
+              />
+            </div>
           ))
         )}
         <div ref={commentsEndRef} />
