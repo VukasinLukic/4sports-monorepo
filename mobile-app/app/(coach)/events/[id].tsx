@@ -97,9 +97,16 @@ export default function EventDetailScreen() {
   };
 
   const handleShowQRCode = () => {
+    // Generate QR code in the same format as attendance screen
+    const qrCodeValue = JSON.stringify({
+      type: 'EVENT_ATTENDANCE',
+      eventId: id,
+      clubId: event?.clubId,
+    });
+
     router.push({
       pathname: '/(coach)/events/qr',
-      params: { eventId: id, eventTitle: event?.title, qrCode: event?.qrCode },
+      params: { eventId: id, eventTitle: event?.title, qrCode: qrCodeValue },
     });
   };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, Vibration, Alert } from 'react-native';
+import { View, StyleSheet, Vibration } from 'react-native';
 import { Text, Button, Card, ActivityIndicator } from 'react-native-paper';
 import { CameraView, BarcodeScanningResult } from 'expo-camera';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import { useCameraPermissions } from '@/hooks/useCameraPermissions';
 import { useAuth } from '@/services/AuthContext';
 import api from '@/services/api';
 import { Member } from '@/types';
+import { useAlert } from '@/contexts/AlertContext';
 
 interface QRData {
   type: string;
@@ -21,6 +22,7 @@ interface QRData {
 export default function MemberScanScreen() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { showAlert, showErrorAlert } = useAlert();
   const { hasPermission, isLoading: permissionLoading, requestPermission } = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -60,12 +62,12 @@ export default function MemberScanScreen() {
       const qrData: QRData = JSON.parse(result.data);
 
       if (qrData.type !== 'EVENT_ATTENDANCE') {
-        Alert.alert(t('qr.invalidCode') || 'Invalid QR Code', t('qr.notForAttendance') || 'This QR code is not for attendance check-in.');
+        showErrorAlert(t('qr.invalidCode'), t('qr.notForAttendance'));
         return;
       }
 
       if (!member) {
-        Alert.alert(t('common.error'), t('qr.profileNotLoaded') || 'Member profile not loaded. Please try again.');
+        showErrorAlert(t('common.error'), t('qr.profileNotLoaded'));
         return;
       }
 
@@ -77,7 +79,7 @@ export default function MemberScanScreen() {
 
     } catch (error) {
       console.error('QR parse error:', error);
-      Alert.alert(t('qr.invalidCode') || 'Invalid QR Code', t('qr.couldNotRead') || 'Could not read this QR code. Please try again.');
+      showErrorAlert(t('qr.invalidCode'), t('qr.couldNotRead'));
       resetScanner();
     }
   };
@@ -93,36 +95,56 @@ export default function MemberScanScreen() {
 
       const { event } = response.data.data || {};
 
-      Alert.alert(
-        t('qr.checkInSuccess') || 'Check-In Successful!',
-        `${t('qr.markedPresent') || 'You have been marked present'}${event?.title ? ` for "${event.title}"` : ''}.`,
-        [
+      showAlert({
+        title: t('qr.attendanceRecorded'),
+        message: event?.title
+          ? t('qr.successfullyCheckedInFor', { title: event.title })
+          : t('qr.successfullyCheckedIn'),
+        type: 'success',
+        buttons: [
           {
-            text: t('common.done') || 'Done',
+            text: t('common.done'),
+            style: 'default',
             onPress: () => router.back(),
           },
-          {
-            text: t('qr.scanAgain') || 'Scan Again',
-            onPress: resetScanner,
-          },
-        ]
-      );
+        ],
+      });
     } catch (error: any) {
       console.error('Check-in error:', error);
+      console.log('Error response data:', error.response?.data);
 
-      const errorMessage = error.response?.data?.message || t('qr.failedToCheckIn') || 'Failed to check in. Please try again.';
+      // Extract error message from backend response and translate based on error code
+      let errorMessage = t('qr.checkInFailed');
 
-      Alert.alert(t('qr.checkInFailed') || 'Check-In Failed', errorMessage, [
-        {
-          text: t('common.tryAgain') || 'Try Again',
-          onPress: resetScanner,
-        },
-        {
-          text: t('common.cancel'),
-          onPress: () => router.back(),
-          style: 'cancel',
-        },
-      ]);
+      const errorCode = error.response?.data?.error?.code;
+
+      if (errorCode === 'TOO_EARLY') {
+        errorMessage = t('qr.tooEarly');
+      } else if (errorCode === 'EVENT_ENDED') {
+        errorMessage = t('qr.eventEnded');
+      } else if (error.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      showAlert({
+        title: t('qr.attendanceNotRecorded'),
+        message: errorMessage,
+        type: 'error',
+        buttons: [
+          {
+            text: t('common.retry'),
+            style: 'default',
+            onPress: resetScanner,
+          },
+          {
+            text: t('common.cancel'),
+            style: 'cancel',
+            onPress: () => router.back(),
+          },
+        ],
+      });
     } finally {
       setIsProcessing(false);
     }

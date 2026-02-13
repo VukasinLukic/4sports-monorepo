@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Vibration, Alert } from 'react-native';
+import { View, StyleSheet, Vibration } from 'react-native';
 import { Text, Button, Card, ActivityIndicator } from 'react-native-paper';
 import { CameraView, BarcodeScanningResult } from 'expo-camera';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,8 +8,10 @@ import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useCameraPermissions } from '@/hooks/useCameraPermissions';
 import { useAuth } from '@/services/AuthContext';
+import { useLanguage } from '@/services/LanguageContext';
 import api from '@/services/api';
 import { Member } from '@/types';
+import { useAlert } from '@/contexts/AlertContext';
 
 interface QRData {
   type: string;
@@ -19,6 +21,8 @@ interface QRData {
 
 export default function ParentScanScreen() {
   const { user } = useAuth();
+  const { t } = useLanguage();
+  const { showAlert, showErrorAlert } = useAlert();
   const { hasPermission, isLoading: permissionLoading, requestPermission } = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -59,7 +63,7 @@ export default function ParentScanScreen() {
       const qrData: QRData = JSON.parse(result.data);
 
       if (qrData.type !== 'EVENT_ATTENDANCE') {
-        Alert.alert('Invalid QR Code', 'This QR code is not for attendance check-in.');
+        showErrorAlert(t('qr.invalidCode'), t('qr.notForAttendance'));
         return;
       }
 
@@ -79,7 +83,7 @@ export default function ParentScanScreen() {
 
     } catch (error) {
       console.error('QR parse error:', error);
-      Alert.alert('Invalid QR Code', 'Could not read this QR code. Please try again.');
+      showErrorAlert(t('qr.invalidCode'), t('qr.couldNotRead'));
       resetScanner();
     }
   };
@@ -96,36 +100,56 @@ export default function ParentScanScreen() {
 
       const { event } = response.data.data || {};
 
-      Alert.alert(
-        'Check-In Successful!',
-        `${child.fullName} has been marked present${event?.title ? ` for "${event.title}"` : ''}.`,
-        [
+      showAlert({
+        title: t('qr.attendanceRecorded'),
+        message: event?.title
+          ? t('qr.childCheckedInFor', { name: child.fullName, title: event.title })
+          : t('qr.childCheckedIn', { name: child.fullName }),
+        type: 'success',
+        buttons: [
           {
-            text: 'Done',
+            text: t('common.done'),
+            style: 'default',
             onPress: () => router.back(),
           },
-          {
-            text: 'Scan Again',
-            onPress: resetScanner,
-          },
-        ]
-      );
+        ],
+      });
     } catch (error: any) {
       console.error('Check-in error:', error);
+      console.log('Error response data:', error.response?.data);
 
-      const errorMessage = error.response?.data?.message || 'Failed to check in. Please try again.';
+      // Extract error message from backend response and translate based on error code
+      let errorMessage = t('qr.checkInFailed');
 
-      Alert.alert('Check-In Failed', errorMessage, [
-        {
-          text: 'Try Again',
-          onPress: resetScanner,
-        },
-        {
-          text: 'Cancel',
-          onPress: () => router.back(),
-          style: 'cancel',
-        },
-      ]);
+      const errorCode = error.response?.data?.error?.code;
+
+      if (errorCode === 'TOO_EARLY') {
+        errorMessage = t('qr.tooEarly');
+      } else if (errorCode === 'EVENT_ENDED') {
+        errorMessage = t('qr.eventEnded');
+      } else if (error.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      showAlert({
+        title: t('qr.attendanceNotRecorded'),
+        message: errorMessage,
+        type: 'error',
+        buttons: [
+          {
+            text: t('common.retry'),
+            style: 'default',
+            onPress: resetScanner,
+          },
+          {
+            text: t('common.cancel'),
+            style: 'cancel',
+            onPress: () => router.back(),
+          },
+        ],
+      });
     } finally {
       setIsProcessing(false);
     }
