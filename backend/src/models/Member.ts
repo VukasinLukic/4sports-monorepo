@@ -50,6 +50,10 @@ export interface IMember extends Document {
   createdAt: Date;
   updatedAt: Date;
 
+  // Virtual fields
+  groupId?: mongoose.Types.ObjectId | null; // Returns groupId from first active club
+  age?: number; // Calculated age from dateOfBirth
+
   // Instance methods
   isInClub(clubId: mongoose.Types.ObjectId): boolean;
   isInGroup(groupId: mongoose.Types.ObjectId): boolean;
@@ -276,6 +280,13 @@ memberSchema.virtual('age').get(function () {
   }
 
   return age;
+});
+
+memberSchema.virtual('groupId').get(function () {
+  // Return the groupId from the first active club membership
+  if (!this.clubs || this.clubs.length === 0) return null;
+  const activeClub = this.clubs.find(c => c.status === 'ACTIVE');
+  return activeClub?.groupId || null;
 });
 
 // ========================================

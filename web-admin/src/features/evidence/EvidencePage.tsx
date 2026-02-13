@@ -48,16 +48,6 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Avg', 'Sep', '
 const getInitials = (name: string): string =>
   name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
 
-const getLastTrainingText = (t: any): string => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  // For now, hardcoded to "Yesterday" - in a real scenario, this would calculate based on actual training data
-  return `${t('evidence.lastTraining', { date: t('evidence.lastTrainingYesterday') })}`;
-};
-
 export function EvidencePage() {
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -259,12 +249,12 @@ export function EvidencePage() {
             <p className="text-2xl font-bold text-foreground">{stats?.paid || 0}/{stats?.total || 0}</p>
           </div>
           <div className="bg-muted rounded-lg p-4">
-            <p className="text-xs text-muted-foreground mb-1">Total collected</p>
-            <p className="text-2xl font-bold text-foreground">{totalCollected} RSD</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('evidence.totalCollected')}</p>
+            <p className="text-2xl font-bold text-green-600">{totalCollected} RSD</p>
           </div>
           <div className="bg-muted rounded-lg p-4">
-            <p className="text-xs text-muted-foreground mb-1">Preostalo za naplatu</p>
-            <p className="text-2xl font-bold text-foreground">{remainingAmount} RSD</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('evidence.remainingToCollect')}</p>
+            <p className="text-2xl font-bold text-red-600">{remainingAmount} RSD</p>
           </div>
         </div>
       ) : (
@@ -596,7 +586,6 @@ function MedicalRow({
   isReminderLoading: boolean;
 }) {
   const navigate = useNavigate();
-  const { t } = useTranslation();
   const statusConfig = {
     VALID: { color: 'text-green-500', label: 'Validan ✓' },
     EXPIRING_SOON: { color: 'text-yellow-500', label: 'Ističe uskoro ・' },

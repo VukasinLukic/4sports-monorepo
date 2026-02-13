@@ -38,14 +38,14 @@ export function GlobalSearch() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleMemberClick = () => {
-    navigate('/members');
+  const handleMemberClick = (memberId: string) => {
+    navigate(`/profile/member/${memberId}`);
     setQuery('');
     setIsOpen(false);
   };
 
-  const handleCoachClick = () => {
-    navigate('/coaches');
+  const handleCoachClick = (coachId: string) => {
+    navigate(`/profile/${coachId}`);
     setQuery('');
     setIsOpen(false);
   };
@@ -94,7 +94,7 @@ export function GlobalSearch() {
                   {filteredMembers.map((member) => (
                     <button
                       key={member.id}
-                      onClick={handleMemberClick}
+                      onClick={() => handleMemberClick(member.id)}
                       className="w-full px-3 py-2 flex items-center gap-3 hover:bg-accent transition-colors text-left"
                     >
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
@@ -120,7 +120,7 @@ export function GlobalSearch() {
                   {filteredCoaches.map((coach) => (
                     <button
                       key={coach.id}
-                      onClick={handleCoachClick}
+                      onClick={() => handleCoachClick(coach.id)}
                       className="w-full px-3 py-2 flex items-center gap-3 hover:bg-accent transition-colors text-left"
                     >
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-600/10">

@@ -520,7 +520,7 @@ export const updateMember = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
 
     const { id } = req.params;
-    const { fullName, dateOfBirth, gender, medicalInfo, emergencyContact, position, jerseyNumber, height, weight, membershipFee } = req.body;
+    const { fullName, dateOfBirth, gender, medicalInfo, emergencyContact, position, jerseyNumber, height, weight, membershipFee, groupId } = req.body;
 
     const member = await Member.findById(id);
 
@@ -545,6 +545,16 @@ export const updateMember = async (req: Request, res: Response) => {
     if (height !== undefined) member.height = height;
     if (weight !== undefined) member.weight = weight;
     if (membershipFee !== undefined) member.membershipFee = membershipFee;
+
+    // Update groupId by modifying the active club membership
+    if (groupId !== undefined && req.user!.clubId) {
+      const activeClubIndex = member.clubs.findIndex(
+        c => c.clubId?.toString() === req.user!.clubId?.toString() && c.status === 'ACTIVE'
+      );
+      if (activeClubIndex !== -1) {
+        member.clubs[activeClubIndex].groupId = groupId || null;
+      }
+    }
 
     await member.save();
 

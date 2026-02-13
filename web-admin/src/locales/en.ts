@@ -518,6 +518,8 @@ export default {
     title: 'Evidence',
     unpaid: 'Unpaid',
     totalPaid: 'Total Paid',
+    totalCollected: 'Total Collected',
+    remainingToCollect: 'Remaining to Collect',
     collectionRate: 'Collection Rate',
     validExams: 'Valid exams',
     expiringSoon: 'Expiring soon',
