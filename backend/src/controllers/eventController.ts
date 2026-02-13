@@ -184,7 +184,7 @@ export const getClubEvents = async (req: Request, res: Response) => {
     }
 
     const events = await Event.find(query)
-      .populate('groupId', 'name color')
+      .populate('groupId', 'name color coaches')
       .populate('createdBy', 'fullName')
       .sort({ startTime: 1 });
 

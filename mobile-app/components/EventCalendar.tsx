@@ -9,6 +9,7 @@ interface EventCalendarProps {
   events: Event[];
   selectedDate: string | null;
   onDayPress: (date: string) => void;
+  userId?: string; // Current user ID - used to show other coaches' events with lower opacity
 }
 
 interface MarkedDates {
@@ -40,10 +41,21 @@ const getEventTypeColor = (type: string): string => {
   return Colors.primary;
 };
 
+// Check if current user is coach of an event's group
+const isUserCoachOfEvent = (event: Event, userId: string): boolean => {
+  if (typeof event.groupId !== 'object') return true;
+  const coaches = event.groupId.coaches || [];
+  return coaches.some((coachId: any) => {
+    const id = typeof coachId === 'string' ? coachId : coachId._id || coachId;
+    return id === userId;
+  });
+};
+
 export default function EventCalendar({
   events,
   selectedDate,
   onDayPress,
+  userId,
 }: EventCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().split('T')[0]);
 
@@ -68,11 +80,16 @@ export default function EventCalendar({
       // Get the primary event type color (first event)
       const primaryColor = getEventTypeColor(dateEvents[0].type);
 
+      // Check if any event on this date belongs to current user's groups
+      const hasOwnEvent = !userId || dateEvents.some(e => isUserCoachOfEvent(e, userId));
+      const opacity = hasOwnEvent ? 1 : 0.3;
+
       marks[date] = {
         customStyles: {
           container: {
             backgroundColor: primaryColor,
             borderRadius: 20,
+            opacity,
           },
           text: {
             color: '#FFFFFF',

@@ -6,6 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
+import { useAuth } from '@/services/AuthContext';
 import EventCalendar from '@/components/EventCalendar';
 import api from '@/services/api';
 import { Event, Group } from '@/types';
@@ -49,6 +50,7 @@ const getEventTypeColorFromString = (type: string): string => {
 
 export default function CoachCalendar() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -69,10 +71,9 @@ export default function CoachCalendar() {
 
   const fetchEvents = useCallback(async () => {
     try {
-      const params: Record<string, string> = {};
-      if (selectedGroupId) params.groupId = selectedGroupId;
-
-      const response = await api.get('/events', { params });
+      // Always fetch ALL club events (not filtered by group)
+      // so coach can see other groups' events for scheduling conflicts
+      const response = await api.get('/events');
       setEvents(response.data.data || []);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -81,7 +82,7 @@ export default function CoachCalendar() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [selectedGroupId]);
+  }, []);
 
   useEffect(() => {
     fetchGroups();
@@ -109,8 +110,15 @@ export default function CoachCalendar() {
   };
 
 
-  // Filter events by type (handles string types)
+  // Filter events by type and selected group (handles string types)
   const filteredEvents = events.filter(event => {
+    // Filter by selected group if any
+    if (selectedGroupId) {
+      const eventGroupId = typeof event.groupId === 'object' ? event.groupId._id : event.groupId;
+      if (eventGroupId !== selectedGroupId) return false;
+    }
+
+    // Filter by type
     const upperType = event.type?.toUpperCase() || '';
     if (filter === 'training') {
       return upperType === 'TRAINING' || upperType.includes('TRENING');
@@ -145,6 +153,16 @@ export default function CoachCalendar() {
 
   const navigateToEvent = (eventId: string) => {
     router.push(`/(coach)/events/${eventId}`);
+  };
+
+  // Check if current user is coach of this event's group
+  const isMyEvent = (event: Event): boolean => {
+    if (!user?._id || typeof event.groupId !== 'object') return true;
+    const coaches = event.groupId.coaches || [];
+    return coaches.some((coachId: any) => {
+      const id = typeof coachId === 'string' ? coachId : coachId._id || coachId;
+      return id === user._id;
+    });
   };
 
   const formatEventTime = (dateString: string) => {
@@ -195,6 +213,7 @@ export default function CoachCalendar() {
           events={events}
           selectedDate={selectedDate}
           onDayPress={handleDayPress}
+          userId={user?._id}
         />
 
         {/* Group Filter */}
@@ -293,12 +312,14 @@ export default function CoachCalendar() {
             const groupName = typeof event.groupId === 'object' ? event.groupId.name : '';
             const groupColor = typeof event.groupId === 'object' ? event.groupId.color : Colors.primary;
             const relativeTime = getRelativeTimeText(eventDate);
+            const isOwn = isMyEvent(event);
 
             return (
               <TouchableOpacity
                 key={event._id}
                 onPress={() => navigateToEvent(event._id)}
                 activeOpacity={0.7}
+                style={{ opacity: isOwn ? 1 : 0.4 }}
               >
                 <Card style={styles.eventCard}>
                   <Card.Content style={styles.eventCardContent}>
