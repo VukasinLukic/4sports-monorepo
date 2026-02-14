@@ -12,7 +12,7 @@ import User from '../models/User';
 export const createPost = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
-    const { title, content, images, visibility, type, tags, isPinned } = req.body;
+    const { title, content, images, visibility, tags, isPinned } = req.body;
     const clubId = req.user.clubId;
 
     if (!clubId) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
@@ -29,8 +29,7 @@ export const createPost = async (req: Request, res: Response) => {
       title,
       content,
       images: images || [],
-      visibility: visibility || 'MEMBERS_ONLY',
-      type: type || 'NEWS',
+      visibility: visibility || 'PUBLIC',
       tags: tags || [],
       isPinned: finalIsPinned,
     });
@@ -133,7 +132,7 @@ export const updatePost = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
     const { id } = req.params;
-    const { title, content, images, visibility, type, tags, isPinned } = req.body;
+    const { title, content, images, visibility, tags, isPinned } = req.body;
 
     const post = await Post.findById(id);
     if (!post) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Post not found' } });
@@ -147,7 +146,6 @@ export const updatePost = async (req: Request, res: Response) => {
     if (content) post.content = content;
     if (images) post.images = images;
     if (visibility) post.visibility = visibility;
-    if (type) post.type = type;
     if (tags) post.tags = tags;
 
     // Only OWNER can change pinned status
