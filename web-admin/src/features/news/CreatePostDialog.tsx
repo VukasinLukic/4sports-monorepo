@@ -37,8 +37,7 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    visibility: 'MEMBERS_ONLY' as const,
-    type: 'NEWS' as const,
+    visibility: 'PUBLIC' as const,
   });
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
@@ -126,7 +125,6 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
         content: formData.content.trim(),
         images: imageUrls,
         visibility: formData.visibility,
-        type: formData.type,
       });
 
       toast({
@@ -149,8 +147,7 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
     setFormData({
       title: '',
       content: '',
-      visibility: 'MEMBERS_ONLY',
-      type: 'NEWS',
+      visibility: 'PUBLIC',
     });
     setSelectedImages([]);
     previewUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -285,23 +282,7 @@ export function CreatePostDialog({ open, onOpenChange }: CreatePostDialogProps) 
               </Select>
             </div>
 
-            {/* Type */}
-            <div className="grid gap-2">
-              <Label htmlFor="type">{t('news.postType')}</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value) => handleChange('type', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NEWS">{t('news.typeNews')}</SelectItem>
-                  <SelectItem value="ANNOUNCEMENT">{t('news.typeAnnouncement')}</SelectItem>
-                  <SelectItem value="EVENT">{t('news.typeEvent')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
 
             {errors.submit && (
               <p className="text-sm text-red-500">{errors.submit}</p>

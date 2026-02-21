@@ -47,10 +47,15 @@ export function EditMemberDialog({
   // Populate form when member changes
   useEffect(() => {
     if (member) {
+      // Extract groupId - could be string or populated object
+      const groupId = typeof member.groupId === 'string'
+        ? member.groupId
+        : (member.groupId as any)?._id || '';
+
       setFormData({
         fullName: member.fullName,
         dateOfBirth: member.dateOfBirth,
-        groupId: member.groupId,
+        groupId: groupId,
         gender: member.gender,
         height: member.height,
         weight: member.weight,
@@ -69,6 +74,14 @@ export function EditMemberDialog({
     }
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = t('validation.dateOfBirthRequired');
+    } else {
+      // Check if date is in the future
+      const selectedDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate > today) {
+        newErrors.dateOfBirth = t('validation.birthDateCannotBeFuture') || 'Datum rodjenja ne može biti u budućnosti';
+      }
     }
 
     setErrors(newErrors);
@@ -83,9 +96,20 @@ export function EditMemberDialog({
     }
 
     try {
+      const updateData = {
+        fullName: formData.fullName,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        groupId: formData.groupId || undefined,
+        height: formData.height,
+        weight: formData.weight,
+        position: formData.position,
+        membershipFee: formData.membershipFee,
+      };
+
       await updateMemberMutation.mutateAsync({
         id: member.id,
-        data: formData,
+        data: updateData,
       });
       onOpenChange(false);
       setErrors({});
@@ -140,6 +164,7 @@ export function EditMemberDialog({
                 type="date"
                 value={formData.dateOfBirth}
                 onChange={(e) => handleChange('dateOfBirth', e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
               />
               {errors.dateOfBirth && (
                 <p className="text-sm text-red-500">{errors.dateOfBirth}</p>

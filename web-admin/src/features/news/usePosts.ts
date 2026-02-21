@@ -14,7 +14,7 @@ export interface Post {
   content: string;
   images: string[];
   visibility: 'PUBLIC' | 'MEMBERS_ONLY' | 'PARENTS_ONLY' | 'COACHES_ONLY';
-  type: 'NEWS' | 'ANNOUNCEMENT' | 'EVENT';
+  type?: string;
   tags: string[];
   isPinned: boolean;
   likesCount: number;
@@ -29,7 +29,7 @@ export interface CreatePostData {
   content: string;
   images?: string[];
   visibility?: 'PUBLIC' | 'MEMBERS_ONLY' | 'PARENTS_ONLY' | 'COACHES_ONLY';
-  type?: 'NEWS' | 'ANNOUNCEMENT' | 'EVENT';
+  type?: string;
   tags?: string[];
   isPinned?: boolean;
 }

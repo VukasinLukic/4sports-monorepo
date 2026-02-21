@@ -12,6 +12,7 @@ import { LanguageProvider } from '@/services/LanguageContext';
 import { NotificationBadgeProvider } from '@/services/NotificationBadgeContext';
 import NetworkStatus from '@/components/NetworkStatus';
 import { ToastProvider } from '@/components/Toast';
+import { AlertProvider } from '@/contexts/AlertContext';
 
 // Setup online manager for React Query
 onlineManager.setEventListener((setOnline) => {
@@ -63,33 +64,35 @@ export default function RootLayout() {
             <NotificationBadgeProvider>
             <ChatProvider>
               <PaperProvider theme={theme}>
-                <ToastProvider>
-                <View style={{ flex: 1, backgroundColor: AppColors.background }}>
-                  <StatusBar style="light" backgroundColor={AppColors.background} />
-                  <NetworkStatus />
-                  <Stack
-                    screenOptions={{
-                      headerStyle: {
-                        backgroundColor: AppColors.background,
-                      },
-                      headerTintColor: AppColors.text,
-                      headerTitleStyle: {
-                        fontWeight: 'bold',
-                      },
-                      contentStyle: {
-                        backgroundColor: AppColors.background,
-                      },
-                    }}
-                  >
-                    <Stack.Screen name="index" options={{ headerShown: false }} />
-                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(coach)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(parent)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(member)" options={{ headerShown: false }} />
-                    <Stack.Screen name="profile" options={{ headerShown: false }} />
-                  </Stack>
-                </View>
-              </ToastProvider>
+                <AlertProvider>
+                  <ToastProvider>
+                  <View style={{ flex: 1, backgroundColor: AppColors.background }}>
+                    <StatusBar style="light" backgroundColor={AppColors.background} />
+                    <NetworkStatus />
+                    <Stack
+                      screenOptions={{
+                        headerStyle: {
+                          backgroundColor: AppColors.background,
+                        },
+                        headerTintColor: AppColors.text,
+                        headerTitleStyle: {
+                          fontWeight: 'bold',
+                        },
+                        contentStyle: {
+                          backgroundColor: AppColors.background,
+                        },
+                      }}
+                    >
+                      <Stack.Screen name="index" options={{ headerShown: false }} />
+                      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                      <Stack.Screen name="(coach)" options={{ headerShown: false }} />
+                      <Stack.Screen name="(parent)" options={{ headerShown: false }} />
+                      <Stack.Screen name="(member)" options={{ headerShown: false }} />
+                      <Stack.Screen name="profile" options={{ headerShown: false }} />
+                    </Stack>
+                  </View>
+                </ToastProvider>
+                </AlertProvider>
               </PaperProvider>
             </ChatProvider>
             </NotificationBadgeProvider>

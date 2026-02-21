@@ -162,18 +162,36 @@ export const checkIn = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You can only check in yourself or your children' } });
     }
 
-    // Check if event is today or within check-in window
+    // Check if event is today
     const now = new Date();
     const eventStart = new Date(event.startTime);
-    const eventEnd = new Date(event.endTime);
 
-    // Allow check-in 30 minutes before start until event end
-    const checkinWindowStart = new Date(eventStart.getTime() - 30 * 60 * 1000);
-    if (now < checkinWindowStart) {
-      return res.status(400).json({ success: false, error: { code: 'TOO_EARLY', message: 'Check-in not yet available' } });
+    // Get start and end of event day (00:00:00 - 23:59:59)
+    const eventDayStart = new Date(eventStart);
+    eventDayStart.setHours(0, 0, 0, 0);
+
+    const eventDayEnd = new Date(eventStart);
+    eventDayEnd.setHours(23, 59, 59, 999);
+
+    // Allow check-in only on the same day as the event
+    if (now < eventDayStart) {
+      const eventDateStr = eventStart.toLocaleDateString('sr-RS', { day: 'numeric', month: 'long' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'TOO_EARLY',
+          message: `Check-in je moguć samo na dan događaja (${eventDateStr})`
+        }
+      });
     }
-    if (now > eventEnd) {
-      return res.status(400).json({ success: false, error: { code: 'EVENT_ENDED', message: 'Event has ended' } });
+    if (now > eventDayEnd) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'EVENT_ENDED',
+          message: 'Događaj je prošao. Check-in više nije moguć.'
+        }
+      });
     }
 
     // Determine if late

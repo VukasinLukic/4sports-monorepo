@@ -252,7 +252,7 @@ export interface Post {
   content: string;
   images: string[];
   visibility: 'PUBLIC' | 'MEMBERS_ONLY' | 'PARENTS_ONLY' | 'COACHES_ONLY';
-  type: 'ANNOUNCEMENT' | 'NEWS' | 'EVENT' | 'ACHIEVEMENT' | 'OTHER';
+  type?: string;
   tags?: string[];
   isPinned?: boolean;
   likesCount: number;

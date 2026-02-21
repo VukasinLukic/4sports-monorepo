@@ -151,8 +151,7 @@ export default function CreatePostScreen() {
         title: title.trim(),
         content: content.trim(),
         images: imageUrls,
-        visibility: 'MEMBERS_ONLY',
-        type: 'NEWS',
+        visibility: 'PUBLIC',
       };
 
       console.log('Post data:', postData);

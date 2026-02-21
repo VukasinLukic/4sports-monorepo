@@ -107,7 +107,15 @@ export const getClubGroups = async (req: Request, res: Response) => {
       });
     }
 
-    const groups = await Group.findByClub(clubId);
+    // Filter groups based on user role
+    let groups;
+    if (req.user.role === 'COACH') {
+      // Coaches only see groups they are assigned to
+      groups = await Group.findByCoach(req.user._id);
+    } else {
+      // OWNER and PARENT see all club groups
+      groups = await Group.findByClub(clubId);
+    }
 
     // Get member counts for each group
     const groupsWithCounts = await Promise.all(

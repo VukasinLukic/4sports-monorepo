@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -16,10 +15,10 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  MapPin,
   Trash2,
   Filter,
+  Pencil,
+  Clock,
 } from 'lucide-react';
 import { useEvents, useGroups, useDeleteEvent, Event, Group } from './useEvents';
 import { CreateEventDialog } from './CreateEventDialog';
@@ -49,12 +48,23 @@ const parseLocalDateStr = (dateStr: string): Date => {
   return new Date(y, m - 1, d);
 };
 
-const getEventTypeColor = (type: string): string => {
+const normalizeEventType = (type: string): string => {
   const upperType = type?.toUpperCase() || '';
   if (upperType === 'TRAINING' || upperType.includes('TRENING')) {
-    return 'bg-green-500';
+    return 'Trening';
   }
   if (upperType === 'MATCH' || upperType.includes('UTAKMICA')) {
+    return 'Utakmica';
+  }
+  return type;
+};
+
+const getEventTypeColor = (type: string): string => {
+  const normalized = normalizeEventType(type);
+  if (normalized === 'Trening') {
+    return 'bg-green-500';
+  }
+  if (normalized === 'Utakmica') {
     return 'bg-red-500';
   }
   return 'bg-blue-500';
@@ -69,6 +79,23 @@ const formatEventTime = (dateString: string) => {
   }
 };
 
+const getTimeUntilEvent = (dateString: string): string => {
+  const eventDate = new Date(dateString);
+  const now = new Date();
+  const diffMs = eventDate.getTime() - now.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffMinutes < 0) return 'Prošlo';
+  if (diffMinutes < 60) return `Za ${diffMinutes} min`;
+  if (diffHours < 24) return `Za ${diffHours}h`;
+  if (diffDays === 0) return 'Danas';
+  if (diffDays === 1) return 'Sutra';
+  if (diffDays < 7) return `Za ${diffDays} dana`;
+  return `Za ${Math.floor(diffDays / 7)} ned`;
+};
+
 export function CalendarPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -80,6 +107,7 @@ export function CalendarPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   const DAYS_OF_WEEK = t('calendar.days', { returnObjects: true }) as string[];
   const MONTHS = t('calendar.months', { returnObjects: true }) as string[];
@@ -133,19 +161,23 @@ export function CalendarPage() {
     });
   };
 
+  // Get unique event types (normalized)
+  const eventTypes = useMemo(() => {
+    if (!events) return [];
+    const types = new Set<string>();
+    events.forEach((e) => {
+      if (e.type) types.add(normalizeEventType(e.type));
+    });
+    return Array.from(types);
+  }, [events]);
+
   // Filter events by type
   const filteredEvents = useMemo(() => {
     if (!events) return [];
     let filtered = events;
 
-    if (filterType === 'training') {
-      filtered = filtered.filter((e) =>
-        e.type?.toUpperCase() === 'TRAINING' || e.type?.toUpperCase().includes('TRENING')
-      );
-    } else if (filterType === 'match') {
-      filtered = filtered.filter((e) =>
-        e.type?.toUpperCase() === 'MATCH' || e.type?.toUpperCase().includes('UTAKMICA')
-      );
+    if (filterType !== 'all') {
+      filtered = filtered.filter((e) => normalizeEventType(e.type) === filterType);
     }
 
     if (selectedDate) {
@@ -347,9 +379,32 @@ export function CalendarPage() {
             </div>
 
             {/* Filters */}
-            <div className="flex gap-2 mt-2">
+            <div className="flex flex-col gap-3 mt-2">
+              {/* Event Type Filter Chips */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={filterType === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  className={`h-8 text-xs ${filterType === 'all' ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                  onClick={() => setFilterType('all')}
+                >
+                  {t('calendar.allTypes')}
+                </Button>
+                {eventTypes.map((type) => (
+                  <Button
+                    key={type}
+                    variant={filterType === type ? 'default' : 'outline'}
+                    size="sm"
+                    className={`h-8 text-xs ${filterType === type ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                    onClick={() => setFilterType(type)}
+                  >
+                    {type}
+                  </Button>
+                ))}
+              </div>
+
               <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-full h-9">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder={t('calendar.allGroups')} />
                 </SelectTrigger>
@@ -368,17 +423,6 @@ export function CalendarPage() {
                       </div>
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder={t('calendar.allTypes')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('calendar.allTypes')}</SelectItem>
-                  <SelectItem value="training">{t('calendar.trainings')}</SelectItem>
-                  <SelectItem value="match">{t('calendar.matches')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -405,60 +449,114 @@ export function CalendarPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2" style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgb(34, 197, 94) transparent',
+              }}>
+                <style>{`
+                  div[style*="scrollbar-color"] ::-webkit-scrollbar {
+                    width: 6px;
+                  }
+                  div[style*="scrollbar-color"] ::-webkit-scrollbar-track {
+                    background: transparent;
+                  }
+                  div[style*="scrollbar-color"] ::-webkit-scrollbar-thumb {
+                    background-color: rgb(34, 197, 94);
+                    border-radius: 3px;
+                  }
+                  div[style*="scrollbar-color"] ::-webkit-scrollbar-thumb:hover {
+                    background-color: rgb(22, 163, 74);
+                  }
+                `}</style>
                 {filteredEvents.map((event) => {
                   const groupName = typeof event.groupId === 'object' ? event.groupId.name : '';
-                  const groupColor = typeof event.groupId === 'object' ? event.groupId.color : '#3b82f6';
+                  const groupColor = typeof event.groupId === 'object' ? event.groupId.color : '#22c55e';
+                  const eventDate = new Date(event.startTime);
+                  const dayOfWeek = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' }).toUpperCase();
+                  const dayOfMonth = eventDate.getDate();
+                  const eventTypeColor = getEventTypeColor(event.type);
+                  const timeUntil = getTimeUntilEvent(event.startTime);
 
                   return (
                     <div
                       key={event._id}
-                      className="p-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
+                      className="relative flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                       onClick={() => navigate(`/calendar/${event._id}`)}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge className={`${getEventTypeColor(event.type)} text-white text-xs`}>
-                              {event.type}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(event.startTime).toLocaleDateString('sr-RS', {
-                                weekday: 'short',
-                                day: 'numeric',
-                                month: 'short',
-                              })}
-                            </span>
-                          </div>
-                          <h4 className="font-medium truncate">{event.title}</h4>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                      {/* Date Badge */}
+                      <div className={`${eventTypeColor} text-white rounded-sm p-2 flex flex-col items-center justify-center min-w-[50px] font-medium shrink-0 self-start`}>
+                        <div className="text-xl font-bold leading-none">{dayOfMonth}</div>
+                        <div className="text-[10px] mt-0.5">{dayOfWeek}</div>
+                      </div>
+
+                      {/* Event Details */}
+                      <div className="flex-1 min-w-0 flex flex-col gap-1">
+                        <h4 className="font-semibold text-sm leading-tight">{event.title}</h4>
+
+                        {groupName && (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <div
-                              className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: groupColor || '#3b82f6' }}
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: groupColor }}
                             />
                             <span>{groupName}</span>
                           </div>
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-2">
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {formatEventTime(event.startTime)} - {formatEventTime(event.endTime)}
-                            </span>
-                            {event.location && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {event.location}
-                              </span>
-                            )}
-                          </div>
+                        )}
+
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          <span>{timeUntil}</span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteClick(event); }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      </div>
+
+                      {/* Time and Actions */}
+                      <div className="flex flex-col items-end gap-2 self-start absolute top-3 right-3 z-50">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {formatEventTime(event.startTime)} - {formatEventTime(event.endTime)}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            className="hover:bg-green-800 h-7 w-7 inline-flex items-center justify-center rounded-md text-primary hover:bg-accent transition-colors cursor-pointer"
+                            style={{ pointerEvents: 'auto' }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onMouseUp={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setEditingEvent(event);
+                              setCreateDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5 pointer-events-none" />
+                          </button>
+                          <button
+                            type="button"
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-md text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                            style={{ pointerEvents: 'auto' }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onMouseUp={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDeleteClick(event);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 pointer-events-none" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -471,8 +569,14 @@ export function CalendarPage() {
 
       <CreateEventDialog
         open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
+        onOpenChange={(isOpen) => {
+          setCreateDialogOpen(isOpen);
+          if (!isOpen) {
+            setEditingEvent(null);
+          }
+        }}
         selectedDate={selectedDate ? parseLocalDateStr(selectedDate) : undefined}
+        event={editingEvent}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

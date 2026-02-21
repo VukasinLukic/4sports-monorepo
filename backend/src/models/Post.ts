@@ -9,7 +9,7 @@ export interface IPost extends Document {
   images?: string[];
   visibility: 'PUBLIC' | 'MEMBERS_ONLY' | 'PARENTS_ONLY' | 'COACHES_ONLY';
   isPinned: boolean;
-  type: 'ANNOUNCEMENT' | 'NEWS' | 'EVENT' | 'ACHIEVEMENT' | 'OTHER';
+  type?: string;
   tags?: string[];
   likesCount: number;
   commentsCount: number;

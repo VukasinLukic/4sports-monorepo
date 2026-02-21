@@ -98,6 +98,23 @@ export const getCoachDashboardStats = async (req: Request, res: Response) => {
       'clubs.status': 'ACTIVE',
     });
 
+    // For COACH role, get only their assigned groups
+    let coachGroupIds: any[] | null = null;
+    if (req.user.role === 'COACH') {
+      const coachGroups = await Group.find({ coaches: req.user._id, isActive: true }).select('_id');
+      coachGroupIds = coachGroups.map(g => g._id);
+    }
+
+    // Build event filter based on role
+    const eventFilter: any = {
+      clubId,
+      startTime: { $gte: today },
+      status: 'SCHEDULED',
+    };
+    if (coachGroupIds) {
+      eventFilter.groupId = { $in: coachGroupIds };
+    }
+
     // Get counts in parallel
     const [
       totalGroups,
@@ -105,14 +122,17 @@ export const getCoachDashboardStats = async (req: Request, res: Response) => {
       unpaidPayments,
       upcomingEventsRaw,
     ] = await Promise.all([
-      // Total groups in club
-      Group.countDocuments({ clubId }),
+      // Total groups in club (or coach's groups)
+      coachGroupIds
+        ? Promise.resolve(coachGroupIds.length)
+        : Group.countDocuments({ clubId }),
 
-      // Events today
+      // Events today (filtered for coach)
       Event.countDocuments({
         clubId,
         startTime: { $gte: today, $lt: tomorrow },
         status: { $ne: 'CANCELLED' },
+        ...(coachGroupIds ? { groupId: { $in: coachGroupIds } } : {}),
       }),
 
       // Unpaid payments for current month
@@ -124,12 +144,8 @@ export const getCoachDashboardStats = async (req: Request, res: Response) => {
         status: { $ne: 'PAID' },
       }),
 
-      // Upcoming events (next 7 days)
-      Event.find({
-        clubId,
-        startTime: { $gte: today },
-        status: 'SCHEDULED',
-      })
+      // Upcoming events (coach's groups only)
+      Event.find(eventFilter)
         .populate('groupId', 'name color')
         .sort({ startTime: 1 })
         .limit(5),
