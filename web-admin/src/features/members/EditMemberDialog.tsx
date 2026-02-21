@@ -18,13 +18,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useUpdateMember } from './useMembers';
+import { useGroups } from '@/features/club-members/useClubMembers';
 import { Member, CreateMemberData } from '@/types';
 import { Loader2 } from 'lucide-react';
 
 interface EditMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  member: Member | null;
+  member: (Member | any) | null;
 }
 
 export function EditMemberDialog({
@@ -34,7 +35,8 @@ export function EditMemberDialog({
 }: EditMemberDialogProps) {
   const { t } = useTranslation();
   const updateMemberMutation = useUpdateMember();
-  const [formData, setFormData] = useState<CreateMemberData>({
+  const { data: groups = [] } = useGroups();
+  const [formData, setFormData] = useState<CreateMemberData & { membershipFee?: number }>({
     fullName: '',
     dateOfBirth: '',
     groupId: '',
@@ -45,15 +47,21 @@ export function EditMemberDialog({
   // Populate form when member changes
   useEffect(() => {
     if (member) {
+      // Extract groupId - could be string or populated object
+      const groupId = typeof member.groupId === 'string'
+        ? member.groupId
+        : (member.groupId as any)?._id || '';
+
       setFormData({
         fullName: member.fullName,
         dateOfBirth: member.dateOfBirth,
-        groupId: member.groupId,
+        groupId: groupId,
         gender: member.gender,
         height: member.height,
         weight: member.weight,
         position: member.position,
         parentId: member.parentId,
+        membershipFee: (member as any).membershipFee,
       });
     }
   }, [member]);
@@ -66,9 +74,14 @@ export function EditMemberDialog({
     }
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = t('validation.dateOfBirthRequired');
-    }
-    if (!formData.groupId) {
-      newErrors.groupId = t('validation.groupRequired');
+    } else {
+      // Check if date is in the future
+      const selectedDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate > today) {
+        newErrors.dateOfBirth = t('validation.birthDateCannotBeFuture') || 'Datum rodjenja ne može biti u budućnosti';
+      }
     }
 
     setErrors(newErrors);
@@ -83,9 +96,20 @@ export function EditMemberDialog({
     }
 
     try {
+      const updateData = {
+        fullName: formData.fullName,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        groupId: formData.groupId || undefined,
+        height: formData.height,
+        weight: formData.weight,
+        position: formData.position,
+        membershipFee: formData.membershipFee,
+      };
+
       await updateMemberMutation.mutateAsync({
         id: member.id,
-        data: formData,
+        data: updateData,
       });
       onOpenChange(false);
       setErrors({});
@@ -95,7 +119,7 @@ export function EditMemberDialog({
     }
   };
 
-  const handleChange = (field: keyof CreateMemberData, value: any) => {
+  const handleChange = (field: keyof (CreateMemberData & { membershipFee?: number }), value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
@@ -140,6 +164,7 @@ export function EditMemberDialog({
                 type="date"
                 value={formData.dateOfBirth}
                 onChange={(e) => handleChange('dateOfBirth', e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
               />
               {errors.dateOfBirth && (
                 <p className="text-sm text-red-500">{errors.dateOfBirth}</p>
@@ -165,28 +190,26 @@ export function EditMemberDialog({
               </Select>
             </div>
 
-            {/* Group */}
+            {/* Group (optional) */}
             <div className="grid gap-2">
               <Label htmlFor="groupId">
-                {t('members.group')} <span className="text-red-500">*</span>
+                {t('members.group')}
               </Label>
               <Select
-                value={formData.groupId}
-                onValueChange={(value) => handleChange('groupId', value)}
+                value={formData.groupId || ''}
+                onValueChange={(value) => handleChange('groupId', value || undefined)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={t('members.selectGroup')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="group1">U10 - Beginners</SelectItem>
-                  <SelectItem value="group2">U12 - Intermediate</SelectItem>
-                  <SelectItem value="group3">U14 - Advanced</SelectItem>
-                  <SelectItem value="group4">U16 - Elite</SelectItem>
+                  {groups.map((group) => (
+                    <SelectItem key={group._id} value={group._id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              {errors.groupId && (
-                <p className="text-sm text-red-500">{errors.groupId}</p>
-              )}
             </div>
 
             {/* Height (optional) */}
@@ -225,6 +248,20 @@ export function EditMemberDialog({
                 value={formData.position || ''}
                 onChange={(e) => handleChange('position', e.target.value)}
                 placeholder={t('members.positionPlaceholder')}
+              />
+            </div>
+
+            {/* Membership Fee (optional) */}
+            <div className="grid gap-2">
+              <Label htmlFor="membershipFee">{t('profile.monthlyFee')}</Label>
+              <Input
+                id="membershipFee"
+                type="number"
+                value={formData.membershipFee || ''}
+                onChange={(e) =>
+                  handleChange('membershipFee', e.target.value ? Number(e.target.value) : undefined)
+                }
+                placeholder="3000"
               />
             </div>
 

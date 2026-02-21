@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '@/services/api';
 import { FinanceEntry, CreateFinanceEntryData, FinanceSummary, FinanceFilters, Group } from '@/types';
 import { useGroups } from '@/features/calendar/useEvents';
@@ -204,6 +205,9 @@ export const useDeleteFinanceEntry = () => {
 
 // Fetch filtered finances with all filters
 export const useFilteredFinances = (filters: FinanceFilters) => {
+  const { t } = useTranslation();
+  const monthNames = t('calendar.months', { returnObjects: true }) as string[];
+
   return useQuery({
     queryKey: ['finances', 'filtered', filters],
     queryFn: async () => {
@@ -329,10 +333,6 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
             .map((payment) => {
               const memberName = typeof payment.memberId === 'object' ? payment.memberId.fullName : 'Member';
               const amount = payment.paidAmount || payment.amount;
-              const monthNames = [
-                'January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'
-              ];
               const periodStr = payment.period
                 ? `${monthNames[payment.period.month - 1]} ${payment.period.year}`
                 : '';
@@ -426,7 +426,7 @@ export const useCoachGroups = (): Record<string, Group[]> => {
     const fullGroups = groups as Group[]; // Cast to full Group type with coaches property
 
     coaches.forEach((coach) => {
-      mapping[coach.id] = fullGroups.filter((g) => g.coaches?.includes(coach.id));
+      mapping[coach.id] = fullGroups.filter((g) => g.coaches?.some(c => c._id === coach.id));
     });
 
     return mapping;

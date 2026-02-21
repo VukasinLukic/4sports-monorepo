@@ -8,10 +8,8 @@ export interface IGroup extends Document {
   _id: mongoose.Types.ObjectId;
   clubId: mongoose.Types.ObjectId;
   name: string;
-  ageGroup?: string;
-  sport?: string;
-  description?: string;
   color?: string;
+  membershipFee?: number;
   coaches: mongoose.Types.ObjectId[];
   isActive: boolean;
   createdAt: Date;
@@ -47,41 +45,21 @@ const groupSchema = new Schema<IGroup, IGroupModel>(
       maxlength: [100, 'Group name cannot exceed 100 characters'],
     },
 
-    ageGroup: {
-      type: String,
-      trim: true,
-      maxlength: [50, 'Age group cannot exceed 50 characters'],
-    },
-
-    sport: {
-      type: String,
-      trim: true,
-      maxlength: [50, 'Sport cannot exceed 50 characters'],
-    },
-
-    description: {
-      type: String,
-      trim: true,
-      maxlength: [500, 'Description cannot exceed 500 characters'],
-    },
-
     color: {
       type: String,
       trim: true,
       match: [/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Color must be a valid hex color (e.g., #FF5733)'],
     },
 
+    membershipFee: {
+      type: Number,
+      min: [0, 'Membership fee must be non-negative'],
+    },
+
     coaches: {
       type: [Schema.Types.ObjectId],
       ref: 'User',
       default: [],
-      validate: {
-        validator: function (coaches: mongoose.Types.ObjectId[]) {
-          // At least one coach required
-          return coaches.length > 0;
-        },
-        message: 'Group must have at least one coach',
-      },
     },
 
     isActive: {

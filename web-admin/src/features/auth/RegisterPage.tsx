@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import api from '@/services/api';
@@ -21,7 +21,6 @@ export const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { register } = useAuth();
-  const navigate = useNavigate();
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,7 +70,9 @@ export const RegisterPage = () => {
         clubName: formData.clubName || formData.fullName + "'s Club",
       });
 
-      navigate('/');
+      // Force full page reload so onAuthStateChanged re-fetches the backend user
+      // (navigate('/') would keep stale backendUser=null from the race condition)
+      window.location.href = '/';
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('errors.registerFailed'));
     } finally {

@@ -36,18 +36,6 @@ const PRESET_COLORS = [
   '#E84393', // Pink
 ];
 
-const AGE_GROUPS = [
-  'U6', 'U7', 'U8', 'U9', 'U10', 'U11', 'U12',
-  'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19',
-  'U21', 'Seniors', 'Veterans',
-];
-
-const SPORTS = [
-  'Football', 'Basketball', 'Volleyball', 'Tennis',
-  'Swimming', 'Handball', 'Hockey', 'Rugby',
-  'Athletics', 'Gymnastics', 'Martial Arts', 'Other',
-];
-
 export default function GroupFormScreen() {
   const { t } = useLanguage();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -58,10 +46,8 @@ export default function GroupFormScreen() {
 
   // Form state
   const [name, setName] = useState('');
-  const [ageGroup, setAgeGroup] = useState('');
-  const [sport, setSport] = useState('');
-  const [description, setDescription] = useState('');
   const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [membershipFee, setMembershipFee] = useState('');
 
   // Validation
   const nameError = name.length > 0 && name.trim().length < 2;
@@ -78,10 +64,8 @@ export default function GroupFormScreen() {
       const response = await api.get(`/groups/${id}`);
       const group: Group = response.data.data;
       setName(group.name);
-      setAgeGroup(group.ageGroup || '');
-      setSport(group.sport || '');
-      setDescription(group.description || '');
       setColor(group.color || PRESET_COLORS[0]);
+      setMembershipFee(group.membershipFee?.toString() || '');
     } catch (error) {
       console.error('Error fetching group:', error);
       Alert.alert(t('common.error'), t('errors.loadingFailed'));
@@ -99,13 +83,13 @@ export default function GroupFormScreen() {
 
     setIsSaving(true);
     try {
-      const payload = {
+      const payload: any = {
         name: name.trim(),
-        ageGroup: ageGroup || undefined,
-        sport: sport || undefined,
-        description: description.trim() || undefined,
         color,
       };
+      if (membershipFee) {
+        payload.membershipFee = Number(membershipFee);
+      }
 
       if (isEditing) {
         await api.put(`/groups/${id}`, payload);
@@ -196,73 +180,16 @@ export default function GroupFormScreen() {
             </View>
           </View>
 
-          {/* Age Group Selector */}
-          <View style={styles.field}>
-            <Text style={styles.label}>{t('groups.ageGroup') || 'Age Group'}</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipScrollContent}
-            >
-              {AGE_GROUPS.map((ag) => (
-                <TouchableOpacity
-                  key={ag}
-                  onPress={() => setAgeGroup(ageGroup === ag ? '' : ag)}
-                  style={[
-                    styles.chip,
-                    ageGroup === ag && styles.chipSelected,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      ageGroup === ag && styles.chipTextSelected,
-                    ]}
-                  >
-                    {ag}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Sport Selector */}
-          <View style={styles.field}>
-            <Text style={styles.label}>{t('groups.sport') || 'Sport'}</Text>
-            <View style={styles.chipGrid}>
-              {SPORTS.map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  onPress={() => setSport(sport === s ? '' : s)}
-                  style={[
-                    styles.chip,
-                    sport === s && styles.chipSelected,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      sport === s && styles.chipTextSelected,
-                    ]}
-                  >
-                    {s}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Description */}
+          {/* Membership Fee */}
           <View style={styles.field}>
             <TextInput
-              label={`${t('groups.groupDescription')} (${t('common.optional')})`}
-              value={description}
-              onChangeText={setDescription}
+              label={t('payments.monthlyFee') || 'Monthly Fee (RSD)'}
+              value={membershipFee}
+              onChangeText={setMembershipFee}
               mode="outlined"
-              multiline
-              numberOfLines={3}
+              keyboardType="numeric"
               disabled={isSaving}
-              style={styles.textArea}
+              style={styles.input}
               outlineColor={Colors.border}
               activeOutlineColor={Colors.primary}
             />
@@ -277,18 +204,6 @@ export default function GroupFormScreen() {
                 <Text style={styles.previewName}>
                   {name.trim() || t('groups.groupName')}
                 </Text>
-                <View style={styles.previewTags}>
-                  {ageGroup && (
-                    <View style={styles.previewTag}>
-                      <Text style={styles.previewTagText}>{ageGroup}</Text>
-                    </View>
-                  )}
-                  {sport && (
-                    <View style={[styles.previewTag, styles.previewTagSport]}>
-                      <Text style={styles.previewTagText}>{sport}</Text>
-                    </View>
-                  )}
-                </View>
               </View>
             </View>
           </View>
@@ -353,10 +268,6 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: Colors.surface,
   },
-  textArea: {
-    backgroundColor: Colors.surface,
-    minHeight: 100,
-  },
   colorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -372,34 +283,6 @@ const styles = StyleSheet.create({
   colorOptionSelected: {
     borderWidth: 3,
     borderColor: Colors.text,
-  },
-  chipScrollContent: {
-    gap: Spacing.xs,
-  },
-  chipGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  chip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  chipSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  chipText: {
-    fontSize: FontSize.sm,
-    color: Colors.text,
-  },
-  chipTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '600',
   },
   previewSection: {
     marginBottom: Spacing.lg,
@@ -419,24 +302,6 @@ const styles = StyleSheet.create({
   previewName: {
     fontSize: FontSize.lg,
     fontWeight: '600',
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  previewTags: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  previewTag: {
-    backgroundColor: Colors.primary + '20',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: BorderRadius.xs,
-  },
-  previewTagSport: {
-    backgroundColor: Colors.secondary + '20',
-  },
-  previewTagText: {
-    fontSize: FontSize.xs,
     color: Colors.text,
   },
   saveButton: {

@@ -9,6 +9,7 @@ import Club from '../models/Club';
 export const getClubById = async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
+    console.log('🏢 getClubById called with id:', id, 'type:', typeof id);
 
     const club = await Club.findById(id).select('-__v');
 

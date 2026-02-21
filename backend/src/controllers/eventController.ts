@@ -41,18 +41,22 @@ export const createEvent = async (req: Request, res: Response) => {
     const attendanceRecords = members.map(member => ({ eventId: event._id, memberId: member._id, status: 'ABSENT' }));
     if (attendanceRecords.length > 0) await Attendance.insertMany(attendanceRecords);
 
-    // Create notifications for group members with linked user accounts
+    // Create notifications for group members and creator
     try {
       const memberUserIds = members
         .filter(m => m.userId)
         .map(m => m.userId);
 
-      if (memberUserIds.length > 0) {
+      // Add creator to recipients (unless they're already a member)
+      const recipientSet = new Set<string>(memberUserIds.map(id => id?.toString()) as string[]);
+      recipientSet.add(req.user._id.toString());
+
+      if (recipientSet.size > 0) {
         const eventDate = new Date(startTime).toLocaleDateString('sr-RS');
-        const notificationPromises = memberUserIds.map((userId) =>
+        const notificationPromises = Array.from(recipientSet).map((userId) =>
           Notification.createNotification({
             clubId,
-            recipientId: userId!,
+            recipientId: userId as any,
             type: 'EVENT_REMINDER',
             title: 'Novi događaj',
             message: `${title} - ${eventDate}`,
@@ -180,7 +184,7 @@ export const getClubEvents = async (req: Request, res: Response) => {
     }
 
     const events = await Event.find(query)
-      .populate('groupId', 'name color')
+      .populate('groupId', 'name color coaches')
       .populate('createdBy', 'fullName')
       .sort({ startTime: 1 });
 

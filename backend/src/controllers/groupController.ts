@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Group from '../models/Group';
 import User from '../models/User';
 import Member from '../models/Member';
+import Payment from '../models/Payment';
 
 /**
  * Create Group
@@ -17,7 +18,7 @@ export const createGroup = async (req: Request, res: Response) => {
       });
     }
 
-    const { name, ageGroup, sport, description, coaches, color } = req.body;
+    const { name, coaches, color, membershipFee } = req.body;
     const clubId = req.user.clubId;
 
     if (!clubId) {
@@ -41,37 +42,34 @@ export const createGroup = async (req: Request, res: Response) => {
       coachIds = [req.user._id];
     }
 
-    if (coachIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'At least one coach is required' },
+    // Verify coaches if provided
+    if (coachIds.length > 0) {
+      const coachUsers = await User.find({
+        _id: { $in: coachIds },
+        role: 'COACH',
+        clubId,
       });
-    }
 
-    // Verify all coaches exist and belong to the club
-    const coachUsers = await User.find({
-      _id: { $in: coachIds },
-      role: 'COACH',
-      clubId,
-    });
-
-    if (coachUsers.length !== coachIds.length) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_COACHES', message: 'One or more coaches are invalid' },
-      });
+      if (coachUsers.length !== coachIds.length) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_COACHES', message: 'One or more coaches are invalid' },
+        });
+      }
     }
 
     // Create group
-    const group = await Group.create({
+    const groupData: any = {
       clubId,
       name,
-      ageGroup,
-      sport,
-      description,
       color,
       coaches: coachIds,
-    });
+    };
+    if (membershipFee !== undefined) {
+      groupData.membershipFee = membershipFee;
+    }
+
+    const group = await Group.create(groupData);
 
     return res.status(201).json({
       success: true,
@@ -109,7 +107,15 @@ export const getClubGroups = async (req: Request, res: Response) => {
       });
     }
 
-    const groups = await Group.findByClub(clubId);
+    // Filter groups based on user role
+    let groups;
+    if (req.user.role === 'COACH') {
+      // Coaches only see groups they are assigned to
+      groups = await Group.findByCoach(req.user._id);
+    } else {
+      // OWNER and PARENT see all club groups
+      groups = await Group.findByClub(clubId);
+    }
 
     // Get member counts for each group
     const groupsWithCounts = await Promise.all(
@@ -200,7 +206,7 @@ export const updateGroup = async (req: Request, res: Response) => {
     }
 
     const { id } = req.params;
-    const { name, ageGroup, sport, description, color } = req.body;
+    const { name, color, coaches, membershipFee } = req.body;
 
     const group = await Group.findById(id);
 
@@ -219,18 +225,73 @@ export const updateGroup = async (req: Request, res: Response) => {
       });
     }
 
+    // Save old membershipFee BEFORE updating
+    const oldMembershipFee = group.membershipFee;
+
     // Update fields
     if (name) group.name = name;
-    if (ageGroup !== undefined) group.ageGroup = ageGroup;
-    if (sport !== undefined) group.sport = sport;
-    if (description !== undefined) group.description = description;
     if (color !== undefined) group.color = color;
+    if (membershipFee !== undefined) group.membershipFee = membershipFee;
+
+    // Update coaches if provided
+    if (coaches !== undefined) {
+      if (coaches.length > 0) {
+        const coachUsers = await User.find({
+          _id: { $in: coaches },
+          role: 'COACH',
+          clubId: req.user.clubId,
+        });
+        if (coachUsers.length !== coaches.length) {
+          return res.status(400).json({
+            success: false,
+            error: { code: 'INVALID_COACHES', message: 'One or more coaches are invalid' },
+          });
+        }
+      }
+      group.coaches = coaches;
+    }
+
+    // Track if membershipFee changed
+    const membershipFeeChanged = membershipFee !== undefined && oldMembershipFee !== membershipFee;
 
     await group.save();
 
+    // If membershipFee changed, update upcoming payments for all members in this group
+    if (membershipFeeChanged && membershipFee !== undefined) {
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      // Update membershipFee for all group members and their payments
+      const members = await Member.find({ 'clubs.groupId': group._id, 'clubs.status': 'ACTIVE' });
+      for (const member of members) {
+        // Update member's membershipFee if it matches old group fee or is not set
+        if (!member.membershipFee || member.membershipFee === oldMembershipFee) {
+          member.membershipFee = membershipFee;
+          await member.save();
+        }
+
+        // Update existing payment for next month if it exists (don't create new ones)
+        const existingPayment = await Payment.findOne({
+          clubId: req.user.clubId,
+          memberId: member._id,
+          type: 'MEMBERSHIP',
+          'period.month': nextMonth.getMonth() + 1,
+          'period.year': nextMonth.getFullYear(),
+        });
+
+        if (existingPayment) {
+          // Update existing payment with new amount
+          existingPayment.amount = membershipFee;
+          await existingPayment.save();
+        }
+      }
+    }
+
+    const populated = await Group.findById(group._id).populate('coaches', 'fullName email');
+
     return res.status(200).json({
       success: true,
-      data: group,
+      data: populated,
     });
   } catch (error: any) {
     console.error('❌ Update Group Error:', error);
@@ -396,6 +457,44 @@ export const addMemberToGroup = async (req: Request, res: Response) => {
 
     // Add member to the group
     await member.addToClub(group.clubId, group._id);
+
+    // Assign group's membershipFee to member if group has one
+    if (group.membershipFee && !member.membershipFee) {
+      member.membershipFee = group.membershipFee;
+      await member.save();
+    }
+
+    // Auto-generate payment record for next month if group has membershipFee
+    if (group.membershipFee) {
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      // Check if payment already exists for next month
+      const existingPayment = await Payment.findOne({
+        clubId: group.clubId,
+        memberId: member._id,
+        type: 'MEMBERSHIP',
+        'period.month': nextMonth.getMonth() + 1,
+        'period.year': nextMonth.getFullYear(),
+      });
+
+      if (!existingPayment) {
+        await Payment.create({
+          clubId: group.clubId,
+          memberId: member._id,
+          type: 'MEMBERSHIP',
+          amount: group.membershipFee,
+          paidAmount: 0,
+          status: 'PENDING',
+          dueDate: nextMonth,
+          createdBy: req.user._id,
+          period: {
+            month: nextMonth.getMonth() + 1,
+            year: nextMonth.getFullYear(),
+          },
+        });
+      }
+    }
 
     return res.status(200).json({
       success: true,

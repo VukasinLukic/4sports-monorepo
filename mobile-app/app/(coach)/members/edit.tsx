@@ -23,6 +23,7 @@ export default function EditMemberScreen() {
   const [parentName, setParentName] = useState('');
   const [parentPhone, setParentPhone] = useState('');
   const [parentEmail, setParentEmail] = useState('');
+  const [membershipFee, setMembershipFee] = useState('');
 
   useEffect(() => {
     fetchMember();
@@ -42,6 +43,7 @@ export default function EditMemberScreen() {
       setParentName(member.parentName || '');
       setParentPhone(member.parentPhone || '');
       setParentEmail(member.parentEmail || '');
+      setMembershipFee(member.membershipFee?.toString() || '');
     } catch (error) {
       console.error('Error fetching member:', error);
       Alert.alert(t('common.error'), t('errors.loadingFailed'));
@@ -64,6 +66,7 @@ export default function EditMemberScreen() {
         parentName: parentName || undefined,
         parentPhone: parentPhone || undefined,
         parentEmail: parentEmail || undefined,
+        membershipFee: membershipFee ? parseInt(membershipFee) : undefined,
       });
       Alert.alert(t('common.success'), t('profile.profileUpdated'), [
         { text: t('common.ok'), onPress: () => router.back() },
@@ -187,6 +190,19 @@ export default function EditMemberScreen() {
         style={styles.input}
         keyboardType="email-address"
         autoCapitalize="none"
+        outlineColor={Colors.border}
+        activeOutlineColor={Colors.primary}
+      />
+
+      <Text style={styles.sectionTitle}>{t('payments.membershipInfo') || 'Membership Info'}</Text>
+
+      <TextInput
+        label={t('payments.monthlyFee') || 'Monthly Fee (RSD)'}
+        value={membershipFee}
+        onChangeText={setMembershipFee}
+        mode="outlined"
+        style={styles.input}
+        keyboardType="numeric"
         outlineColor={Colors.border}
         activeOutlineColor={Colors.primary}
       />

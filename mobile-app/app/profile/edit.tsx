@@ -1,22 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
-import { Text, TextInput, Button, Avatar, ActivityIndicator } from 'react-native-paper';
+import { Text, TextInput, Button, Avatar, ActivityIndicator, Divider } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useAuth } from '@/services/AuthContext';
+import { useLanguage } from '@/services/LanguageContext';
+import { Member } from '@/types';
 import api from '@/services/api';
 
 export default function EditProfileScreen() {
   const { user, refreshUser } = useAuth();
+  const { t } = useLanguage();
 
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
   const [profileImage, setProfileImage] = useState<string | null>(user?.profilePicture || null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Member-specific fields
+  const [member, setMember] = useState<Member | null>(null);
+  const [membershipFee, setMembershipFee] = useState('3000');
+  const [isLoadingMember, setIsLoadingMember] = useState(true);
+
+  useEffect(() => {
+    fetchMemberData();
+  }, []);
+
+  const fetchMemberData = async () => {
+    try {
+      const response = await api.get('/members/me');
+      const memberData = response.data.data;
+      setMember(memberData);
+      if (memberData.membershipFee) {
+        setMembershipFee(String(memberData.membershipFee));
+      }
+    } catch (error) {
+      console.error('Error fetching member data:', error);
+    } finally {
+      setIsLoadingMember(false);
+    }
+  };
 
   const getInitials = (name?: string) => {
     if (!name) return '??';
@@ -115,16 +142,27 @@ export default function EditProfileScreen() {
 
     setIsLoading(true);
     try {
-      await api.patch(`/users/${user?._id}`, {
+      const updates: any = {
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim() || undefined,
         profilePicture: profileImage || undefined,
-      });
+      };
+
+      await api.patch(`/users/${user?._id}`, updates);
+
+      // If membership fee changed, update member
+      if (member && member.membershipFee !== parseInt(membershipFee)) {
+        await api.patch(`/members/${member._id}`, {
+          membershipFee: parseInt(membershipFee),
+        });
+      }
 
       // Refresh user data in context
       if (refreshUser) {
         await refreshUser();
       }
+
+      await fetchMemberData();
 
       Alert.alert('Success', 'Profile updated successfully!', [
         { text: 'OK', onPress: () => router.back() },
@@ -213,6 +251,33 @@ export default function EditProfileScreen() {
         left={<TextInput.Icon icon="phone" />}
       />
 
+      {/* Member & Membership Section */}
+      {!isLoadingMember && member && (
+        <>
+          <Divider style={styles.divider} />
+          <Text style={[styles.label, { marginTop: Spacing.lg }]}>
+            {t('payments.membershipInfo') || 'Membership Info'}
+          </Text>
+
+          {/* Monthly Fee */}
+          <Text style={styles.label}>{t('payments.monthlyFee') || 'Monthly Fee (RSD)'}</Text>
+          <TextInput
+            value={membershipFee}
+            onChangeText={setMembershipFee}
+            placeholder="3000"
+            mode="outlined"
+            keyboardType="numeric"
+            style={styles.input}
+            outlineColor={Colors.border}
+            activeOutlineColor={Colors.primary}
+            textColor={Colors.text}
+            placeholderTextColor={Colors.textSecondary}
+            left={<TextInput.Icon icon="cash" />}
+          />
+          <Text style={styles.helperText}>{t('payments.monthlyFeeHelper') || 'Monthly membership fee for this member'}</Text>
+        </>
+      )}
+
       {/* Save Button */}
       <Button
         mode="contained"
@@ -297,5 +362,9 @@ const styles = StyleSheet.create({
   cancelButton: {
     marginTop: Spacing.sm,
     borderColor: Colors.border,
+  },
+  divider: {
+    marginVertical: Spacing.lg,
+    backgroundColor: Colors.border,
   },
 });

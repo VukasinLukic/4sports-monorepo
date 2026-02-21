@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -49,6 +50,7 @@ const getInitials = (name: string): string =>
 
 export function EvidencePage() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const now = new Date();
   const [activeTab, setActiveTab] = useState<'membership' | 'medical'>('membership');
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
@@ -247,12 +249,12 @@ export function EvidencePage() {
             <p className="text-2xl font-bold text-foreground">{stats?.paid || 0}/{stats?.total || 0}</p>
           </div>
           <div className="bg-muted rounded-lg p-4">
-            <p className="text-xs text-muted-foreground mb-1">Total collected</p>
-            <p className="text-2xl font-bold text-foreground">{totalCollected} RSD</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('evidence.totalCollected')}</p>
+            <p className="text-2xl font-bold text-green-600">{totalCollected} RSD</p>
           </div>
           <div className="bg-muted rounded-lg p-4">
-            <p className="text-xs text-muted-foreground mb-1">Preostalo za naplatu</p>
-            <p className="text-2xl font-bold text-foreground">{remainingAmount} RSD</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('evidence.remainingToCollect')}</p>
+            <p className="text-2xl font-bold text-red-600">{remainingAmount} RSD</p>
           </div>
         </div>
       ) : (
@@ -277,7 +279,7 @@ export function EvidencePage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search for the member..."
+            placeholder={t('evidence.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-background"
@@ -339,14 +341,14 @@ export function EvidencePage() {
             className="data-[state=active]:bg-green-600 data-[state=active]:text-white h-10 text-base gap-2"
           >
             <CreditCard className="h-4 w-4" />
-            Memberships
+            {t('evidence.memberships')}
           </TabsTrigger>
           <TabsTrigger
             value="medical"
             className="data-[state=active]:bg-green-600 data-[state=active]:text-white h-10 text-base gap-2"
           >
             <Stethoscope className="h-4 w-4" />
-            Medical examinations
+            {t('evidence.medicalExaminations')}
           </TabsTrigger>
         </TabsList>
 
@@ -375,7 +377,7 @@ export function EvidencePage() {
                     style={{ backgroundColor: group.color || '#ef4444' }}
                   />
                   <h3 className="font-semibold text-base">{group.name}</h3>
-                  <span className="text-sm text-muted-foreground">{group.totalCount} Members</span>
+                  <span className="text-sm text-muted-foreground">{group.totalCount} {t('evidence.membersLabel')}</span>
                   <span className="text-xs text-muted-foreground ml-auto">
                     {group.paidCount}/{group.totalCount} plaćeno
                   </span>
@@ -425,7 +427,7 @@ export function EvidencePage() {
                     style={{ backgroundColor: group.color || '#ef4444' }}
                   />
                   <h3 className="font-semibold text-base">{group.name}</h3>
-                  <span className="text-sm text-muted-foreground">{group.totalCount} Members</span>
+                  <span className="text-sm text-muted-foreground">{group.totalCount} {t('evidence.membersLabel')}</span>
                   <span className="text-xs text-muted-foreground ml-auto">
                     {group.validCount} validnih
                   </span>
@@ -464,7 +466,7 @@ export function EvidencePage() {
           ) : (
             <Bell className="mr-2 h-5 w-5" />
           )}
-          Remind All
+          {t('evidence.remindAll')}
         </Button>
       )}
 
@@ -501,6 +503,7 @@ function MembershipRow({
   isReminderLoading: boolean;
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const isPaid = member.status === 'PAID';
   const isPartial = member.status === 'PARTIAL';
 
@@ -529,7 +532,7 @@ function MembershipRow({
           ) : (
             <span className="text-red-500">Nije plaćeno ・</span>
           )}
-          <span className="text-muted-foreground">Last Training: Yesterday</span>
+          <span className="text-muted-foreground">{t('evidence.lastTraining', { date: t('evidence.lastTrainingYesterday') })}</span>
         </div>
       </div>
 

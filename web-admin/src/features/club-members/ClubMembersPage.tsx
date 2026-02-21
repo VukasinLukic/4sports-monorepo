@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -19,7 +18,6 @@ import {
   useCoaches,
   useDeleteCoach,
   useMembers,
-  useDeleteMember,
   useGroups,
 } from './useClubMembers';
 import { useInviteCodes, useGenerateInvite } from '../invites/useInvites';
@@ -33,7 +31,6 @@ import {
   ChevronDown,
   ChevronRight,
   Pencil,
-  Trash2,
   Copy,
   Check,
   Loader2,
@@ -52,6 +49,13 @@ function getMemberGroupId(member: Member): string {
   return 'ungrouped';
 }
 
+// Helper to find all groups for a coach
+function getCoachGroups(coach: Coach, groups: Group[]): Group[] {
+  return groups.filter(g =>
+    g.coaches?.some(c => c._id === coach.id || c._id === (coach as any)._id)
+  );
+}
+
 export function ClubMembersPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -61,7 +65,6 @@ export function ClubMembersPage() {
   const [coachSearch, setCoachSearch] = useState('');
   const [memberSearch, setMemberSearch] = useState('');
   const [debouncedCoachSearch, setDebouncedCoachSearch] = useState('');
-  const [debouncedMemberSearch, setDebouncedMemberSearch] = useState('');
 
   // Inline invite panel states
   const [showCoachInvite, setShowCoachInvite] = useState(false);
@@ -72,7 +75,6 @@ export function ClubMembersPage() {
   // Dialog states
   const [editMemberDialogOpen, setEditMemberDialogOpen] = useState(false);
   const [deleteCoachDialogOpen, setDeleteCoachDialogOpen] = useState(false);
-  const [deleteMemberDialogOpen, setDeleteMemberDialogOpen] = useState(false);
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
@@ -87,21 +89,13 @@ export function ClubMembersPage() {
     return () => clearTimeout(timer);
   }, [coachSearch]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedMemberSearch(memberSearch), 300);
-    return () => clearTimeout(timer);
-  }, [memberSearch]);
-
   // Data hooks
   const { data: coaches, isLoading: coachesLoading, isError: coachesError, refetch: refetchCoaches } = useCoaches();
-  const { data: members, isLoading: membersLoading, isError: membersError, refetch: refetchMembers } = useMembers({
-    search: debouncedMemberSearch,
-  });
+  const { data: allMembers, isLoading: membersLoading, isError: membersError, refetch: refetchMembers } = useMembers();
   const { data: groups, isLoading: groupsLoading } = useGroups();
   const { data: inviteCodes } = useInviteCodes();
   const generateMutation = useGenerateInvite();
   const deleteCoachMutation = useDeleteCoach();
-  const deleteMemberMutation = useDeleteMember();
 
   // Filtered coaches
   const filteredCoaches = useMemo(() => {
@@ -112,16 +106,25 @@ export function ClubMembersPage() {
     );
   }, [coaches, debouncedCoachSearch]);
 
+  // Filtered members (local filtering)
+  const filteredMembers = useMemo(() => {
+    if (!allMembers) return [];
+    if (!memberSearch) return allMembers;
+    return allMembers.filter((m) =>
+      m.fullName.toLowerCase().includes(memberSearch.toLowerCase())
+    );
+  }, [allMembers, memberSearch]);
+
   // Group members by groupId - handles both string IDs and populated objects
   const membersByGroup = useMemo(() => {
     const map = new Map<string, Member[]>();
-    members?.forEach((m) => {
+    filteredMembers?.forEach((m) => {
       const gId = getMemberGroupId(m);
       if (!map.has(gId)) map.set(gId, []);
       map.get(gId)!.push(m);
     });
     return map;
-  }, [members]);
+  }, [filteredMembers]);
 
   // Find existing valid coach code
   const existingCoachCode = useMemo(() => {
@@ -147,7 +150,7 @@ export function ClubMembersPage() {
   const activeCoaches = coaches?.filter(
     (c) => !isContractExpired(c.contractExpiryDate)
   ).length || 0;
-  const totalMembers = members?.length || 0;
+  const totalMembers = allMembers?.length || 0;
   const activeMembers = totalMembers;
 
   const toggleGroup = (groupId: string) => {
@@ -197,11 +200,6 @@ export function ClubMembersPage() {
     }
   };
 
-  const handleDeleteCoach = (coach: Coach) => {
-    setSelectedCoach(coach);
-    setDeleteCoachDialogOpen(true);
-  };
-
   const handleDeleteCoachConfirm = async () => {
     if (selectedCoach) {
       await deleteCoachMutation.mutateAsync(selectedCoach.id);
@@ -212,18 +210,6 @@ export function ClubMembersPage() {
   const handleEditMember = (member: Member) => {
     setSelectedMember(member);
     setEditMemberDialogOpen(true);
-  };
-
-  const handleDeleteMember = (member: Member) => {
-    setSelectedMember(member);
-    setDeleteMemberDialogOpen(true);
-  };
-
-  const handleDeleteMemberConfirm = async () => {
-    if (selectedMember) {
-      await deleteMemberMutation.mutateAsync(selectedMember.id);
-      setSelectedMember(null);
-    }
   };
 
   const handleOpenGroupDialog = (group?: Group) => {
@@ -392,7 +378,7 @@ export function ClubMembersPage() {
                     <CoachCard
                       key={coach.id}
                       coach={coach}
-                      onDelete={handleDeleteCoach}
+                      coachGroups={getCoachGroups(coach, groups || [])}
                       onClick={() => navigate(`/profile/${coach.id}`)}
                     />
                   ))
@@ -428,7 +414,6 @@ export function ClubMembersPage() {
                             style={{ backgroundColor: group.color || '#22c55e' }}
                           />
                           {group.name}
-                          {group.ageGroup && ` (${group.ageGroup})`}
                         </div>
                       </SelectItem>
                     ))}
@@ -535,7 +520,6 @@ export function ClubMembersPage() {
                                   key={member.id}
                                   member={member}
                                   onEdit={handleEditMember}
-                                  onDelete={handleDeleteMember}
                                   onClick={() => navigate(`/profile/member/${member.id}`, { state: { groupName: group.name } })}
                                 />
                               ))
@@ -593,16 +577,6 @@ export function ClubMembersPage() {
         cancelText={t('common.cancel')}
         variant="destructive"
       />
-      <ConfirmDialog
-        open={deleteMemberDialogOpen}
-        onOpenChange={setDeleteMemberDialogOpen}
-        title={t('clubMembers.deleteMember')}
-        message={t('clubMembers.deleteMemberConfirm', { name: selectedMember?.fullName })}
-        onConfirm={handleDeleteMemberConfirm}
-        confirmText={t('common.delete')}
-        cancelText={t('common.cancel')}
-        variant="destructive"
-      />
     </div>
   );
 }
@@ -612,18 +586,16 @@ function isContractExpired(expiryDate: string) {
   return new Date(expiryDate) < new Date();
 }
 
-function isContractExpiringSoon(expiryDate: string) {
-  const expiry = new Date(expiryDate);
-  const today = new Date();
-  const daysUntil = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  return daysUntil <= 30 && daysUntil > 0;
-}
-
 // Coach Card
-function CoachCard({ coach, onDelete, onClick }: { coach: Coach; onDelete: (c: Coach) => void; onClick?: () => void }) {
-  const expired = isContractExpired(coach.contractExpiryDate);
-  const expiringSoon = isContractExpiringSoon(coach.contractExpiryDate);
-
+function CoachCard({
+  coach,
+  coachGroups,
+  onClick,
+}: {
+  coach: Coach;
+  coachGroups: Group[];
+  onClick?: () => void;
+}) {
   return (
     <div
       className="flex items-center gap-3 px-3 py-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
@@ -636,26 +608,21 @@ function CoachCard({ coach, onDelete, onClick }: { coach: Coach; onDelete: (c: C
         <div className="font-medium truncate">{coach.fullName}</div>
         <div className="text-xs text-muted-foreground truncate">{coach.email}</div>
       </div>
-      <div className="flex items-center gap-1 flex-shrink-0">
-        {coach.groupsCount > 0 && (
-          <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" title={`${coach.groupsCount} groups`} />
-        )}
-        {expired ? (
-          <div className="h-2.5 w-2.5 rounded-full bg-red-500" title="Contract expired" />
-        ) : expiringSoon ? (
-          <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" title="Contract expiring soon" />
-        ) : (
-          <div className="h-2.5 w-2.5 rounded-full bg-green-500" title="Contract valid" />
-        )}
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
-        onClick={(e) => { e.stopPropagation(); onDelete(coach); }}
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      {/* Show group color circles */}
+      {coachGroups.length > 0 && (
+        <div className="flex gap-1 flex-shrink-0" title={coachGroups.map(g => g.name).join(', ')}>
+          {coachGroups.slice(0, 3).map((group) => (
+            <div
+              key={group._id}
+              className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: group.color || '#888888' }}
+            />
+          ))}
+          {coachGroups.length > 3 && (
+            <div className="h-2.5 w-2.5 rounded-full bg-gray-400 flex-shrink-0" title="+{coachGroups.length - 3} više" />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -664,17 +631,12 @@ function CoachCard({ coach, onDelete, onClick }: { coach: Coach; onDelete: (c: C
 function MemberCard({
   member,
   onEdit,
-  onDelete,
   onClick,
 }: {
   member: Member;
   onEdit: (m: Member) => void;
-  onDelete: (m: Member) => void;
   onClick?: () => void;
 }) {
-  const { t } = useTranslation();
-  const isActive = member.paymentStatus === 'PAID';
-
   return (
     <div
       className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
@@ -694,34 +656,14 @@ function MemberCard({
       <div className="flex-1 min-w-0">
         <div className="font-medium text-sm truncate">{member.fullName}</div>
       </div>
-      <Badge
-        variant="outline"
-        className={
-          isActive
-            ? 'border-green-600 text-green-600 text-xs'
-            : 'border-red-600 text-red-600 text-xs'
-        }
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 flex-shrink-0"
+        onClick={(e) => { e.stopPropagation(); onEdit(member); }}
       >
-        {isActive ? t('status.active') : t('status.inactive')}
-      </Badge>
-      <div className="flex gap-1 flex-shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={(e) => { e.stopPropagation(); onEdit(member); }}
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
-          onClick={(e) => { e.stopPropagation(); onDelete(member); }}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </div>
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 }

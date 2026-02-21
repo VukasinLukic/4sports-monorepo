@@ -58,10 +58,8 @@ export interface Group {
   _id: string;
   name: string;
   clubId: string;
-  ageGroup?: string;
-  sport?: string;
-  description?: string;
   color?: string;
+  membershipFee?: number;
   memberCount: number;
   coachIds: string[];
   createdAt: string;
@@ -78,12 +76,12 @@ export interface Member {
   age?: number | null;
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
   clubId?: string;
-  groupId?: string | { _id: string; name: string; ageGroup?: string; color?: string };
+  groupId?: string | { _id: string; name: string; color?: string };
   parentId?: string; // For child members
   userId?: string;   // For self-registered members (MEMBER role)
   clubs?: Array<{
     clubId: string | { _id: string; name: string };
-    groupId: string | { _id: string; name: string; ageGroup?: string; color?: string };
+    groupId: string | { _id: string; name: string; color?: string };
     status: 'ACTIVE' | 'INACTIVE';
     joinedAt: string;
   }>;
@@ -254,7 +252,7 @@ export interface Post {
   content: string;
   images: string[];
   visibility: 'PUBLIC' | 'MEMBERS_ONLY' | 'PARENTS_ONLY' | 'COACHES_ONLY';
-  type: 'ANNOUNCEMENT' | 'NEWS' | 'EVENT' | 'ACHIEVEMENT' | 'OTHER';
+  type?: string;
   tags?: string[];
   isPinned?: boolean;
   likesCount: number;
@@ -295,7 +293,6 @@ export interface InviteCode {
   groupId?: string | {
     _id: string;
     name: string;
-    ageGroup?: string;
   };
   type: 'COACH' | 'MEMBER'; // COACH → COACH role, MEMBER → MEMBER role
   maxUses: number;

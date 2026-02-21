@@ -11,7 +11,6 @@ import {
   Card,
   Button,
   ActivityIndicator,
-  Chip,
   Avatar,
   IconButton,
   Divider,
@@ -230,31 +229,6 @@ export default function GroupDetailsScreen() {
           <Card.Content style={styles.infoContent}>
             <Text style={styles.groupName}>{group.name}</Text>
 
-            <View style={styles.tagsContainer}>
-              {group.ageGroup && (
-                <Chip
-                  mode="flat"
-                  style={styles.tagChip}
-                  textStyle={styles.tagChipText}
-                >
-                  {group.ageGroup}
-                </Chip>
-              )}
-              {group.sport && (
-                <Chip
-                  mode="flat"
-                  style={[styles.tagChip, styles.sportChip]}
-                  textStyle={styles.tagChipText}
-                >
-                  {group.sport}
-                </Chip>
-              )}
-            </View>
-
-            {group.description && (
-              <Text style={styles.description}>{group.description}</Text>
-            )}
-
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
                 <Text style={styles.statNumber}>{members.length}</Text>
@@ -265,6 +239,12 @@ export default function GroupDetailsScreen() {
                 <Text style={styles.statLabel}>{t('groups.coaches') || 'Coaches'}</Text>
               </View>
             </View>
+            {group.membershipFee !== undefined && (
+              <View style={styles.feeRow}>
+                <Text style={styles.feeLabel}>{t('payments.monthlyFee') || 'Monthly Fee'}</Text>
+                <Text style={styles.feeValue}>{group.membershipFee} RSD</Text>
+              </View>
+            )}
           </Card.Content>
         </Card>
 
@@ -418,31 +398,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: Spacing.sm,
   },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  tagChip: {
-    backgroundColor: Colors.primary + '20',
-    height: 32,
-    justifyContent: 'center',
-  },
-  sportChip: {
-    backgroundColor: Colors.secondary + '20',
-  },
-  tagChipText: {
-    fontSize: FontSize.sm,
-    color: Colors.text,
-    lineHeight: FontSize.sm + 2,
-  },
-  description: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-    marginBottom: Spacing.md,
-  },
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -466,6 +421,24 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginTop: Spacing.xxs,
+  },
+  feeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    marginTop: Spacing.md,
+  },
+  feeLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+  },
+  feeValue: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
   },
   actionsRow: {
     flexDirection: 'row',

@@ -23,7 +23,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { useCreateEvent, useGroups, Group } from './useEvents';
+import { useCreateEvent, useUpdateEvent, useGroups, Group, Event } from './useEvents';
 import { Loader2, ChevronDown, ChevronUp, Repeat, X, Plus, CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,6 +31,7 @@ interface CreateEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDate?: Date;
+  event?: Event | null; // If provided, dialog is in edit mode
 }
 
 const toLocalDateStr = (date: Date): string => {
@@ -45,11 +46,13 @@ const parseLocalDateStr = (dateStr: string): Date => {
   return new Date(y, m - 1, d);
 };
 
-export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEventDialogProps) {
+export function CreateEventDialog({ open, onOpenChange, selectedDate, event }: CreateEventDialogProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const createEventMutation = useCreateEvent();
+  const updateEventMutation = useUpdateEvent();
   const { data: groups, isLoading: isLoadingGroups } = useGroups();
+  const isEditMode = !!event;
 
   const STORAGE_KEY_TYPES = '4sports_custom_event_types';
   const STORAGE_KEY_EQUIPMENT = '4sports_saved_equipment';
@@ -99,19 +102,58 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && !event) {
       setFormData((prev) => ({
         ...prev,
         date: toLocalDateStr(selectedDate),
       }));
     }
-  }, [selectedDate]);
+  }, [selectedDate, event]);
 
   useEffect(() => {
-    if (groups && groups.length > 0 && !formData.groupId) {
+    if (groups && groups.length > 0 && !formData.groupId && !event) {
       setFormData((prev) => ({ ...prev, groupId: groups[0]._id }));
     }
-  }, [groups, formData.groupId]);
+  }, [groups, formData.groupId, event]);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (event && open) {
+      const startDate = new Date(event.startTime);
+      const endDate = new Date(event.endTime);
+
+      const groupId = typeof event.groupId === 'string'
+        ? event.groupId
+        : event.groupId._id;
+
+      // Ensure event type exists in customTypes if it's not a default type
+      if (event.type && !DEFAULT_TYPES.some((t) => t.id === event.type) && !customTypes.some((t) => t.id === event.type)) {
+        const newCustomType = { id: event.type, label: event.type };
+        const updatedCustomTypes = [...customTypes, newCustomType];
+        setCustomTypes(updatedCustomTypes);
+        localStorage.setItem(STORAGE_KEY_TYPES, JSON.stringify(updatedCustomTypes));
+      }
+
+      setFormData({
+        groupId: groupId,
+        type: event.type || 'TRAINING',
+        date: toLocalDateStr(startDate),
+        startTime: `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`,
+        endTime: `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`,
+        title: event.title || '',
+        description: event.description || '',
+        location: event.location || '',
+        isRecurring: event.isRecurring || false,
+        recurringFrequency: event.recurringPattern?.frequency || 'weekly',
+        recurringDays: event.recurringPattern?.days || [],
+        recurringUntil: event.recurringPattern?.until ? toLocalDateStr(new Date(event.recurringPattern.until)) : '',
+        equipment: event.equipment || [],
+      });
+
+      // Advanced options remain closed by default
+      setShowAdvanced(false);
+    }
+  }, [event, open]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -183,19 +225,28 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
         };
       }
 
-      await createEventMutation.mutateAsync(eventData);
-
-      toast({
-        title: t('common.success'),
-        description: t('calendar.eventCreated'),
-      });
+      if (isEditMode && event) {
+        // Update existing event
+        await updateEventMutation.mutateAsync({ id: event._id, data: eventData });
+        toast({
+          title: t('common.success'),
+          description: t('calendar.eventUpdated') || 'Događaj uspešno izmenjen',
+        });
+      } else {
+        // Create new event
+        await createEventMutation.mutateAsync(eventData);
+        toast({
+          title: t('common.success'),
+          description: t('calendar.eventCreated'),
+        });
+      }
 
       resetForm();
       onOpenChange(false);
     } catch (error: any) {
-      console.error('Failed to create event:', error);
+      console.error('Failed to save event:', error);
       setErrors({
-        submit: error.response?.data?.error?.message || t('calendar.eventCreateFailed'),
+        submit: error.response?.data?.error?.message || (isEditMode ? t('calendar.eventUpdateFailed') || 'Izmena nije uspela' : t('calendar.eventCreateFailed')),
       });
     }
   };
@@ -299,7 +350,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
     >
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t('calendar.newEvent')}</DialogTitle>
+          <DialogTitle>{isEditMode ? (t('calendar.editEvent') || 'Izmeni događaj') : t('calendar.newEvent')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
@@ -665,22 +716,22 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate }: CreateEv
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={createEventMutation.isPending}
+              disabled={createEventMutation.isPending || updateEventMutation.isPending}
             >
               {t('common.cancel')}
             </Button>
             <Button
               type="submit"
-              disabled={createEventMutation.isPending || isLoadingGroups || !groups?.length}
+              disabled={createEventMutation.isPending || updateEventMutation.isPending || isLoadingGroups || !groups?.length}
               className="bg-green-600 hover:bg-green-700"
             >
-              {createEventMutation.isPending ? (
+              {(createEventMutation.isPending || updateEventMutation.isPending) ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('common.creating')}
+                  {isEditMode ? (t('common.updating') || 'Ažuriram...') : t('common.creating')}
                 </>
               ) : (
-                t('calendar.createEvent')
+                isEditMode ? (t('calendar.updateEvent') || 'Izmeni') : t('calendar.createEvent')
               )}
             </Button>
           </DialogFooter>

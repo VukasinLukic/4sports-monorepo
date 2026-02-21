@@ -46,8 +46,13 @@ export interface IMember extends Document {
     relationship: string;
     phoneNumber: string;
   };
+  membershipFee?: number;
   createdAt: Date;
   updatedAt: Date;
+
+  // Virtual fields
+  groupId?: mongoose.Types.ObjectId | null; // Returns groupId from first active club
+  age?: number; // Calculated age from dateOfBirth
 
   // Instance methods
   isInClub(clubId: mongoose.Types.ObjectId): boolean;
@@ -227,6 +232,11 @@ const memberSchema = new Schema<IMember, IMemberModel>(
         ],
       },
     },
+
+    membershipFee: {
+      type: Number,
+      min: [0, 'Membership fee must be non-negative'],
+    },
   },
   {
     timestamps: true,
@@ -270,6 +280,13 @@ memberSchema.virtual('age').get(function () {
   }
 
   return age;
+});
+
+memberSchema.virtual('groupId').get(function () {
+  // Return the groupId from the first active club membership
+  if (!this.clubs || this.clubs.length === 0) return null;
+  const activeClub = this.clubs.find(c => c.status === 'ACTIVE');
+  return activeClub?.groupId || null;
 });
 
 // ========================================

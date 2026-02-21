@@ -30,9 +30,31 @@ export const createMember = async (req: Request, res: Response) => {
       clubs: [{ clubId, groupId, joinedAt: new Date(), status: 'ACTIVE' }],
       medicalInfo,
       emergencyContact,
+      membershipFee: group.membershipFee,
     });
 
     await club.incrementMembers(1);
+
+    // Auto-generate payment record for next month if group has membershipFee
+    if (group.membershipFee) {
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      await Payment.create({
+        clubId,
+        memberId: member._id,
+        type: 'MEMBERSHIP',
+        amount: group.membershipFee,
+        paidAmount: 0,
+        status: 'PENDING',
+        dueDate: nextMonth,
+        createdBy: req.user._id,
+        period: {
+          month: nextMonth.getMonth() + 1,
+          year: nextMonth.getFullYear(),
+        },
+      });
+    }
 
     return res.status(201).json({ success: true, data: member });
   } catch (error: any) {
@@ -498,7 +520,7 @@ export const updateMember = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
 
     const { id } = req.params;
-    const { fullName, dateOfBirth, gender, medicalInfo, emergencyContact, position, jerseyNumber, height, weight } = req.body;
+    const { fullName, dateOfBirth, gender, medicalInfo, emergencyContact, position, jerseyNumber, height, weight, membershipFee, groupId } = req.body;
 
     const member = await Member.findById(id);
 
@@ -522,6 +544,17 @@ export const updateMember = async (req: Request, res: Response) => {
     if (jerseyNumber !== undefined) member.jerseyNumber = jerseyNumber;
     if (height !== undefined) member.height = height;
     if (weight !== undefined) member.weight = weight;
+    if (membershipFee !== undefined) member.membershipFee = membershipFee;
+
+    // Update groupId by modifying the active club membership
+    if (groupId !== undefined && req.user!.clubId) {
+      const activeClubIndex = member.clubs.findIndex(
+        c => c.clubId?.toString() === req.user!.clubId?.toString() && c.status === 'ACTIVE'
+      );
+      if (activeClubIndex !== -1) {
+        member.clubs[activeClubIndex].groupId = groupId || null;
+      }
+    }
 
     await member.save();
 

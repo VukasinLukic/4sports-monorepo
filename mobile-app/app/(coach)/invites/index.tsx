@@ -41,7 +41,6 @@ interface InviteCode {
   groupId?: {
     _id: string;
     name: string;
-    ageGroup?: string;
     color?: string;
   };
   expiresAt: string;
@@ -138,9 +137,7 @@ export default function InviteCodesScreen() {
     try {
       const response = await api.post('/groups', {
         name: 'Test Group',
-        ageGroup: 'U12',
-        sport: 'Football',
-        description: 'Test group for development',
+        color: '#22c55e',
       });
 
       const newGroup = response.data.data;
@@ -179,7 +176,6 @@ export default function InviteCodesScreen() {
         groupId: {
           _id: selectedGroup._id,
           name: selectedGroup.name,
-          ageGroup: selectedGroup.ageGroup,
         },
         isValid: true,
       });
@@ -329,7 +325,7 @@ export default function InviteCodesScreen() {
                 >
                   <Text style={styles.dropdownText}>
                     {selectedGroup
-                      ? `${selectedGroup.name}${selectedGroup.ageGroup ? ` (${selectedGroup.ageGroup})` : ''}`
+                      ? selectedGroup.name
                       : t('groups.selectGroup') + '...'}
                   </Text>
                   <MaterialCommunityIcons name={menuVisible ? "chevron-up" : "chevron-down"} size={24} color={Colors.textSecondary} />
@@ -371,7 +367,7 @@ export default function InviteCodesScreen() {
                             styles.dropdownItemText,
                             selectedGroup?._id === group._id && styles.dropdownItemTextSelected,
                           ]}>
-                            {group.name}{group.ageGroup ? ` (${group.ageGroup})` : ''}
+                            {group.name}
                           </Text>
                           {selectedGroup?._id === group._id && (
                             <MaterialCommunityIcons name="check" size={20} color={Colors.primary} />
@@ -446,7 +442,6 @@ export default function InviteCodesScreen() {
 
             <Text style={styles.codeInfo}>
               {t('groups.group')}: {generatedCode.groupId?.name || 'Unknown'}
-              {generatedCode.groupId?.ageGroup && ` (${generatedCode.groupId.ageGroup})`}
             </Text>
             <Text style={styles.codeInfo}>
               {t('invites.maxUses') || 'Max uses'}: {generatedCode.maxUses} | {t('invites.expires') || 'Expires'}: {formatDate(generatedCode.expiresAt)}
