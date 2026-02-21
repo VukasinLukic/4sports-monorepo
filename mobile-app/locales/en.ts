@@ -729,6 +729,15 @@ export default {
       november: 'November',
       december: 'December',
     },
+    days: {
+      sun: 'Sun',
+      mon: 'Mon',
+      tue: 'Tue',
+      wed: 'Wed',
+      thu: 'Thu',
+      fri: 'Fri',
+      sat: 'Sat',
+    },
   },
 
   // Evidence
