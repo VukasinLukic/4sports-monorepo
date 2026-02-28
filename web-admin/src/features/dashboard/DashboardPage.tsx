@@ -11,7 +11,6 @@ import { BalanceDonutCard } from './BalanceDonutCard';
 import { RecentTransactionsCard } from './RecentTransactionsCard';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
-import { HelpButton } from '@/components/shared/HelpButton';
 import { useOnboarding } from '@/context/OnboardingContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
@@ -160,7 +159,6 @@ export const DashboardPage = () => {
         ) : null}
       </div>
 
-      <HelpButton pageKey="dashboard" />
     </div>
   );
 };

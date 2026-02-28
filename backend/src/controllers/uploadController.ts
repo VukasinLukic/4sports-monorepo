@@ -122,30 +122,30 @@ export const uploadChatImage = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No file uploaded' } });
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No files uploaded' } });
     }
 
-    // Validate file type
-    if (!validateFileType(req.file.mimetype, FILE_TYPES.IMAGES)) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'Invalid file type. Only images are allowed.' },
-      });
+    const urls: string[] = [];
+    for (const file of files) {
+      if (!validateFileType(file.mimetype, FILE_TYPES.IMAGES)) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'Invalid file type. Only images are allowed.' },
+        });
+      }
+      if (!validateFileSize(file.size, FILE_SIZE.IMAGE_MAX)) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'File too large. Maximum size is 5MB.' },
+        });
+      }
+      const fileUrl = await uploadFile(file.buffer, file.originalname, 'chat', file.mimetype);
+      urls.push(fileUrl);
     }
 
-    // Validate file size
-    if (!validateFileSize(req.file.size, FILE_SIZE.IMAGE_MAX)) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'File too large. Maximum size is 5MB.' },
-      });
-    }
-
-    // Upload to Cloudinary
-    const fileUrl = await uploadFile(req.file.buffer, req.file.originalname, 'chat', req.file.mimetype);
-
-    return res.status(200).json({ success: true, data: { url: fileUrl } });
+    return res.status(200).json({ success: true, data: { urls } });
   } catch (error: any) {
     console.error('❌ Upload Chat Image Error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to upload file' } });

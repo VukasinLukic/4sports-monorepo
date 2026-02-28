@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Club, { SUBSCRIPTION_LIMITS } from '../models/Club';
 import User from '../models/User';
+import Member from '../models/Member';
 
 // ============================================
 // CLUB SETTINGS
@@ -109,7 +110,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
         fullName: user.fullName,
         email: user.email,
         phoneNumber: user.phoneNumber || '',
-        profileImage: user.profileImage || '',
+        profilePicture: user.profileImage || '',
         role: user.role,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -139,6 +140,15 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
     await user.save();
 
+    // Sync profileImage to linked Member document (if user is a member)
+    if (profileImage !== undefined) {
+      await Member.findOneAndUpdate(
+        { userId: req.user._id },
+        { profileImage },
+        { new: false }
+      );
+    }
+
     return res.status(200).json({
       success: true,
       data: {
@@ -146,7 +156,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
         fullName: user.fullName,
         email: user.email,
         phoneNumber: user.phoneNumber || '',
-        profileImage: user.profileImage || '',
+        profilePicture: user.profileImage || '',
         role: user.role,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

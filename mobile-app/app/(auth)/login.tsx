@@ -175,6 +175,13 @@ export default function LoginScreen() {
             {loading ? t('auth.loggingIn') : t('auth.login')}
           </Button>
 
+          {/* Forgot password */}
+          <View style={styles.forgotContainer}>
+            <Link href="/(auth)/forgot-password" asChild>
+              <Text style={styles.forgotLink}>{t('auth.forgotPassword')}</Text>
+            </Link>
+          </View>
+
           {/* Register Link */}
           <View style={styles.linkContainer}>
             <Text style={styles.linkText}>{t('auth.noAccount')} </Text>
@@ -245,6 +252,14 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: FontSize.md,
     fontWeight: 'bold',
+  },
+  forgotContainer: {
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+  },
+  forgotLink: {
+    color: AppColors.primary,
+    fontSize: FontSize.sm,
   },
   linkContainer: {
     flexDirection: 'row',

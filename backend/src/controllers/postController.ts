@@ -110,7 +110,7 @@ export const getPostById = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
     const { id } = req.params;
 
-    const post = await Post.findById(id).populate('authorId', 'fullName profilePicture');
+    const post = await Post.findById(id).populate('authorId', 'fullName profileImage');
     if (!post) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Post not found' } });
 
     // Check visibility access

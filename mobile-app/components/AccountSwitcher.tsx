@@ -263,38 +263,55 @@ export default function AccountSwitcher({ visible, onClose, onAccountSwitch }: A
               {accounts.map((account) => {
                 const isCurrentAccount = account.id === firebaseUser?.uid;
                 return (
-                  <TouchableOpacity
+                  <View
                     key={account.id}
                     style={[styles.accountItem, isCurrentAccount && styles.currentAccountItem]}
-                    onPress={() => handleSwitchAccount(account)}
-                    onLongPress={() => handleRemoveAccount(account)}
                   >
-                    <Avatar.Text
-                      size={48}
-                      label={getInitials(account.fullName)}
-                      style={[styles.avatar, { backgroundColor: getRoleColor(account.role) }]}
-                    />
-                    <View style={styles.accountInfo}>
-                      <Text style={styles.accountName}>{account.fullName}</Text>
-                      <Text style={styles.accountEmail}>{account.email}</Text>
-                      <Text style={[styles.accountRole, { color: getRoleColor(account.role) }]}>
-                        {account.role}
-                      </Text>
-                    </View>
-                    {isCurrentAccount ? (
-                      <MaterialCommunityIcons
-                        name="check-circle"
-                        size={24}
-                        color={Colors.success}
+                    <TouchableOpacity
+                      style={styles.accountPressable}
+                      onPress={() => handleSwitchAccount(account)}
+                      activeOpacity={0.7}
+                    >
+                      <Avatar.Text
+                        size={48}
+                        label={getInitials(account.fullName)}
+                        style={[styles.avatar, { backgroundColor: getRoleColor(account.role) }]}
                       />
-                    ) : (
-                      <MaterialCommunityIcons
-                        name="chevron-right"
-                        size={24}
-                        color={Colors.textSecondary}
-                      />
+                      <View style={styles.accountInfo}>
+                        <Text style={styles.accountName}>{account.fullName}</Text>
+                        <Text style={styles.accountEmail}>{account.email}</Text>
+                        <Text style={[styles.accountRole, { color: getRoleColor(account.role) }]}>
+                          {account.role}
+                        </Text>
+                      </View>
+                      {isCurrentAccount ? (
+                        <MaterialCommunityIcons
+                          name="check-circle"
+                          size={24}
+                          color={Colors.success}
+                        />
+                      ) : (
+                        <MaterialCommunityIcons
+                          name="chevron-right"
+                          size={24}
+                          color={Colors.textSecondary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                    {!isCurrentAccount && (
+                      <TouchableOpacity
+                        style={styles.deleteAccountButton}
+                        onPress={() => handleRemoveAccount(account)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <MaterialCommunityIcons
+                          name="trash-can-outline"
+                          size={20}
+                          color={Colors.error}
+                        />
+                      </TouchableOpacity>
                     )}
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
 
@@ -356,10 +373,20 @@ const styles = StyleSheet.create({
   accountItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.xs,
+    overflow: 'hidden',
+  },
+  accountPressable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+  },
+  deleteAccountButton: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.md,
   },
   currentAccountItem: {
     backgroundColor: Colors.primary + '10',

@@ -45,13 +45,21 @@ const theme = {
     ...MD3DarkTheme.colors,
     primary: AppColors.primary,
     secondary: AppColors.secondary,
-    background: AppColors.background,
-    surface: AppColors.surface,
+    background: AppColors.background,        // screen bg → #0A0A0A
+    surface: AppColors.card,                  // base surface → #121212
+    surfaceVariant: AppColors.surface,        // variant surface → #1F1F1F
+    // MD3 elevation container tokens — everything → #121212 except screen bg
+    surfaceContainerLowest: AppColors.background, // #0A0A0A
+    surfaceContainerLow: AppColors.card,          // #121212
+    surfaceContainer: AppColors.card,             // #121212
+    surfaceContainerHigh: AppColors.card,         // #121212
+    surfaceContainerHighest: AppColors.card,      // #121212
     error: AppColors.error,
-    onPrimary: '#ffffff',
+    onPrimary: '#000000',
     onSecondary: '#ffffff',
     onBackground: AppColors.text,
     onSurface: AppColors.text,
+    onSurfaceVariant: AppColors.textSecondary,
   },
 };
 

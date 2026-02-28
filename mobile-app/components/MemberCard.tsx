@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Image } from 'react-native';
 import { Text, Avatar, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
@@ -54,11 +54,18 @@ export default function MemberCard({ member, onPress }: MemberCardProps) {
       <Card style={styles.card}>
         <Card.Content style={styles.content}>
           {/* Avatar */}
-          <Avatar.Text
-            size={50}
-            label={getInitials(member.fullName)}
-            style={styles.avatar}
-          />
+          {member.profilePicture || member.profileImage ? (
+            <Image
+              source={{ uri: (member.profilePicture || member.profileImage)! }}
+              style={styles.avatarImage}
+            />
+          ) : (
+            <Avatar.Text
+              size={50}
+              label={getInitials(member.fullName)}
+              style={styles.avatar}
+            />
+          )}
 
           {/* Info */}
           <View style={styles.info}>
@@ -116,6 +123,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatar: {
+    backgroundColor: Colors.primary,
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: Colors.primary,
   },
   info: {

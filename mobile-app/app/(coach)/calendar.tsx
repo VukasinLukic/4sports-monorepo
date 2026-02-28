@@ -367,7 +367,10 @@ export default function CoachCalendar() {
         icon="plus"
         style={styles.fab}
         color={Colors.text}
-        onPress={() => router.push('/(coach)/events/create')}
+        onPress={() => router.push({
+          pathname: '/(coach)/events/create',
+          params: selectedDate ? { date: selectedDate } : {},
+        })}
       />
     </View>
   );

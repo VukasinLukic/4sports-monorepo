@@ -5,6 +5,49 @@ import Member from '../models/Member';
 import Attendance from '../models/Attendance';
 import Notification from '../models/Notification';
 
+function generateOccurrenceDates(
+  startTime: Date,
+  endTime: Date,
+  pattern: { frequency: string; days?: number[]; until: Date }
+): Array<{ startTime: Date; endTime: Date }> {
+  const durationMs = endTime.getTime() - startTime.getTime();
+  const occurrences: Date[] = [];
+  const until = new Date(pattern.until);
+
+  if (pattern.frequency === 'daily') {
+    const cur = new Date(startTime);
+    cur.setDate(cur.getDate() + 1);
+    while (cur <= until) {
+      occurrences.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+  } else if (pattern.frequency === 'weekly') {
+    const days = (pattern.days && pattern.days.length > 0) ? pattern.days : [startTime.getDay()];
+    for (const targetDay of days) {
+      const offset = (targetDay - startTime.getDay() + 7) % 7;
+      const cur = new Date(startTime);
+      cur.setDate(cur.getDate() + (offset === 0 ? 7 : offset));
+      while (cur <= until) {
+        occurrences.push(new Date(cur));
+        cur.setDate(cur.getDate() + 7);
+      }
+    }
+    occurrences.sort((a, b) => a.getTime() - b.getTime());
+  } else if (pattern.frequency === 'monthly') {
+    const cur = new Date(startTime);
+    cur.setMonth(cur.getMonth() + 1);
+    while (cur <= until) {
+      occurrences.push(new Date(cur));
+      cur.setMonth(cur.getMonth() + 1);
+    }
+  }
+
+  return occurrences.map(d => ({
+    startTime: d,
+    endTime: new Date(d.getTime() + durationMs),
+  }));
+}
+
 export const createEvent = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
@@ -40,6 +83,50 @@ export const createEvent = async (req: Request, res: Response) => {
     const members = await Member.findByGroup(groupId);
     const attendanceRecords = members.map(member => ({ eventId: event._id, memberId: member._id, status: 'ABSENT' }));
     if (attendanceRecords.length > 0) await Attendance.insertMany(attendanceRecords);
+
+    // Generate recurring instances if applicable
+    if (isRecurring && recurringPattern?.until) {
+      try {
+        const occurrences = generateOccurrenceDates(
+          new Date(startTime),
+          new Date(endTime),
+          recurringPattern
+        );
+
+        if (occurrences.length > 0) {
+          const childEvents = await Event.insertMany(
+            occurrences.map(o => ({
+              clubId,
+              groupId,
+              title,
+              description,
+              type,
+              startTime: o.startTime,
+              endTime: o.endTime,
+              location,
+              isMandatory,
+              notes,
+              equipment,
+              maxParticipants,
+              isRecurring: true,
+              recurringPattern,
+              parentEventId: event._id,
+              createdBy: req.user!._id,
+            }))
+          );
+
+          // Create attendance records for all recurring instances
+          if (members.length > 0) {
+            const childAttendance = childEvents.flatMap(childEvent =>
+              members.map(member => ({ eventId: childEvent._id, memberId: member._id, status: 'ABSENT' }))
+            );
+            await Attendance.insertMany(childAttendance);
+          }
+        }
+      } catch (recurringError) {
+        console.error('Failed to create recurring instances:', recurringError);
+      }
+    }
 
     // Create notifications for group members and creator
     try {
@@ -145,13 +232,37 @@ export const deleteEvent = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
 
     const { id } = req.params;
+    const deleteMode = (req.query.deleteMode as string) || 'this';
+
     const event = await Event.findById(id);
 
     if (!event) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Event not found' } });
     if (event.clubId.toString() !== req.user.clubId?.toString()) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
 
-    await Event.findByIdAndDelete(id);
-    await Attendance.deleteMany({ eventId: id });
+    if (deleteMode === 'all') {
+      // Delete this event + all siblings + the parent (root of the series)
+      const parentId = event.parentEventId ?? event._id;
+      const seriesEvents = await Event.find({
+        $or: [{ _id: parentId }, { parentEventId: parentId }],
+      }).select('_id');
+      const eventIds = seriesEvents.map(e => e._id);
+      await Event.deleteMany({ _id: { $in: eventIds } });
+      await Attendance.deleteMany({ eventId: { $in: eventIds } });
+    } else if (deleteMode === 'future') {
+      // Delete this event + all siblings with startTime >= this event's startTime
+      const parentId = event.parentEventId ?? event._id;
+      const futureEvents = await Event.find({
+        $or: [{ _id: parentId }, { parentEventId: parentId }],
+        startTime: { $gte: event.startTime },
+      }).select('_id');
+      const eventIds = futureEvents.map(e => e._id);
+      await Event.deleteMany({ _id: { $in: eventIds } });
+      await Attendance.deleteMany({ eventId: { $in: eventIds } });
+    } else {
+      // 'this' — delete only this event
+      await Event.findByIdAndDelete(id);
+      await Attendance.deleteMany({ eventId: id });
+    }
 
     return res.status(200).json({ success: true, message: 'Event deleted successfully' });
   } catch (error: any) {

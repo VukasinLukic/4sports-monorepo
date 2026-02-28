@@ -45,6 +45,9 @@ export default {
     note: 'Note',
     share: 'Share',
     unknown: 'Unknown',
+    saveChanges: 'Save Changes',
+    validationError: 'Validation Error',
+    permissionRequired: 'Permission Required',
   },
 
   // Navigation & Tabs
@@ -98,6 +101,11 @@ export default {
     registering: 'Creating account...',
     logoutConfirm: 'Are you sure you want to logout?',
     logoutSuccess: 'Logged out successfully',
+    resetPasswordDesc: 'Enter your email and we\'ll send you a link to reset your password.',
+    sendResetLink: 'Send reset link',
+    resetEmailSent: 'Check your inbox!',
+    resetEmailSentDesc: 'We sent a password reset link to {{email}}. Click the link in the email to set a new password.',
+    backToLogin: 'Back to login',
   },
 
   // Validation & Errors
@@ -105,6 +113,7 @@ export default {
     required: 'This field is required',
     invalidEmail: 'Please enter a valid email address',
     emailRequired: 'Email is required',
+    emailNotRegistered: 'This email is not registered in the app.',
     passwordRequired: 'Password is required',
     passwordMin: 'Password must be at least 6 characters',
     passwordsNoMatch: 'Passwords do not match',
@@ -116,6 +125,7 @@ export default {
     selectMember: 'Please select a member.',
     selectGroup: 'Please select a group',
     endTimeAfterStart: 'End time must be after start time',
+    groupNameMin: 'Group name must be at least 3 characters',
   },
 
   errors: {
@@ -296,6 +306,11 @@ export default {
     scanQRCode: 'Scan QR Code',
     deleteEvent: 'Delete Event',
     deleteEventConfirm: 'Are you sure you want to delete this event?',
+    deleteRecurringTitle: 'Delete recurring event',
+    deleteRecurringDesc: 'This event is part of a recurring series. What would you like to delete?',
+    deleteThis: 'Only this occurrence',
+    deleteFuture: 'This and all future occurrences',
+    deleteAll: 'All occurrences (past and future)',
     eventDeleted: 'Event deleted successfully',
     eventCreated: 'Event created successfully',
     eventUpdated: 'Event updated successfully',
@@ -621,6 +636,20 @@ export default {
     myChildren: 'My Children',
     recentNotifications: 'Recent Notifications',
     noNewNotifications: 'No new notifications',
+    tapToChangePhoto: 'Tap to change photo',
+    fullName: 'Full Name',
+    fullNamePlaceholder: 'Enter your full name',
+    email: 'Email',
+    emailCannotChange: 'Email cannot be changed',
+    phoneNumber: 'Phone Number',
+    phoneNumberPlaceholder: 'Enter your phone number',
+    photoPermission: 'Please allow access to your photo library to change your profile picture.',
+    pickImageError: 'Failed to pick image. Please try again.',
+    uploadError: 'Image upload failed. Please try again.',
+    nameRequired: 'Please enter your full name.',
+    nameTooShort: 'Name must be at least 2 characters.',
+    updateSuccess: 'Profile updated successfully!',
+    updateError: 'Failed to update profile. Please try again.',
   },
 
   // QR Code

@@ -93,7 +93,9 @@ export const chatService = {
   },
 
   /**
-   * Subscribe to conversations in real-time
+   * Subscribe to conversations in real-time.
+   * Uses Firestore onSnapshot to detect changes, but fetches from the backend
+   * API on each change so that participantDetails.avatar is always fresh.
    */
   subscribeToConversations: (
     userId: string,
@@ -108,15 +110,17 @@ export const chatService = {
       orderBy('updatedAt', 'desc')
     );
 
-    return onSnapshot(q, (snapshot) => {
-      const conversations: Conversation[] = [];
-      snapshot.forEach((doc) => {
-        conversations.push({
-          id: doc.id,
-          ...doc.data(),
-        } as Conversation);
-      });
-      callback(conversations);
+    const fetchFreshConversations = async () => {
+      try {
+        const response = await api.get('/chat/conversations');
+        callback(response.data.data || []);
+      } catch {
+        // Silently ignore — caller retains previous state
+      }
+    };
+
+    return onSnapshot(q, () => {
+      fetchFreshConversations();
     });
   },
 

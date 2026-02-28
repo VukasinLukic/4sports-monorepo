@@ -7,7 +7,7 @@ export interface Post {
   authorId: {
     _id: string;
     fullName: string;
-    profilePicture?: string;
+    profileImage?: string;
     role?: string;
   };
   title: string;
@@ -82,7 +82,7 @@ export interface PostComment {
   authorId: {
     _id: string;
     fullName: string;
-    profilePicture?: string;
+    profileImage?: string;
     role?: string;
   };
   content: string;

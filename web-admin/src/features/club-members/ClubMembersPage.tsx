@@ -35,6 +35,7 @@ import {
   Check,
   Loader2,
   Ticket,
+  AlertTriangle,
 } from 'lucide-react';
 import { SkeletonTable } from '@/components/shared/SkeletonTable';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
@@ -82,6 +83,7 @@ export function ClubMembersPage() {
 
   // Expanded groups
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [generatingGroupId, setGeneratingGroupId] = useState<string | null>(null);
 
   // Debounce searches
   useEffect(() => {
@@ -197,6 +199,30 @@ export function ClubMembersPage() {
       toast({ title: t('invites.codeGenerated') });
     } catch {
       toast({ title: t('invites.generateFailed'), variant: 'destructive' });
+    }
+  };
+
+  const getGroupInviteCode = (groupId: string) => {
+    if (!inviteCodes) return null;
+    return inviteCodes.find(
+      (inv) =>
+        inv.type === 'MEMBER' &&
+        inv.isValid &&
+        inv.isActive &&
+        inv.groupId &&
+        (typeof inv.groupId === 'string' ? inv.groupId : inv.groupId._id) === groupId
+    ) || null;
+  };
+
+  const handleGenerateMemberForGroup = async (groupId: string) => {
+    setGeneratingGroupId(groupId);
+    try {
+      await generateMutation.mutateAsync({ type: 'MEMBER', groupId, maxUses: 30, expiresInDays: 30 });
+      toast({ title: t('invites.codeGenerated') });
+    } catch {
+      toast({ title: t('invites.generateFailed'), variant: 'destructive' });
+    } finally {
+      setGeneratingGroupId(null);
     }
   };
 
@@ -492,6 +518,12 @@ export function ClubMembersPage() {
                               style={{ backgroundColor: group.color || '#22c55e' }}
                             />
                             <span className="font-semibold flex-1 text-left">{group.name}</span>
+                            {(!group.coaches || group.coaches.length === 0) && (
+                              <span className="flex items-center gap-1 text-xs text-red-500 mr-2">
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                                {t('clubMembers.noTrainer')}
+                              </span>
+                            )}
                             <span className="text-sm text-muted-foreground mr-2">
                               {t('clubMembers.membersInGroup', { count: groupMembers.length })}
                             </span>
@@ -528,6 +560,48 @@ export function ClubMembersPage() {
                                 {t('clubMembers.noMembers')}
                               </p>
                             )}
+
+                            {/* Invite Code Section */}
+                            {(() => {
+                              const groupCode = getGroupInviteCode(group._id);
+                              return (
+                                <div className="mt-3 pt-3 border-t border-border/40">
+                                  {groupCode ? (
+                                    <div className="flex items-center justify-between gap-2 bg-green-500/10 rounded-md px-3 py-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs text-muted-foreground">{t('invites.inviteCode')}:</span>
+                                        <span className="font-mono text-sm font-bold text-primary tracking-widest">
+                                          {groupCode.code}
+                                        </span>
+                                      </div>
+                                      <button
+                                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
+                                        onClick={() => handleCopyCode(groupCode.code, group.name)}
+                                      >
+                                        {copiedCode === groupCode.code ? (
+                                          <Check className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                          <Copy className="h-4 w-4" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      className="w-full flex items-center justify-center gap-2 text-sm text-primary border border-dashed border-primary/50 rounded-md py-2 hover:bg-primary/5 transition-colors disabled:opacity-50"
+                                      onClick={() => handleGenerateMemberForGroup(group._id)}
+                                      disabled={generatingGroupId === group._id}
+                                    >
+                                      {generatingGroupId === group._id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Plus className="h-4 w-4" />
+                                      )}
+                                      {t('invites.generateCode')}
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>
@@ -601,8 +675,12 @@ function CoachCard({
       className="flex items-center gap-3 px-3 py-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
       onClick={onClick}
     >
-      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-        <User className="h-5 w-5 text-muted-foreground" />
+      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
+        {coach.profileImage ? (
+          <img src={coach.profileImage} alt={coach.fullName} className="h-10 w-10 rounded-full object-cover" />
+        ) : (
+          <User className="h-5 w-5 text-muted-foreground" />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{coach.fullName}</div>

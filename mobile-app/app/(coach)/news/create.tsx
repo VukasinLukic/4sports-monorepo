@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button, ActivityIndicator, Chip, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -41,11 +41,15 @@ export default function CreatePostScreen() {
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        const newImages: SelectedImage[] = result.assets.map((asset, index) => ({
-          uri: asset.uri,
-          type: asset.mimeType || 'image/jpeg',
-          name: asset.fileName || `image_${Date.now()}_${index}.jpg`,
-        }));
+        const newImages: SelectedImage[] = result.assets.map((asset, index) => {
+          const mimeType = asset.mimeType || 'image/jpeg';
+          const ext = mimeType === 'image/heic' || mimeType === 'image/heif' ? 'heic' : 'jpg';
+          return {
+            uri: asset.uri,
+            type: mimeType,
+            name: asset.fileName || `image_${Date.now()}_${index}.${ext}`,
+          };
+        });
 
         // Limit to 5 images total
         const totalImages = [...selectedImages, ...newImages].slice(0, 5);
@@ -173,6 +177,10 @@ export default function CreatePostScreen() {
   };
 
   return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Title */}
       <Text style={styles.label}>{t('news.postTitle')} *</Text>
@@ -273,6 +281,7 @@ export default function CreatePostScreen() {
         {t('common.cancel')}
       </Button>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

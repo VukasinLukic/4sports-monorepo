@@ -1,26 +1,28 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, FAB, ActivityIndicator, Chip, Card } from 'react-native-paper';
+import { View, StyleSheet, FlatList, RefreshControl, Alert } from 'react-native';
+import { Text, FAB, ActivityIndicator, Chip, Card, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
+import { useAuth } from '@/services/AuthContext';
 import PostCard from '@/components/PostCard';
 import CommentBottomSheet from '@/components/CommentBottomSheet';
 import api from '@/services/api';
 import { Post } from '@/types';
 
-interface PostWithAuthor extends Post {
-  author?: {
+interface PostWithAuthor extends Omit<Post, 'authorId'> {
+  authorId?: {
     _id: string;
     fullName: string;
-    profilePicture?: string;
-  };
+    profileImage?: string;
+  } | string;
 }
 
 export default function CoachNewsFeed() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const { postId: scrollToPostId, openComments } = useLocalSearchParams<{ postId?: string; openComments?: string }>();
   const flatListRef = useRef<FlatList>(null);
   const [posts, setPosts] = useState<PostWithAuthor[]>([]);
@@ -104,16 +106,64 @@ export default function CoachNewsFeed() {
     setCommentSheetVisible(true);
   };
 
-  const renderPost = ({ item }: { item: PostWithAuthor }) => (
-    <PostCard
-      post={item}
-      authorName={item.author?.fullName || t('roles.coach')}
-      authorAvatar={item.author?.profilePicture}
-      onLike={handleLike}
-      onComment={handleComment}
-      onPress={handlePostPress}
-    />
-  );
+  const handleEdit = (post: PostWithAuthor) => {
+    router.push({
+      pathname: '/(coach)/news/edit',
+      params: {
+        postId: post._id,
+        title: post.title || '',
+        content: post.content,
+        images: JSON.stringify(post.images || []),
+      },
+    });
+  };
+
+  const handleDelete = (postId: string) => {
+    Alert.alert(
+      t('news.deletePost'),
+      t('news.deletePostConfirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/posts/${postId}`);
+              fetchData();
+            } catch (error) {
+              Alert.alert(t('common.error'), t('errors.generic'));
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const isOwnPost = (item: PostWithAuthor): boolean => {
+    if (!user) return false;
+    const authorId = item.authorId;
+    if (typeof authorId === 'string') return authorId === user._id;
+    if (authorId && typeof authorId === 'object') return authorId._id === user._id;
+    return false;
+  };
+
+  const renderPost = ({ item }: { item: PostWithAuthor }) => {
+    const authorObj = item.authorId && typeof item.authorId === 'object' ? item.authorId : null;
+    const isOwn = isOwnPost(item);
+    return (
+      <PostCard
+        post={item}
+        authorName={authorObj?.fullName || t('roles.coach')}
+        authorAvatar={authorObj?.profileImage}
+        onLike={handleLike}
+        onComment={handleComment}
+        onPress={handlePostPress}
+        onEdit={isOwn ? handleEdit : undefined}
+        onDelete={isOwn ? handleDelete : undefined}
+      />
+    );
+  };
 
   const renderEmptyState = () => (
     <Card style={styles.emptyCard}>
@@ -123,6 +173,13 @@ export default function CoachNewsFeed() {
         <Text style={styles.emptyText}>
           {t('news.noPostsDescription') || 'Share news, updates, and announcements with your club members'}
         </Text>
+        <Button
+          mode="contained"
+          onPress={() => router.push('/(coach)/news/create')}
+          style={styles.createPostButton}
+        >
+          {t('news.createPost') || 'Create Post'}
+        </Button>
       </Card.Content>
     </Card>
   );
@@ -252,6 +309,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.xs,
     paddingHorizontal: Spacing.lg,
+  },
+  createPostButton: {
+    marginTop: Spacing.lg,
   },
   fab: {
     position: 'absolute',

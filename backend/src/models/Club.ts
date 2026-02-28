@@ -74,8 +74,8 @@ const clubSchema = new Schema<IClub, IClubModel>(
       type: String,
       trim: true,
       match: [
-        /^\+[0-9]{10,15}$/,
-        'Please provide a valid phone number in format +381XXXXXXXXX',
+        /^\d{8,}$/,
+        'Please provide a valid phone number with at least 8 digits',
       ],
     },
 

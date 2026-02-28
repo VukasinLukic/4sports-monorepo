@@ -21,7 +21,7 @@ import api from '@/services/api';
 interface NotificationSender {
   _id: string;
   fullName: string;
-  profilePicture?: string;
+  profileImage?: string;
 }
 
 interface Notification {
@@ -163,7 +163,7 @@ export default function NotificationsScreen() {
   const renderNotification = ({ item }: { item: Notification }) => {
     const hasSender = item.senderId && typeof item.senderId === 'object';
     const senderName = hasSender ? item.senderId!.fullName : undefined;
-    const senderAvatar = hasSender ? item.senderId!.profilePicture : undefined;
+    const senderAvatar = hasSender ? item.senderId!.profileImage : undefined;
 
     return (
       <TouchableOpacity

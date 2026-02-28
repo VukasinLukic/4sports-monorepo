@@ -143,11 +143,11 @@ export default function ParentProfile() {
       {/* Profile Header */}
       <Card style={styles.profileCard}>
         <Card.Content style={styles.profileContent}>
-          <Avatar.Text
-            size={80}
-            label={getInitials(user?.fullName)}
-            style={styles.avatar}
-          />
+          {user?.profilePicture ? (
+            <Avatar.Image size={80} source={{ uri: user.profilePicture }} style={styles.avatar} />
+          ) : (
+            <Avatar.Text size={80} label={getInitials(user?.fullName)} style={styles.avatar} />
+          )}
           <Text style={styles.userName}>{user?.fullName || t('roles.parent')}</Text>
           <Text style={styles.userEmail}>{user?.email || ''}</Text>
           <View style={styles.roleBadge}>

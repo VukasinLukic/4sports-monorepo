@@ -7,6 +7,7 @@ import { OnboardingProvider } from './context/OnboardingContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
+import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { ClubMembersPage } from './features/club-members/ClubMembersPage';
 import { InviteCodesPage } from './features/invites/InviteCodesPage';
@@ -37,6 +38,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route
               path="/"
               element={
