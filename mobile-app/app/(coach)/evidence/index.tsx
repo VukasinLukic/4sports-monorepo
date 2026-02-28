@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { router } from 'expo-router';
 import {
   View,
   StyleSheet,
@@ -85,6 +86,17 @@ export default function EvidenceScreen() {
   // Calculate expiry date (6 months from check date)
   const medicalExpiryDate = new Date(medicalCheckDate);
   medicalExpiryDate.setMonth(medicalExpiryDate.getMonth() + 6);
+
+  // Group medical modal state
+  const [showGroupMedicalModal, setShowGroupMedicalModal] = useState(false);
+  const [selectedGroupForMedical, setSelectedGroupForMedical] = useState<GroupWithMembers | null>(null);
+  const [groupMedicalCheckDate, setGroupMedicalCheckDate] = useState(new Date());
+  const [showGroupMedicalDatePicker, setShowGroupMedicalDatePicker] = useState(false);
+  const [isSubmittingGroupMedical, setIsSubmittingGroupMedical] = useState(false);
+
+  // Calculate group expiry date (6 months from group check date)
+  const groupMedicalExpiryDate = new Date(groupMedicalCheckDate);
+  groupMedicalExpiryDate.setMonth(groupMedicalExpiryDate.getMonth() + 6);
 
   // Default membership fee (will be dynamic when membershipFee is added to Member)
   const DEFAULT_MEMBERSHIP_FEE = 3000;
@@ -292,6 +304,49 @@ export default function EvidenceScreen() {
     setSelectedMemberForMedical(null);
   };
 
+  // Handle group medical date change
+  const handleGroupMedicalDateChange = (event: any, selectedDate?: Date) => {
+    setShowGroupMedicalDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setGroupMedicalCheckDate(selectedDate);
+    }
+  };
+
+  // Handle group medical submission
+  const handleSubmitGroupMedical = async () => {
+    if (!selectedGroupForMedical) return;
+
+    setIsSubmittingGroupMedical(true);
+
+    try {
+      await Promise.all(
+        selectedGroupForMedical.members.map(member =>
+          api.post(`/evidence/medical/${member._id}`, {
+            lastCheckDate: groupMedicalCheckDate.toISOString(),
+            expiryDate: groupMedicalExpiryDate.toISOString(),
+          })
+        )
+      );
+      setShowGroupMedicalModal(false);
+      setSelectedGroupForMedical(null);
+      fetchData();
+      Alert.alert(
+        t('common.success'),
+        `${t('medical.recordedSuccess') || 'Lekarski pregled evidentiran'} (${selectedGroupForMedical.members.length} članova)`
+      );
+    } catch (error) {
+      console.error('Error updating group medical:', error);
+      Alert.alert(t('common.error'), t('medical.recordFailed') || 'Greška pri evidenciji lekarskog pregleda.');
+    } finally {
+      setIsSubmittingGroupMedical(false);
+    }
+  };
+
+  const closeGroupMedicalModal = () => {
+    setShowGroupMedicalModal(false);
+    setSelectedGroupForMedical(null);
+  };
+
   const handleRemindMember = async (member: MemberWithStatus) => {
     const actionKey = `remind-${member._id}`;
     if (loadingActions.has(actionKey)) return;
@@ -483,38 +538,44 @@ export default function EvidenceScreen() {
           isChecked ? styles.memberCardPaid : isPartial ? styles.memberCardPartial : styles.memberCardUnpaid,
         ]}
       >
-        {/* Member Avatar */}
-        {member.profileImage || member.profilePicture ? (
-          <Avatar.Image
-            size={40}
-            source={{ uri: member.profileImage || member.profilePicture }}
-          />
-        ) : (
-          <Avatar.Text
-            size={40}
-            label={member.fullName.charAt(0).toUpperCase()}
-            style={{ backgroundColor: Colors.primary }}
-          />
-        )}
+        {/* Member Avatar + Info — tappable → navigate to profile */}
+        <TouchableOpacity
+          style={styles.memberLeft}
+          onPress={() => router.push({ pathname: '/(coach)/members/[id]', params: { id: member._id } })}
+          activeOpacity={0.7}
+        >
+          {member.profileImage || member.profilePicture ? (
+            <Avatar.Image
+              size={40}
+              source={{ uri: member.profileImage || member.profilePicture }}
+            />
+          ) : (
+            <Avatar.Text
+              size={40}
+              label={member.fullName.charAt(0).toUpperCase()}
+              style={{ backgroundColor: Colors.primary }}
+            />
+          )}
 
-        {/* Member Info */}
-        <View style={styles.memberInfo}>
-          <Text style={styles.memberName}>{member.fullName}</Text>
-          <Text style={[
-            styles.memberStatus,
-            isChecked ? styles.memberStatusPaid : isPartial ? styles.memberStatusPartial : styles.memberStatusUnpaid,
-          ]}>
-            {isChecked
-              ? (activeTab === 'membership' ? t('status.paid') : t('status.valid'))
-              : isPartial
-                ? `${t('status.partial')} (${member.paymentInfo?.paidAmount ?? 0}/${member.paymentInfo?.amount ?? 0})`
-                : (activeTab === 'membership' ? t('status.notPaid') : t('status.invalid'))
-            }
-          </Text>
-          <Text style={styles.memberLastActive}>
-            {formatLastActive(member.lastActive)}
-          </Text>
-        </View>
+          {/* Member Info */}
+          <View style={styles.memberInfo}>
+            <Text style={styles.memberName}>{member.fullName}</Text>
+            <Text style={[
+              styles.memberStatus,
+              isChecked ? styles.memberStatusPaid : isPartial ? styles.memberStatusPartial : styles.memberStatusUnpaid,
+            ]}>
+              {isChecked
+                ? (activeTab === 'membership' ? t('status.paid') : t('status.valid'))
+                : isPartial
+                  ? `${t('status.partial')} (${member.paymentInfo?.paidAmount ?? 0}/${member.paymentInfo?.amount ?? 0})`
+                  : (activeTab === 'membership' ? t('status.notPaid') : t('status.invalid'))
+              }
+            </Text>
+            <Text style={styles.memberLastActive}>
+              {formatLastActive(member.lastActive)}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
         {/* Actions */}
         <View style={styles.memberActions}>
@@ -593,6 +654,25 @@ export default function EvidenceScreen() {
               {group.paidCount}/{group.totalCount}
             </Text>
           </View>
+
+          {/* Group Medical Button — only on medical tab */}
+          {activeTab === 'medical' && (
+            <TouchableOpacity
+              style={styles.groupMedicalButton}
+              onPress={() => {
+                setSelectedGroupForMedical(group);
+                setGroupMedicalCheckDate(new Date());
+                setShowGroupMedicalDatePicker(false);
+                setShowGroupMedicalModal(true);
+              }}
+            >
+              <MaterialCommunityIcons
+                name="stethoscope"
+                size={22}
+                color={Colors.success}
+              />
+            </TouchableOpacity>
+          )}
 
           {/* Reminder Bell */}
           {unpaidCount > 0 && (
@@ -1032,6 +1112,115 @@ export default function EvidenceScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Group Medical Modal */}
+      <Modal
+        visible={showGroupMedicalModal}
+        transparent
+        animationType="slide"
+        onRequestClose={closeGroupMedicalModal}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('medical.recordCheckup') || 'Evidentiraj pregled'}</Text>
+              <TouchableOpacity onPress={closeGroupMedicalModal} style={styles.modalCloseButton}>
+                <MaterialCommunityIcons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Group Info */}
+            {selectedGroupForMedical && (
+              <View style={styles.modalMemberInfo}>
+                <MaterialCommunityIcons name="account-group" size={48} color={Colors.primary} />
+                <View style={styles.modalMemberDetails}>
+                  <Text style={styles.modalMemberName}>{selectedGroupForMedical.name}</Text>
+                  <Text style={styles.modalMemberPeriod}>
+                    {selectedGroupForMedical.members.length} {t('members.title') || 'članova'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Check Date Picker */}
+            <Text style={styles.modalLabel}>{t('medical.lastCheckDate') || 'Datum pregleda'} *</Text>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => setShowGroupMedicalDatePicker(true)}
+            >
+              <MaterialCommunityIcons name="calendar" size={20} color={Colors.primary} />
+              <Text style={styles.datePickerText}>
+                {groupMedicalCheckDate.toLocaleDateString('sr-RS', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </Text>
+            </TouchableOpacity>
+            {showGroupMedicalDatePicker && (
+              <DateTimePicker
+                value={groupMedicalCheckDate}
+                mode="date"
+                display="default"
+                onChange={handleGroupMedicalDateChange}
+                maximumDate={new Date()}
+              />
+            )}
+
+            {/* Expiry Date Display */}
+            <View style={styles.expiryDateContainer}>
+              <View style={styles.expiryDateRow}>
+                <MaterialCommunityIcons name="calendar-clock" size={20} color={Colors.success} />
+                <Text style={styles.expiryDateLabel}>{t('medical.expiryDate') || 'Datum isteka'}:</Text>
+              </View>
+              <Text style={styles.expiryDateValue}>
+                {groupMedicalExpiryDate.toLocaleDateString('sr-RS', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </Text>
+            </View>
+
+            {/* Helper text */}
+            <View style={styles.medicalHelperContainer}>
+              <MaterialCommunityIcons name="information-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.medicalHelperText}>
+                {t('medical.sixMonthsValidity') || 'Važi 6 meseci od datuma pregleda'}
+              </Text>
+            </View>
+
+            {/* Submit Button */}
+            <Button
+              mode="contained"
+              onPress={handleSubmitGroupMedical}
+              loading={isSubmittingGroupMedical}
+              disabled={isSubmittingGroupMedical}
+              style={styles.modalSubmitButton}
+              icon="check"
+              buttonColor={Colors.success}
+            >
+              {t('medical.recordCheckup') || 'Evidentiraj pregled'}
+            </Button>
+
+            {/* Cancel Button */}
+            <Button
+              mode="outlined"
+              onPress={closeGroupMedicalModal}
+              style={styles.modalCancelButton}
+              textColor={Colors.textSecondary}
+            >
+              {t('common.cancel') || 'Otkaži'}
+            </Button>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -1216,6 +1405,10 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '500',
   },
+  groupMedicalButton: {
+    padding: Spacing.xs,
+    marginRight: Spacing.xs,
+  },
   groupReminderButton: {
     padding: Spacing.xs,
     marginRight: Spacing.xs,
@@ -1250,6 +1443,11 @@ const styles = StyleSheet.create({
   },
   memberCardUnpaid: {
     backgroundColor: Colors.error + '15',
+  },
+  memberLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   memberInfo: {
     flex: 1,

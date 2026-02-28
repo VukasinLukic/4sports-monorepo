@@ -3,6 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -35,8 +43,10 @@ import {
   useSendPaymentReminderAll,
   useSendMedicalReminder,
   useSendMedicalReminderAll,
+  useBulkUpdateMedical,
   EvidenceMember,
   MedicalEvidenceMember,
+  MedicalGroupWithMembers,
 } from './useEvidence';
 import { useToast } from '@/hooks/use-toast';
 import { RecordPaymentDialog } from './RecordPaymentDialog';
@@ -61,6 +71,8 @@ export function EvidencePage() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [medicalDialogOpen, setMedicalDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<{ id: string; name: string; membershipFee?: number } | null>(null);
+  const [bulkMedicalDialogOpen, setBulkMedicalDialogOpen] = useState(false);
+  const [selectedGroupForBulkMedical, setSelectedGroupForBulkMedical] = useState<MedicalGroupWithMembers | null>(null);
 
   const { data: membershipData, isLoading: membershipLoading } = useMembershipEvidence({
     month: selectedMonth,
@@ -431,6 +443,19 @@ export function EvidencePage() {
                   <span className="text-xs text-muted-foreground ml-auto">
                     {group.validCount} validnih
                   </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full bg-green-600/10 hover:bg-green-600/20 flex-shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedGroupForBulkMedical(group);
+                      setBulkMedicalDialogOpen(true);
+                    }}
+                    title="Evidentiraj pregled za celu grupu"
+                  >
+                    <Stethoscope className="h-4 w-4 text-green-500" />
+                  </Button>
                 </div>
 
                 {/* Members List */}
@@ -485,6 +510,11 @@ export function EvidencePage() {
         onOpenChange={setMedicalDialogOpen}
         memberId={selectedMember?.id || ''}
         memberName={selectedMember?.name || ''}
+      />
+      <BulkMedicalDialog
+        open={bulkMedicalDialogOpen}
+        onOpenChange={setBulkMedicalDialogOpen}
+        group={selectedGroupForBulkMedical}
       />
     </div>
   );
@@ -657,5 +687,134 @@ function MedicalRow({
         </Button>
       </div>
     </div>
+  );
+}
+
+const toLocalDateStr = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Bulk Medical Dialog Component
+function BulkMedicalDialog({
+  open,
+  onOpenChange,
+  group,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  group: MedicalGroupWithMembers | null;
+}) {
+  const { toast } = useToast();
+  const bulkUpdateMedical = useBulkUpdateMedical();
+  const today = toLocalDateStr(new Date());
+
+  const [checkDate, setCheckDate] = useState(today);
+  const [expiryDate, setExpiryDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 6);
+    return toLocalDateStr(d);
+  });
+
+  const handleCheckDateChange = (value: string) => {
+    setCheckDate(value);
+    if (value) {
+      const [y, m, d] = value.split('-').map(Number);
+      const expiry = new Date(y, m - 1 + 6, d);
+      setExpiryDate(toLocalDateStr(expiry));
+    }
+  };
+
+  const resetForm = () => {
+    setCheckDate(today);
+    const d = new Date();
+    d.setMonth(d.getMonth() + 6);
+    setExpiryDate(toLocalDateStr(d));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group || !checkDate || !expiryDate) return;
+
+    const memberIds = group.members.map((m) => m.memberId);
+
+    try {
+      await bulkUpdateMedical.mutateAsync({
+        memberIds,
+        lastCheckDate: new Date(checkDate).toISOString(),
+        expiryDate: new Date(expiryDate).toISOString(),
+      });
+
+      toast({
+        title: 'Uspešno',
+        description: `Lekarski pregled evidentiran za ${memberIds.length} članova grupe ${group.name}`,
+      });
+      onOpenChange(false);
+    } catch {
+      toast({ title: 'Greška', description: 'Pregled nije ažuriran', variant: 'destructive' });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) resetForm(); onOpenChange(isOpen); }}>
+      <DialogContent className="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Stethoscope className="h-5 w-5 text-green-500" />
+            Pregled za celu grupu
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            {group && (
+              <div className="text-sm text-muted-foreground">
+                Grupa: <span className="font-medium text-foreground">{group.name}</span>
+                <span className="ml-2">({group.members.length} članova)</span>
+              </div>
+            )}
+
+            <div className="grid gap-2">
+              <Label htmlFor="bulkCheckDate">Datum pregleda</Label>
+              <Input
+                id="bulkCheckDate"
+                type="date"
+                value={checkDate}
+                onChange={(e) => handleCheckDateChange(e.target.value)}
+                max={today}
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="bulkExpiryDate">Važi do</Label>
+              <Input
+                id="bulkExpiryDate"
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                min={checkDate}
+                required
+              />
+              <p className="text-xs text-muted-foreground">Automatski se postavlja na 6 meseci od datuma pregleda</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={bulkUpdateMedical.isPending}>
+              Otkaži
+            </Button>
+            <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={bulkUpdateMedical.isPending}>
+              {bulkUpdateMedical.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Čuvanje...</>
+              ) : (
+                `Sačuvaj za ${group?.members.length ?? 0} članova`
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
