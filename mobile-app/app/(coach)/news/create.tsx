@@ -41,11 +41,15 @@ export default function CreatePostScreen() {
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        const newImages: SelectedImage[] = result.assets.map((asset, index) => ({
-          uri: asset.uri,
-          type: asset.mimeType || 'image/jpeg',
-          name: asset.fileName || `image_${Date.now()}_${index}.jpg`,
-        }));
+        const newImages: SelectedImage[] = result.assets.map((asset, index) => {
+          const mimeType = asset.mimeType || 'image/jpeg';
+          const ext = mimeType === 'image/heic' || mimeType === 'image/heif' ? 'heic' : 'jpg';
+          return {
+            uri: asset.uri,
+            type: mimeType,
+            name: asset.fileName || `image_${Date.now()}_${index}.${ext}`,
+          };
+        });
 
         // Limit to 5 images total
         const totalImages = [...selectedImages, ...newImages].slice(0, 5);
