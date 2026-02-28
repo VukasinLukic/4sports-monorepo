@@ -150,17 +150,68 @@ export default function EventDetailScreen() {
 
   const handleDeleteEvent = async () => {
     setMenuVisible(false);
+
+    const isRecurringSeries = !!(event?.isRecurring || event?.parentEventId);
+
+    if (!isRecurringSeries) {
+      Alert.alert(
+        t('events.deleteEvent'),
+        t('events.deleteEventConfirm'),
+        [
+          { text: t('common.no'), style: 'cancel' },
+          {
+            text: t('common.yes'),
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await api.delete(`/events/${id}`);
+                Alert.alert(t('common.success'), t('events.eventDeleted'));
+                router.back();
+              } catch (error) {
+                Alert.alert(t('common.error'), t('events.deleteFailed'));
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
+
     Alert.alert(
-      t('events.deleteEvent'),
-      t('events.deleteEventConfirm'),
+      t('events.deleteRecurringTitle'),
+      t('events.deleteRecurringDesc'),
       [
-        { text: t('common.no'), style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: t('common.yes'),
+          text: t('events.deleteThis'),
+          onPress: async () => {
+            try {
+              await api.delete(`/events/${id}`, { params: { deleteMode: 'this' } });
+              Alert.alert(t('common.success'), t('events.eventDeleted'));
+              router.back();
+            } catch (error) {
+              Alert.alert(t('common.error'), t('events.deleteFailed'));
+            }
+          },
+        },
+        {
+          text: t('events.deleteFuture'),
+          onPress: async () => {
+            try {
+              await api.delete(`/events/${id}`, { params: { deleteMode: 'future' } });
+              Alert.alert(t('common.success'), t('events.eventDeleted'));
+              router.back();
+            } catch (error) {
+              Alert.alert(t('common.error'), t('events.deleteFailed'));
+            }
+          },
+        },
+        {
+          text: t('events.deleteAll'),
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.delete(`/events/${id}`);
+              await api.delete(`/events/${id}`, { params: { deleteMode: 'all' } });
               Alert.alert(t('common.success'), t('events.eventDeleted'));
               router.back();
             } catch (error) {

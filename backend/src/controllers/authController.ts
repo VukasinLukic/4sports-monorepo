@@ -339,7 +339,7 @@ export const login = async (
           phoneNumber: user.phoneNumber,
           role: user.role,
           clubId: user.clubId,
-          profileImage: user.profileImage,
+          profilePicture: user.profileImage,
           createdAt: user.createdAt,
         },
         token: firebaseToken,
@@ -369,6 +369,23 @@ export const login = async (
  * - Only returns basic info (name, avatar, role)
  * - For coaches/owners, also returns groups they train and phone number
  */
+/**
+ * Check if email is registered
+ * @route GET /api/v1/auth/check-email?email=...
+ * @access Public
+ */
+export const checkEmail = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
+  const { email } = req.query;
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ success: false, error: { message: 'Email is required' } });
+  }
+  const user = await User.findOne({ email: email.toLowerCase().trim() }).select('_id').lean();
+  return res.json({ success: true, data: { exists: !!user } });
+};
+
 export const getUserPublicProfile = async (
   req: Request,
   res: Response
@@ -475,6 +492,7 @@ export const getCurrentUser = async (
       ...user,
       _id: user._id.toString(),
       clubId: user.clubId ? user.clubId.toString() : undefined,
+      profilePicture: user.profileImage, // alias so frontend User type works
     };
 
     console.log('📤 Returning user data:', {

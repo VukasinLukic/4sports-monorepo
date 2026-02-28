@@ -225,8 +225,11 @@ export default function ChatScreen() {
       >
         {!isOwnMessage && (
           <View style={styles.avatarSmall}>
-            {item.senderAvatar ? (
-              <Image source={{ uri: item.senderAvatar }} style={styles.avatarImage} />
+            {(conversation?.participantDetails[item.senderId]?.avatar || item.senderAvatar) ? (
+              <Image
+                source={{ uri: conversation?.participantDetails[item.senderId]?.avatar || item.senderAvatar! }}
+                style={styles.avatarImage}
+              />
             ) : (
               <Text style={styles.avatarText}>
                 {item.senderName?.substring(0, 1).toUpperCase() || '?'}

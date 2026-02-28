@@ -479,6 +479,7 @@ function ChatView({
                   isOwn={message.senderId === currentUserId}
                   showSender={isGroup}
                   onImageClick={(images, index) => setLightbox({ images, index })}
+                  participantDetails={conversation.participantDetails}
                 />
               ))}
               <div ref={messagesEndRef} />
@@ -603,22 +604,26 @@ function MessageBubble({
   isOwn,
   showSender,
   onImageClick,
+  participantDetails,
 }: {
   message: Message;
   isOwn: boolean;
   showSender: boolean;
   onImageClick: (images: string[], index: number) => void;
+  participantDetails?: Record<string, { name: string; avatar: string | null; role: string }>;
 }) {
   const timestamp = message.timestamp?.toDate ? message.timestamp.toDate() : new Date(message.timestamp);
+  // Prefer fresh avatar from participantDetails over stale per-message senderAvatar
+  const avatarUrl = participantDetails?.[message.senderId]?.avatar || message.senderAvatar;
 
   return (
     <div className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
       <div className={cn('flex gap-2 max-w-[70%]', isOwn && 'flex-row-reverse')}>
         {!isOwn && (
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-            {message.senderAvatar ? (
+            {avatarUrl ? (
               <img
-                src={message.senderAvatar}
+                src={avatarUrl}
                 alt={message.senderName}
                 className="w-8 h-8 rounded-full object-cover"
               />

@@ -182,6 +182,30 @@ export const getConversations = async (req: Request, res: Response): Promise<any
       ...doc.data(),
     }));
 
+    // Refresh participant avatars from MongoDB so they're always up to date
+    try {
+      const allParticipantIds = [...new Set(
+        conversations.flatMap((c: any) => c.participantIds || [])
+      )];
+      if (allParticipantIds.length > 0) {
+        const users = await User.find({
+          _id: { $in: allParticipantIds.map((id: string) => new mongoose.Types.ObjectId(id)) },
+        }).select('_id profileImage').lean();
+        const avatarMap = new Map(users.map((u: any) => [u._id.toString(), u.profileImage || null]));
+        conversations = conversations.map((conv: any) => ({
+          ...conv,
+          participantDetails: Object.fromEntries(
+            Object.entries(conv.participantDetails || {}).map(([id, details]: [string, any]) => [
+              id,
+              { ...details, avatar: avatarMap.get(id) ?? details.avatar ?? null },
+            ])
+          ),
+        }));
+      }
+    } catch (refreshError) {
+      console.error('Failed to refresh participant avatars:', refreshError);
+    }
+
     // Apply filter
     if (filter === 'members') {
       // Only conversations with members (exclude staff-only)
@@ -291,7 +315,7 @@ export const sendMessage = async (req: Request, res: Response): Promise<any> => 
       }
     });
 
-    // Update conversation's lastMessage and unreadCounts
+    // Update conversation's lastMessage, unreadCounts, and refresh sender's avatar
     await conversationRef.update({
       lastMessage: {
         text: text || '📷 Image',
@@ -301,6 +325,7 @@ export const sendMessage = async (req: Request, res: Response): Promise<any> => 
         imageUrl: images && images.length > 0 ? images[0] : null,
       },
       unreadCounts: updatedUnreadCounts,
+      [`participantDetails.${senderId}.avatar`]: senderAvatar,
       updatedAt: new Date(),
     });
 

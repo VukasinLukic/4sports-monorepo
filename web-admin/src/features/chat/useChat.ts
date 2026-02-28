@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/services/api';
 import { db } from '@/config/firebase';
 import {
@@ -57,11 +57,26 @@ export const useConversations = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Fetch from backend API which enriches participantDetails with fresh MongoDB avatars
+  const fetchConversations = useCallback(async () => {
+    try {
+      const response = await api.get('/chat/conversations');
+      setConversations(response.data.data || []);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!backendUser?._id || !backendUser?.clubId || !db) {
       setLoading(false);
       return;
     }
+
+    // Initial fetch with fresh avatars
+    fetchConversations();
 
     try {
       const conversationsRef = collection(db, 'conversations');
@@ -72,18 +87,11 @@ export const useConversations = () => {
         orderBy('updatedAt', 'desc')
       );
 
+      // Use onSnapshot only to detect changes, then re-fetch from API for fresh avatars
       const unsubscribe: Unsubscribe = onSnapshot(
         q,
-        (snapshot) => {
-          const newConversations: Conversation[] = [];
-          snapshot.forEach((doc) => {
-            newConversations.push({
-              id: doc.id,
-              ...doc.data(),
-            } as Conversation);
-          });
-          setConversations(newConversations);
-          setLoading(false);
+        () => {
+          fetchConversations();
         },
         (err) => {
           console.error('Error subscribing to conversations:', err);
@@ -98,7 +106,7 @@ export const useConversations = () => {
       setError(err as Error);
       setLoading(false);
     }
-  }, [backendUser?._id, backendUser?.clubId]);
+  }, [backendUser?._id, backendUser?.clubId, fetchConversations]);
 
   return { conversations, loading, error };
 };

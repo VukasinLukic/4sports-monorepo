@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert, Image } from 'react-native';
 import { Text, Card, Button, Avatar, ActivityIndicator, SegmentedButtons } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -266,11 +266,18 @@ export default function EventSessionScreen() {
                   .map(a => (
                     <Card key={a._id} style={styles.memberCard}>
                       <Card.Content style={styles.memberContent}>
-                        <Avatar.Text
-                          size={40}
-                          label={a.member?.fullName?.split(' ').map(n => n[0]).join('').slice(0, 2) || '??'}
-                          style={[styles.memberAvatar, { backgroundColor: Colors.success }]}
-                        />
+                        {a.member?.profilePicture || a.member?.profileImage ? (
+                          <Image
+                            source={{ uri: (a.member.profilePicture || a.member.profileImage)! }}
+                            style={[styles.memberAvatarImage, styles.memberAvatar]}
+                          />
+                        ) : (
+                          <Avatar.Text
+                            size={40}
+                            label={a.member?.fullName?.split(' ').map(n => n[0]).join('').slice(0, 2) || '??'}
+                            style={[styles.memberAvatar, { backgroundColor: Colors.success }]}
+                          />
+                        )}
                         <View style={styles.memberInfo}>
                           <Text style={styles.memberName}>{a.member?.fullName || 'Unknown'}</Text>
                           <Text style={styles.memberMeta}>
@@ -293,11 +300,18 @@ export default function EventSessionScreen() {
                 {unmarkedMembers.map(member => (
                   <Card key={member._id} style={styles.memberCard}>
                     <Card.Content style={styles.memberContent}>
-                      <Avatar.Text
-                        size={40}
-                        label={member.fullName?.split(' ').map(n => n[0]).join('').slice(0, 2) || '??'}
-                        style={[styles.memberAvatar, { backgroundColor: Colors.textSecondary }]}
-                      />
+                      {member.profilePicture || member.profileImage ? (
+                        <Image
+                          source={{ uri: (member.profilePicture || member.profileImage)! }}
+                          style={[styles.memberAvatarImage, styles.memberAvatar]}
+                        />
+                      ) : (
+                        <Avatar.Text
+                          size={40}
+                          label={member.fullName?.split(' ').map(n => n[0]).join('').slice(0, 2) || '??'}
+                          style={[styles.memberAvatar, { backgroundColor: Colors.textSecondary }]}
+                        />
+                      )}
                       <View style={styles.memberInfo}>
                         <Text style={styles.memberName}>{member.fullName}</Text>
                         <Text style={styles.memberMeta}>Not checked in yet</Text>
@@ -508,6 +522,11 @@ const styles = StyleSheet.create({
   },
   memberAvatar: {
     marginRight: Spacing.md,
+  },
+  memberAvatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   memberInfo: {
     flex: 1,

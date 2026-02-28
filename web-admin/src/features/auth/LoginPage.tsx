@@ -117,6 +117,11 @@ export const LoginPage = () => {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? t('auth.signingIn') : t('auth.signIn')}
             </Button>
+            <div className="text-center">
+              <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                {t('auth.forgotPassword')}
+              </Link>
+            </div>
           </form>
         </CardContent>
         <CardFooter>

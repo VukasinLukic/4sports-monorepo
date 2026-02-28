@@ -11,12 +11,12 @@ import CommentBottomSheet from '@/components/CommentBottomSheet';
 import api from '@/services/api';
 import { Post } from '@/types';
 
-interface PostWithAuthor extends Post {
-  author?: {
+interface PostWithAuthor extends Omit<Post, 'authorId'> {
+  authorId?: {
     _id: string;
     fullName: string;
-    profilePicture?: string;
-  };
+    profileImage?: string;
+  } | string;
 }
 
 export default function CoachNewsFeed() {
@@ -104,16 +104,19 @@ export default function CoachNewsFeed() {
     setCommentSheetVisible(true);
   };
 
-  const renderPost = ({ item }: { item: PostWithAuthor }) => (
-    <PostCard
-      post={item}
-      authorName={item.author?.fullName || t('roles.coach')}
-      authorAvatar={item.author?.profilePicture}
-      onLike={handleLike}
-      onComment={handleComment}
-      onPress={handlePostPress}
-    />
-  );
+  const renderPost = ({ item }: { item: PostWithAuthor }) => {
+    const authorObj = item.authorId && typeof item.authorId === 'object' ? item.authorId : null;
+    return (
+      <PostCard
+        post={item}
+        authorName={authorObj?.fullName || t('roles.coach')}
+        authorAvatar={authorObj?.profileImage}
+        onLike={handleLike}
+        onComment={handleComment}
+        onPress={handlePostPress}
+      />
+    );
+  };
 
   const renderEmptyState = () => (
     <Card style={styles.emptyCard}>
