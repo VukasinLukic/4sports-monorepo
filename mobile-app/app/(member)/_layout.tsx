@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import TopHeader from '@/components/TopHeader';
@@ -7,6 +8,7 @@ import { useChat } from '@/services/ChatContext';
 
 export default function MemberLayout() {
   const { totalUnreadCount } = useChat();
+  const insets = useSafeAreaInsets();
 
   return (
     <>
@@ -21,9 +23,9 @@ export default function MemberLayout() {
             backgroundColor: Colors.surface,
             borderTopColor: Colors.border,
             borderTopWidth: 1,
-            paddingBottom: 8,
+            paddingBottom: 8 + insets.bottom,
             paddingTop: 8,
-            height: 65,
+            height: 65 + insets.bottom,
           },
           tabBarLabelStyle: {
             fontSize: 11,

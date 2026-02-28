@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button, ActivityIndicator, Chip, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -177,6 +177,10 @@ export default function CreatePostScreen() {
   };
 
   return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Title */}
       <Text style={styles.label}>{t('news.postTitle')} *</Text>
@@ -277,6 +281,7 @@ export default function CreatePostScreen() {
         {t('common.cancel')}
       </Button>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -125,6 +125,10 @@ export default function EditPostScreen() {
   };
 
   return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.label}>{t('news.postTitle')} *</Text>
       <TextInput
@@ -214,6 +218,7 @@ export default function EditPostScreen() {
         {t('common.cancel')}
       </Button>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
