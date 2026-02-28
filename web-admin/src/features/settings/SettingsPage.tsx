@@ -17,7 +17,6 @@ import { changePassword } from '@/services/auth';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
 import { Building2, User, CreditCard, Save, Key, Globe, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { HelpButton } from '@/components/shared/HelpButton';
 import { useOnboarding } from '@/context/OnboardingContext';
 
 export function SettingsPage() {
@@ -508,7 +507,6 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      <HelpButton pageKey="settings" />
     </div>
   );
 }

@@ -820,6 +820,8 @@ export default {
   sidebar: {
     clubProfile: 'Club Profile',
     help: 'Help',
+    restartGuide: 'Restart guide',
+    videoTutorial: 'Video tutorial',
   },
 
   app: {

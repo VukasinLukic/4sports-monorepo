@@ -28,7 +28,6 @@ import { Coach } from '@/types';
 import { Trash2, UserPlus, AlertTriangle, Search } from 'lucide-react';
 import { SkeletonTable } from '@/components/shared/SkeletonTable';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
-import { HelpButton } from '@/components/shared/HelpButton';
 import { useOnboarding } from '@/context/OnboardingContext';
 
 export function CoachListPage() {
@@ -321,7 +320,6 @@ export function CoachListPage() {
         variant="destructive"
       />
 
-      <HelpButton pageKey="coaches" />
     </div>
   );
 }

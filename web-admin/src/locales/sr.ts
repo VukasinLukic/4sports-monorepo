@@ -824,6 +824,8 @@ export default {
   sidebar: {
     clubProfile: 'Profil kluba',
     help: 'Pomoć',
+    restartGuide: 'Pokreni vodič ponovo',
+    videoTutorial: 'Video tutorijal',
   },
 
   app: {

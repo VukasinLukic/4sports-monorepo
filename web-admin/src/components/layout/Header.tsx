@@ -10,10 +10,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Bell, User, LogOut, Menu, Sun, Moon, Check } from 'lucide-react';
+import { Bell, User, LogOut, Menu, Sun, Moon, Check, HelpCircle, PlayCircle, Video } from 'lucide-react';
 import { GlobalSearch } from '@/components/shared/GlobalSearch';
 import { useTheme } from '@/context/ThemeContext';
 import { useUnreadCount, useNotifications, useMarkAsRead, useMarkAllAsRead } from '@/features/notifications/useNotifications';
+import { useOnboarding, PAGE_TUTORIALS } from '@/context/OnboardingContext';
 
 const routeKeyMap: Record<string, string> = {
   '/': 'navigation.dashboard',
@@ -37,6 +38,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { startTutorial, resetTutorial } = useOnboarding();
   const { data: unreadCount = 0 } = useUnreadCount();
   const { data: notifications = [] } = useNotifications();
   const markAsReadMutation = useMarkAsRead();
@@ -88,6 +90,23 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     : location.pathname.startsWith('/calendar/') ? t('calendar.title')
     : location.pathname.startsWith('/profile/') ? t('profile.title')
     : t('common.page');
+
+  const pathToPageKey: Record<string, string> = {
+    '/': 'dashboard',
+    '/club-members': 'members',
+    '/coaches': 'coaches',
+    '/finances': 'finances',
+    '/settings': 'settings',
+  };
+  const currentPageKey = pathToPageKey[location.pathname] || '';
+  const currentTutorial = currentPageKey ? PAGE_TUTORIALS[currentPageKey] : null;
+
+  const handleRestartTutorial = () => {
+    if (currentPageKey) {
+      resetTutorial(currentPageKey);
+      startTutorial(currentPageKey);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -245,11 +264,31 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to="/settings">{t('navigation.settings')}</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal px-2 py-1">
+                <HelpCircle size={13} className="inline mr-1.5 mb-0.5" />
+                {t('sidebar.help')}
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={handleRestartTutorial}
+                disabled={!currentTutorial}
+                className="cursor-pointer"
+              >
+                <PlayCircle size={16} className="mr-2" />
+                {t('sidebar.restartGuide')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => navigate('/video-tutorial')}
+                className="cursor-pointer"
+              >
+                <Video size={16} className="mr-2" />
+                {t('sidebar.videoTutorial')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
                 <LogOut size={16} className="mr-2" />
                 {t('auth.logout')}
               </DropdownMenuItem>

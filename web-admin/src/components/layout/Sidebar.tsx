@@ -1,20 +1,30 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useConversations } from '@/features/chat/useChat';
-import { Button } from '@/components/ui/button';
+import { useClubSettings } from '@/features/settings/useSettings';
+import { useOnboarding, PAGE_TUTORIALS } from '@/context/OnboardingContext';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   LayoutDashboard,
   Users,
   DollarSign,
   Settings,
-  LogOut,
   ChevronLeft,
   ChevronRight,
   Newspaper,
   CalendarDays,
   MessageCircle,
   ClipboardList,
+  HelpCircle,
+  Building2,
+  PlayCircle,
+  Video,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -42,27 +52,52 @@ const navItems: NavItem[] = [
   { nameKey: 'navigation.settings', path: '/settings', icon: Settings },
 ];
 
+const pathToPageKey: Record<string, string> = {
+  '/': 'dashboard',
+  '/club-members': 'members',
+  '/coaches': 'coaches',
+  '/finances': 'finances',
+  '/settings': 'settings',
+};
+
 export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useTranslation();
-  const { logout, user, backendUser } = useAuth();
+  const { backendUser } = useAuth();
   const { conversations } = useConversations();
+  const { data: clubSettings } = useClubSettings();
+  const { startTutorial, resetTutorial } = useOnboarding();
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const totalUnread = conversations.reduce((sum, conv) => {
     if (!backendUser) return sum;
     return sum + (conv.unreadCounts?.[backendUser._id] ?? 0);
   }, 0);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
+  const currentPageKey = pathToPageKey[location.pathname] || '';
+  const currentTutorial = currentPageKey ? PAGE_TUTORIALS[currentPageKey] : null;
 
   const handleNavClick = () => {
     onClose();
+  };
+
+  const handleRestartTutorial = () => {
+    if (currentPageKey) {
+      resetTutorial(currentPageKey);
+      startTutorial(currentPageKey);
+    }
+    setHelpOpen(false);
+  };
+
+  const handleVideoTutorial = () => {
+    setHelpOpen(false);
+    navigate('/video-tutorial');
+  };
+
+  const handleClubProfile = () => {
+    handleNavClick();
+    navigate('/settings');
   };
 
   return (
@@ -76,18 +111,35 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
         )}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            {!collapsed && (
-              <h1 className="text-2xl font-bold text-primary">4Sports</h1>
-            )}
+          {/* Header */}
+          <div className={cn(
+            'flex items-center border-b border-border',
+            collapsed ? 'justify-between p-2' : 'justify-between p-4'
+          )}>
+            <a
+              href="https://4sports.rs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 min-w-0"
+            >
+              <img
+                src="/logo.png"
+                alt="4Sports"
+                className="w-8 h-8 object-contain shrink-0"
+              />
+              {!collapsed && (
+                <h1 className="text-xl font-bold text-primary truncate">4Sports</h1>
+              )}
+            </a>
             <button
               onClick={onToggle}
-              className="p-2 rounded-lg hover:bg-accent transition-colors ml-auto"
+              className="p-1.5 rounded-lg hover:bg-accent transition-colors shrink-0"
             >
-              {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+              {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
             </button>
           </div>
 
+          {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-2 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -127,27 +179,64 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
             })}
           </nav>
 
-          <div className="p-2 border-t border-border space-y-2">
-            {!collapsed && user && (
-              <div className="px-3 py-2 text-sm text-muted-foreground truncate">
-                {user.email}
-              </div>
-            )}
-            <Button
-              onClick={() => {
-                handleLogout();
-                handleNavClick();
-              }}
-              variant="ghost"
+          {/* Bottom section */}
+          <div className="p-2 border-t border-border space-y-1">
+            {/* Pomoć */}
+            <Popover open={helpOpen} onOpenChange={setHelpOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-3 rounded-lg transition-colors w-full',
+                    'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                    collapsed && 'justify-center'
+                  )}
+                  title={collapsed ? t('sidebar.help') : undefined}
+                >
+                  <HelpCircle size={20} className="shrink-0" />
+                  {!collapsed && <span className="font-medium">{t('sidebar.help')}</span>}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" align="end" className="w-56 p-2 space-y-1">
+                <button
+                  onClick={handleRestartTutorial}
+                  disabled={!currentTutorial}
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+                    currentTutorial
+                      ? 'hover:bg-accent hover:text-accent-foreground'
+                      : 'opacity-40 cursor-not-allowed'
+                  )}
+                >
+                  <PlayCircle size={16} />
+                  {t('sidebar.restartGuide')}
+                </button>
+                <button
+                  onClick={handleVideoTutorial}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  <Video size={16} />
+                  {t('sidebar.videoTutorial')}
+                </button>
+              </PopoverContent>
+            </Popover>
+
+            {/* Profil kluba */}
+            <button
+              onClick={handleClubProfile}
               className={cn(
-                'w-full justify-start',
-                collapsed && 'justify-center px-0'
+                'flex items-center gap-3 px-3 py-3 rounded-lg transition-colors w-full',
+                'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                collapsed && 'justify-center'
               )}
-              title={collapsed ? t('auth.logout') : undefined}
+              title={collapsed ? (clubSettings?.clubName || t('sidebar.clubProfile')) : undefined}
             >
-              <LogOut size={20} />
-              {!collapsed && <span className="ml-3">{t('auth.logout')}</span>}
-            </Button>
+              <Building2 size={20} className="shrink-0" />
+              {!collapsed && (
+                <span className="font-medium truncate">
+                  {clubSettings?.clubName || t('sidebar.clubProfile')}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </aside>

@@ -29,7 +29,6 @@ import { Plus, Pencil, Trash2, Search, User } from 'lucide-react';
 import { SkeletonTable } from '@/components/shared/SkeletonTable';
 import { ErrorMessage } from '@/components/shared/ErrorMessage';
 import { Label } from '@/components/ui/label';
-import { HelpButton } from '@/components/shared/HelpButton';
 import { useOnboarding } from '@/context/OnboardingContext';
 
 export function MemberListPage() {
@@ -395,7 +394,6 @@ export function MemberListPage() {
         variant="destructive"
       />
 
-      <HelpButton pageKey="members" />
     </div>
   );
 }
