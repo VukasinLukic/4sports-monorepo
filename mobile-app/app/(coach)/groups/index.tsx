@@ -19,7 +19,7 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
@@ -68,6 +68,12 @@ export default function GroupsScreen() {
   useEffect(() => {
     fetchGroups();
   }, [fetchGroups]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchGroups();
+    }, [fetchGroups])
+  );
 
   // Filter members within groups by search query
   const displayGroups = useMemo(() => {

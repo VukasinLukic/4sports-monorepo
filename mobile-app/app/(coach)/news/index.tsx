@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, FAB, ActivityIndicator, Chip, Card } from 'react-native-paper';
+import { Text, FAB, ActivityIndicator, Chip, Card, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Colors } from '@/constants/Colors';
@@ -126,6 +126,13 @@ export default function CoachNewsFeed() {
         <Text style={styles.emptyText}>
           {t('news.noPostsDescription') || 'Share news, updates, and announcements with your club members'}
         </Text>
+        <Button
+          mode="contained"
+          onPress={() => router.push('/(coach)/news/create')}
+          style={styles.createPostButton}
+        >
+          {t('news.createPost') || 'Create Post'}
+        </Button>
       </Card.Content>
     </Card>
   );
@@ -255,6 +262,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.xs,
     paddingHorizontal: Spacing.lg,
+  },
+  createPostButton: {
+    marginTop: Spacing.lg,
   },
   fab: {
     position: 'absolute',

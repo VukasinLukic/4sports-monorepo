@@ -128,6 +128,7 @@ export default {
     validAmount: 'Unesite validan iznos.',
     enterContent: 'Unesite sadržaj za vašu objavu.',
     contentMinLength: 'Sadržaj objave mora imati najmanje 3 karaktera.',
+    groupNameMin: 'Naziv grupe mora imati najmanje 3 karaktera',
   },
 
   errors: {

@@ -125,6 +125,7 @@ export default {
     selectMember: 'Please select a member.',
     selectGroup: 'Please select a group',
     endTimeAfterStart: 'End time must be after start time',
+    groupNameMin: 'Group name must be at least 3 characters',
   },
 
   errors: {
