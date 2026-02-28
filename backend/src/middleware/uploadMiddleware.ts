@@ -58,6 +58,6 @@ export const uploadPostImages = upload.array('images', 5);
 
 /**
  * Chat images upload middleware
- * Field name: 'file' (single image)
+ * Field name: 'files' (multiple images, max 5)
  */
-export const uploadChatImage = upload.single('file');
+export const uploadChatImage = upload.array('files', 5);

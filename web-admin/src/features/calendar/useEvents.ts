@@ -26,6 +26,7 @@ export interface Event {
     days?: number[];
     until: string;
   };
+  parentEventId?: string;
   qrCode?: string;
   createdBy: {
     _id: string;
@@ -211,8 +212,8 @@ export const useDeleteEvent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (eventId: string) => {
-      await api.delete(`/events/${eventId}`);
+    mutationFn: async ({ id, deleteMode }: { id: string; deleteMode?: 'this' | 'future' | 'all' }) => {
+      await api.delete(`/events/${id}`, { params: { deleteMode: deleteMode ?? 'this' } });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });

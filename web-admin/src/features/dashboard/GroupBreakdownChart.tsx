@@ -94,6 +94,7 @@ export const GroupBreakdownChart = ({ data, filterMode, onFilterChange }: GroupB
                     outerRadius={90}
                     paddingAngle={2}
                     dataKey="value"
+
                   >
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />

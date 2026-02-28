@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -107,6 +108,7 @@ export function CalendarPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
+  const [deleteMode, setDeleteMode] = useState<'this' | 'future' | 'all'>('this');
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   const DAYS_OF_WEEK = t('calendar.days', { returnObjects: true }) as string[];
@@ -207,14 +209,20 @@ export function CalendarPage() {
 
   const handleDeleteClick = (event: Event) => {
     setEventToDelete(event);
+    setDeleteMode('this');
     setDeleteDialogOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
     if (!eventToDelete) return;
 
+    const isRecurringSeries = !!(eventToDelete.isRecurring || eventToDelete.parentEventId);
+
     try {
-      await deleteEventMutation.mutateAsync(eventToDelete._id);
+      await deleteEventMutation.mutateAsync({
+        id: eventToDelete._id,
+        deleteMode: isRecurringSeries ? deleteMode : 'this',
+      });
       toast({
         title: t('common.success'),
         description: t('calendar.eventDeleted'),
@@ -582,11 +590,44 @@ export function CalendarPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('calendar.deleteEvent')}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {(eventToDelete?.isRecurring || eventToDelete?.parentEventId)
+                ? t('calendar.deleteRecurringTitle')
+                : t('calendar.deleteEvent')}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {t('calendar.deleteEventConfirm')}
+              {(eventToDelete?.isRecurring || eventToDelete?.parentEventId)
+                ? t('calendar.deleteRecurringDesc')
+                : t('calendar.deleteEventConfirm')}
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {(eventToDelete?.isRecurring || eventToDelete?.parentEventId) && (
+            <div className="flex flex-col gap-2 py-2">
+              {(['this', 'future', 'all'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setDeleteMode(mode)}
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-3 rounded-lg border text-sm text-left transition-colors',
+                    deleteMode === mode
+                      ? 'border-destructive bg-destructive/10 text-destructive'
+                      : 'border-border hover:bg-accent'
+                  )}
+                >
+                  <span className={cn(
+                    'w-4 h-4 rounded-full border-2 shrink-0',
+                    deleteMode === mode ? 'border-destructive bg-destructive' : 'border-muted-foreground'
+                  )} />
+                  {mode === 'this' && t('calendar.deleteThis')}
+                  {mode === 'future' && t('calendar.deleteFuture')}
+                  {mode === 'all' && t('calendar.deleteAll')}
+                </button>
+              ))}
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction

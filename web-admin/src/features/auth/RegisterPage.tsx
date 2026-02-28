@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Globe, ChevronDown } from 'lucide-react';
+import { SUPPORTED_LANGUAGES } from '@/locales/i18n';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export const RegisterPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -81,9 +84,33 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dark flex items-center justify-center p-4">
+    <div className="min-h-screen bg-dark flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center gap-2 bg-card border border-border rounded-md px-2.5 py-1.5 text-sm text-foreground cursor-pointer hover:bg-accent focus:outline-none focus:ring-1 focus:ring-primary">
+            <Globe className="h-4 w-4 text-muted-foreground" />
+            <span>{SUPPORTED_LANGUAGES[i18n.language as keyof typeof SUPPORTED_LANGUAGES]?.flag} {SUPPORTED_LANGUAGES[i18n.language as keyof typeof SUPPORTED_LANGUAGES]?.nativeName}</span>
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[120px]">
+            {Object.entries(SUPPORTED_LANGUAGES).map(([code, lang]) => (
+              <DropdownMenuItem
+                key={code}
+                onClick={() => i18n.changeLanguage(code)}
+                className="cursor-pointer"
+              >
+                {lang.flag} {lang.nativeName}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
+        <CardHeader className="space-y-1 pb-2">
+          <div className="flex justify-center mb-2">
+            <img src="/logo.png" alt="4Sports" className="h-16 w-auto" />
+          </div>
           <CardTitle className="text-3xl font-bold text-center text-primary">4Sports</CardTitle>
           <CardDescription className="text-center">
             {t('auth.createAccountDescription')}
@@ -171,8 +198,8 @@ export const RegisterPage = () => {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <div className="text-sm text-muted-foreground text-center">
+        <CardFooter>
+          <div className="text-sm text-muted-foreground text-center w-full">
             {t('auth.hasAccount')}{' '}
             <Link to="/login" className="text-primary hover:underline">
               {t('auth.signIn')}

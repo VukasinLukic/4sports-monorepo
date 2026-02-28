@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/AuthContext';
+import { useConversations } from '@/features/chat/useChat';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
@@ -44,7 +45,13 @@ const navItems: NavItem[] = [
 export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarProps) => {
   const location = useLocation();
   const { t } = useTranslation();
-  const { logout, user } = useAuth();
+  const { logout, user, backendUser } = useAuth();
+  const { conversations } = useConversations();
+
+  const totalUnread = conversations.reduce((sum, conv) => {
+    if (!backendUser) return sum;
+    return sum + (conv.unreadCounts?.[backendUser._id] ?? 0);
+  }, 0);
 
   const handleLogout = async () => {
     try {
@@ -101,8 +108,20 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
                   )}
                   title={collapsed ? name : undefined}
                 >
-                  <Icon size={20} />
+                  <div className="relative shrink-0">
+                    <Icon size={20} />
+                    {item.path === '/chat' && totalUnread > 0 && collapsed && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                        {totalUnread > 9 ? '9+' : totalUnread}
+                      </span>
+                    )}
+                  </div>
                   {!collapsed && <span className="font-medium">{name}</span>}
+                  {!collapsed && item.path === '/chat' && totalUnread > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center leading-none">
+                      {totalUnread > 99 ? '99+' : totalUnread}
+                    </span>
+                  )}
                 </Link>
               );
             })}
