@@ -66,6 +66,7 @@ export interface Coach {
   fullName: string;
   email: string;
   phoneNumber: string;
+  profileImage?: string;
   clubId?: string;
   groupsCount: number;
   contractExpiryDate: string;

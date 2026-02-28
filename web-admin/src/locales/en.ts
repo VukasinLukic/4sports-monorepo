@@ -667,6 +667,7 @@ export default {
     daysAgo: '{{count}} days ago',
     noCoaches: 'No coaches',
     noMembers: 'No members',
+    noTrainer: 'No trainer',
     newGroup: 'New Group',
     membersInGroup: '{{count}} Members',
     inviteCodes: 'Invite Codes',

@@ -671,6 +671,7 @@ export default {
     daysAgo: 'pre {{count}} dana',
     noCoaches: 'Nema trenera',
     noMembers: 'Nema članova',
+    noTrainer: 'Nema trenera',
     newGroup: 'Nova grupa',
     membersInGroup: '{{count}} članova',
     inviteCodes: 'Pozivni kodovi',
