@@ -13,8 +13,9 @@ import {
   useUpdateUserProfile,
   useSubscription,
 } from './useSettings';
+import { changePassword } from '@/services/auth';
 import { SkeletonCard } from '@/components/shared/SkeletonCard';
-import { Building2, User, CreditCard, Save, Key, Globe } from 'lucide-react';
+import { Building2, User, CreditCard, Save, Key, Globe, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { HelpButton } from '@/components/shared/HelpButton';
 import { useOnboarding } from '@/context/OnboardingContext';
@@ -35,6 +36,16 @@ export function SettingsPage() {
   const { data: userProfile, isLoading: profileLoading } = useUserProfile();
   const [fullName, setFullName] = useState(userProfile?.fullName || '');
   const [userPhone, setUserPhone] = useState(userProfile?.phoneNumber || '');
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   // Subscription
   const { data: subscription, isLoading: subLoading } = useSubscription();
@@ -103,11 +114,36 @@ export function SettingsPage() {
     }
   };
 
-  const handleChangePassword = () => {
-    toast({
-      title: t('settings.passwordReset'),
-      description: t('settings.passwordResetDescription'),
-    });
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      toast({ title: t('common.error'), description: t('auth.passwordMin'), variant: 'destructive' });
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast({ title: t('common.error'), description: t('auth.passwordsNoMatch'), variant: 'destructive' });
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      toast({ title: t('common.success'), description: t('settings.passwordChanged') });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error: any) {
+      const isWrongPassword =
+        error?.code === 'auth/wrong-password' ||
+        error?.code === 'auth/invalid-credential';
+      toast({
+        title: t('common.error'),
+        description: isWrongPassword
+          ? t('settings.wrongCurrentPassword')
+          : t('settings.passwordChangeFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   if (clubLoading || profileLoading || subLoading) {
@@ -133,7 +169,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="text-3xl font-bold">{t('settings.title')}</h1>
         <p className="text-muted-foreground">{t('settings.subtitle')}</p>
@@ -150,7 +186,7 @@ export function SettingsPage() {
             {t('settings.myProfile')}
           </TabsTrigger>
           <TabsTrigger value="subscription">
-            <CreditCard className="mr-2 h-4 w-4" />
+            <CreditCard className="mr-2 h-4 w-4 " />
             {t('settings.subscription')}
           </TabsTrigger>
         </TabsList>
@@ -222,71 +258,161 @@ export function SettingsPage() {
 
         {/* My Profile Tab */}
         <TabsContent value="profile" className="space-y-4">
+          {/* Personal Info */}
           <Card data-tour="profile-settings">
             <CardHeader>
               <CardTitle>{t('settings.personalInfo')}</CardTitle>
               <CardDescription>{t('settings.personalInfoDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">{t('auth.fullName')}</Label>
-                <Input
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder={t('settings.enterFullName')}
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">{t('auth.fullName')}</Label>
+                  <Input
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder={t('settings.enterFullName')}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="userEmail">{t('settings.emailLabel')}</Label>
-                <Input
-                  id="userEmail"
-                  type="email"
-                  value={userProfile?.email || ''}
-                  disabled
-                  className="bg-muted"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t('settings.emailCannotChange')}
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="userPhone">{t('settings.phoneNumber')}</Label>
+                  <Input
+                    id="userPhone"
+                    value={userPhone}
+                    onChange={(e) => setUserPhone(e.target.value)}
+                    placeholder="+381 ..."
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="userPhone">{t('settings.phoneNumber')}</Label>
-                <Input
-                  id="userPhone"
-                  value={userPhone}
-                  onChange={(e) => setUserPhone(e.target.value)}
-                  placeholder="+381 ..."
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="userEmail">{t('settings.emailLabel')}</Label>
+                  <Input
+                    id="userEmail"
+                    type="email"
+                    value={userProfile?.email || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.emailCannotChange')}
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label>{t('settings.role')}</Label>
-                <div>
-                  <Badge variant="secondary" className="uppercase">
-                    {userProfile?.role}
-                  </Badge>
+                <div className="space-y-2">
+                  <Label>{t('settings.role')}</Label>
+                  <div className="flex items-center h-10">
+                    <Badge variant="secondary" className="uppercase">
+                      {userProfile?.role}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                onClick={handleSaveProfile}
+                className="bg-green-600 hover:bg-green-700"
+                disabled={updateProfileMutation.isPending}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {t('settings.saveChanges')}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Change Password — collapsible */}
+          <Card>
+            <button
+              type="button"
+              className="w-full text-left"
+              onClick={() => setPasswordOpen(v => !v)}
+            >
+              <CardHeader className="flex flex-row items-center justify-between py-5">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Key className="h-5 w-5" />
+                  {t('settings.changePassword')}
+                </CardTitle>
+                {passwordOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </CardHeader>
+            </button>
+            {passwordOpen && (
+              <CardContent className="space-y-4 pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">{t('settings.currentPassword')}</Label>
+                    <div className="relative">
+                      <Input
+                        id="currentPassword"
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">{t('settings.newPassword')}</Label>
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmNewPassword">{t('settings.confirmNewPassword')}</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmNewPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <Button
-                  onClick={handleSaveProfile}
+                  onClick={handleChangePassword}
                   className="bg-green-600 hover:bg-green-700"
-                  disabled={updateProfileMutation.isPending}
+                  disabled={isChangingPassword || !currentPassword || !newPassword || !confirmNewPassword}
                 >
                   <Save className="mr-2 h-4 w-4" />
                   {t('settings.saveChanges')}
                 </Button>
-
-                <Button onClick={handleChangePassword} variant="outline">
-                  <Key className="mr-2 h-4 w-4" />
-                  {t('settings.changePassword')}
-                </Button>
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
         </TabsContent>
 
@@ -334,11 +460,10 @@ export function SettingsPage() {
                   <div
                     className="bg-green-600 h-4 rounded-full transition-all"
                     style={{
-                      width: `${
-                        ((subscription?.currentMembersCount || 0) /
-                          (subscription?.memberLimit || 1)) *
+                      width: `${((subscription?.currentMembersCount || 0) /
+                        (subscription?.memberLimit || 1)) *
                         100
-                      }%`,
+                        }%`,
                     }}
                   />
                 </div>
@@ -357,7 +482,7 @@ export function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 mt-0">
             <Globe className="h-5 w-5" />
             {t('settings.language')}
           </CardTitle>
