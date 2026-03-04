@@ -99,7 +99,7 @@ export default function ChatScreen() {
 
   // Subscribe to messages
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !user?._id) return;
 
     const messagesRef = collection(db, 'conversations', conversationId, 'messages');
     const q = query(messagesRef, orderBy('timestamp', 'asc'));
