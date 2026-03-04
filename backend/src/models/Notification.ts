@@ -98,7 +98,7 @@ notificationSchema.statics.findByRecipient = async function (
   }
 
   let queryBuilder = this.find(query)
-    .populate('senderId', 'fullName profilePicture')
+    .populate('senderId', 'fullName profileImage')
     .sort({ createdAt: -1 });
 
   if (options?.limit) {

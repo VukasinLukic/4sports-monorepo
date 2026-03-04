@@ -22,6 +22,8 @@ import {
   Users,
   User,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   useConversations,
@@ -320,6 +322,18 @@ function ChatView({
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightbox(null);
+      if (e.key === 'ArrowLeft') setLightbox(l => l && { ...l, index: (l.index - 1 + l.images.length) % l.images.length });
+      if (e.key === 'ArrowRight') setLightbox(l => l && { ...l, index: (l.index + 1) % l.images.length });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightbox]);
 
   const getConversationName = (): string => {
     if (conversation.type === 'group' || conversation.type === 'staff-group') {
@@ -464,6 +478,8 @@ function ChatView({
                   message={message}
                   isOwn={message.senderId === currentUserId}
                   showSender={isGroup}
+                  onImageClick={(images, index) => setLightbox({ images, index })}
+                  participantDetails={conversation.participantDetails}
                 />
               ))}
               <div ref={messagesEndRef} />
@@ -532,6 +548,52 @@ function ChatView({
           </Button>
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white bg-black/40 rounded-full p-2"
+            onClick={() => setLightbox(null)}
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          {lightbox.images.length > 1 && (
+            <button
+              className="absolute left-4 text-white/80 hover:text-white bg-black/40 rounded-full p-2"
+              onClick={(e) => { e.stopPropagation(); setLightbox(l => l && { ...l, index: (l.index - 1 + l.images.length) % l.images.length }); }}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+          )}
+
+          <img
+            src={lightbox.images[lightbox.index]}
+            alt=""
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {lightbox.images.length > 1 && (
+            <button
+              className="absolute right-4 text-white/80 hover:text-white bg-black/40 rounded-full p-2"
+              onClick={(e) => { e.stopPropagation(); setLightbox(l => l && { ...l, index: (l.index + 1) % l.images.length }); }}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          )}
+
+          {lightbox.images.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm bg-black/40 px-3 py-1 rounded-full">
+              {lightbox.index + 1} / {lightbox.images.length}
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
@@ -541,21 +603,27 @@ function MessageBubble({
   message,
   isOwn,
   showSender,
+  onImageClick,
+  participantDetails,
 }: {
   message: Message;
   isOwn: boolean;
   showSender: boolean;
+  onImageClick: (images: string[], index: number) => void;
+  participantDetails?: Record<string, { name: string; avatar: string | null; role: string }>;
 }) {
   const timestamp = message.timestamp?.toDate ? message.timestamp.toDate() : new Date(message.timestamp);
+  // Prefer fresh avatar from participantDetails over stale per-message senderAvatar
+  const avatarUrl = participantDetails?.[message.senderId]?.avatar || message.senderAvatar;
 
   return (
     <div className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
       <div className={cn('flex gap-2 max-w-[70%]', isOwn && 'flex-row-reverse')}>
         {!isOwn && (
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-            {message.senderAvatar ? (
+            {avatarUrl ? (
               <img
-                src={message.senderAvatar}
+                src={avatarUrl}
                 alt={message.senderName}
                 className="w-8 h-8 rounded-full object-cover"
               />
@@ -582,8 +650,8 @@ function MessageBubble({
                   key={index}
                   src={url}
                   alt={`Image ${index + 1}`}
-                  className="max-w-[200px] rounded-lg cursor-pointer"
-                  onClick={() => window.open(url, '_blank')}
+                  className="max-w-[200px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => onImageClick(message.images!, index)}
                 />
               ))}
             </div>

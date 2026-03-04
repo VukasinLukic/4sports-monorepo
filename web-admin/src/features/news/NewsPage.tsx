@@ -128,7 +128,7 @@ const getInitials = (name: string) => {
 
 function getAuthorInfo(post: Post) {
   const authorName = typeof post.authorId === 'object' ? post.authorId.fullName : 'Unknown';
-  const authorPicture = typeof post.authorId === 'object' ? post.authorId.profilePicture : undefined;
+  const authorPicture = typeof post.authorId === 'object' ? post.authorId.profileImage : undefined;
   const authorRole = typeof post.authorId === 'object' ? post.authorId.role : null;
   const authorIdStr = typeof post.authorId === 'object' ? post.authorId._id : null;
   return { authorName, authorPicture, authorRole, authorIdStr };
@@ -819,7 +819,7 @@ function CommentItem({
   onAvatarClick: (userId: string | null) => void;
 }) {
   const authorName = typeof comment.authorId === 'object' ? comment.authorId.fullName : 'Unknown';
-  const authorPicture = typeof comment.authorId === 'object' ? comment.authorId.profilePicture : undefined;
+  const authorPicture = typeof comment.authorId === 'object' ? comment.authorId.profileImage : undefined;
   const authorIdStr = typeof comment.authorId === 'object' ? comment.authorId._id : null;
 
   return (

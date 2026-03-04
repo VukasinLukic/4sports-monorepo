@@ -4,6 +4,7 @@ import {
   login,
   getCurrentUser,
   getUserPublicProfile,
+  checkEmail,
 } from '../controllers/authController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -28,6 +29,7 @@ router.post('/login', login);
  * @desc    Get currently authenticated user
  * @access  Private
  */
+router.get('/check-email', checkEmail);
 router.get('/me', protect, getCurrentUser);
 
 /**

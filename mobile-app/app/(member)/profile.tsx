@@ -157,11 +157,11 @@ export default function MemberProfile() {
       <Card style={styles.profileCard}>
         <Card.Content style={styles.profileContent}>
           <View style={styles.headerRow}>
-            <Avatar.Text
-              size={56}
-              label={getInitials(member?.fullName || user?.fullName)}
-              style={styles.avatar}
-            />
+            {user?.profilePicture ? (
+              <Avatar.Image size={56} source={{ uri: user.profilePicture }} style={styles.avatar} />
+            ) : (
+              <Avatar.Text size={56} label={getInitials(member?.fullName || user?.fullName)} style={styles.avatar} />
+            )}
             <View style={styles.profileInfo}>
               <Text style={styles.userName}>{member?.fullName || user?.fullName || t('roles.member')}</Text>
               <Text style={styles.userEmail}>{user?.email || ''}</Text>

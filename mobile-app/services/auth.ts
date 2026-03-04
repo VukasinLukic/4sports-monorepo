@@ -2,6 +2,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
   User,
   UserCredential,
 } from 'firebase/auth';
@@ -55,6 +56,18 @@ export const logout = async (): Promise<void> => {
 };
 
 /**
+ * Send password reset email via Firebase
+ */
+export const sendPasswordReset = async (email: string): Promise<void> => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    console.error('Password reset error:', error.code, error.message);
+    throw error;
+  }
+};
+
+/**
  * Get current authenticated user
  */
 export const getCurrentUser = (): User | null => {
@@ -93,6 +106,7 @@ export const getAuthErrorMessage = (errorCode: string): string => {
     case 'auth/user-not-found':
       return 'No account found with this email.';
     case 'auth/wrong-password':
+    case 'auth/invalid-credential':
       return 'Incorrect password. Please try again.';
     case 'auth/too-many-requests':
       return 'Too many failed attempts. Please try again later.';

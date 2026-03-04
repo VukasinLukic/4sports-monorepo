@@ -236,6 +236,13 @@ export default function CoachDashboard() {
           <Card.Content style={styles.emptyNewsContent}>
             <MaterialCommunityIcons name="newspaper-variant-outline" size={32} color={Colors.textSecondary} />
             <Text style={styles.emptyNewsText}>{t('news.noPosts')}</Text>
+            <Button
+              mode="contained"
+              onPress={() => router.push('/(coach)/news/create')}
+              style={styles.createPostButton}
+            >
+              {t('news.createPost')}
+            </Button>
           </Card.Content>
         </Card>
       )}
@@ -382,6 +389,9 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
+  },
+  createPostButton: {
+    marginTop: Spacing.md,
   },
   openNewsLink: {
     flexDirection: 'row',

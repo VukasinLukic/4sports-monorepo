@@ -148,6 +148,7 @@ export interface Event {
   qrCode: string;
   // Recurring events
   isRecurring?: boolean;
+  parentEventId?: string;
   recurringPattern?: {
     frequency: 'daily' | 'weekly' | 'monthly';
     days?: number[];

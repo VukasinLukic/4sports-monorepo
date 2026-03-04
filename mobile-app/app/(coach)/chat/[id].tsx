@@ -63,7 +63,7 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList>();
 
   const openImageModal = (imageUrl: string) => {
     setSelectedImageUrl(imageUrl);
@@ -225,8 +225,11 @@ export default function ChatScreen() {
       >
         {!isOwnMessage && (
           <View style={styles.avatarSmall}>
-            {item.senderAvatar ? (
-              <Image source={{ uri: item.senderAvatar }} style={styles.avatarImage} />
+            {(conversation?.participantDetails[item.senderId]?.avatar || item.senderAvatar) ? (
+              <Image
+                source={{ uri: conversation?.participantDetails[item.senderId]?.avatar || item.senderAvatar! }}
+                style={styles.avatarImage}
+              />
             ) : (
               <Text style={styles.avatarText}>
                 {item.senderName?.substring(0, 1).toUpperCase() || '?'}
@@ -295,6 +298,8 @@ export default function ChatScreen() {
     );
   }
 
+  // iOS: KAV pushes content above keyboard
+  // Android: softwareKeyboardLayoutMode="resize" resizes the window automatically
   const ContainerComponent = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
   const containerProps = Platform.OS === 'ios'
     ? { behavior: 'padding' as const, keyboardVerticalOffset: 88 }

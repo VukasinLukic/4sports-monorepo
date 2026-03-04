@@ -16,6 +16,8 @@ interface PostCardProps {
   onLike?: (postId: string) => void;
   onComment?: (postId: string) => void;
   onPress?: (post: Post) => void;
+  onEdit?: (post: Post) => void;
+  onDelete?: (postId: string) => void;
 }
 
 export default function PostCard({
@@ -25,6 +27,8 @@ export default function PostCard({
   onLike,
   onComment,
   onPress,
+  onEdit,
+  onDelete,
 }: PostCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -84,6 +88,28 @@ export default function PostCard({
             <Text style={styles.authorName}>{authorName}</Text>
             <Text style={styles.timestamp}>{formatDate(post.createdAt)}</Text>
           </View>
+          {(onEdit || onDelete) && (
+            <View style={styles.headerActions}>
+              {onEdit && (
+                <IconButton
+                  icon="pencil-outline"
+                  size={18}
+                  iconColor={Colors.textSecondary}
+                  onPress={() => onEdit(post)}
+                  style={styles.headerActionButton}
+                />
+              )}
+              {onDelete && (
+                <IconButton
+                  icon="trash-can-outline"
+                  size={18}
+                  iconColor={Colors.error}
+                  onPress={() => onDelete(post._id)}
+                  style={styles.headerActionButton}
+                />
+              )}
+            </View>
+          )}
         </View>
 
         {/* Title */}
@@ -98,7 +124,7 @@ export default function PostCard({
             <Image
               source={{ uri: post.images[currentImageIndex] }}
               style={styles.media}
-              resizeMode="cover"
+              resizeMode="contain"
             />
 
             {/* Image Navigation */}
@@ -201,6 +227,14 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
     flex: 1,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: -Spacing.xs,
+  },
+  headerActionButton: {
+    margin: 0,
+  },
   authorName: {
     fontSize: FontSize.md,
     fontWeight: '600',
@@ -228,7 +262,7 @@ const styles = StyleSheet.create({
   mediaContainer: {
     position: 'relative',
     marginHorizontal: Spacing.md,
-    aspectRatio: 1,
+    height: 300,
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.md,
     overflow: 'hidden',

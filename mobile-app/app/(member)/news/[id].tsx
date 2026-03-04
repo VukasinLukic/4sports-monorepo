@@ -24,19 +24,19 @@ import { Post, Comment } from '@/types';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-interface PostWithAuthor extends Post {
-  author?: {
+interface PostWithAuthor extends Omit<Post, 'authorId'> {
+  authorId?: {
     _id: string;
     fullName: string;
-    profilePicture?: string;
-  };
+    profileImage?: string;
+  } | string;
 }
 
 interface CommentWithAuthor extends Comment {
   authorId: {
     _id: string;
     fullName: string;
-    profilePicture?: string;
+    profileImage?: string;
   } | string;
 }
 
@@ -178,8 +178,8 @@ export default function PostDetailScreen() {
   };
 
   const getAuthorAvatar = (comment: CommentWithAuthor) => {
-    if (typeof comment.authorId === 'object' && comment.authorId?.profilePicture) {
-      return comment.authorId.profilePicture;
+    if (typeof comment.authorId === 'object' && comment.authorId?.profileImage) {
+      return comment.authorId.profileImage;
     }
     return null;
   };
@@ -205,7 +205,8 @@ export default function PostDetailScreen() {
     );
   }
 
-  const authorName = post.author?.fullName || 'Coach';
+  const authorObj = post.authorId && typeof post.authorId === 'object' ? post.authorId : null;
+  const authorName = authorObj?.fullName || 'Coach';
   const hasMultipleImages = post.images && post.images.length > 1;
 
   return (
@@ -236,8 +237,8 @@ export default function PostDetailScreen() {
           <Card.Content>
             {/* Author Header */}
             <View style={styles.authorRow}>
-              {post.author?.profilePicture ? (
-                <Avatar.Image size={44} source={{ uri: post.author.profilePicture }} />
+              {authorObj?.profileImage ? (
+                <Avatar.Image size={44} source={{ uri: authorObj.profileImage }} />
               ) : (
                 <Avatar.Text size={44} label={getInitials(authorName)} style={styles.avatar} />
               )}

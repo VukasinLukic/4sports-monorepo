@@ -94,9 +94,10 @@ export const GroupBreakdownChart = ({ data, filterMode, onFilterChange }: GroupB
                     outerRadius={90}
                     paddingAngle={2}
                     dataKey="value"
+                    strokeWidth={0}
                   >
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                     ))}
                   </Pie>
                   <Tooltip
@@ -110,7 +111,10 @@ export const GroupBreakdownChart = ({ data, filterMode, onFilterChange }: GroupB
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
+                      color: 'hsl(var(--foreground))',
                     }}
+                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
                   />
                 </PieChart>
               </ResponsiveContainer>

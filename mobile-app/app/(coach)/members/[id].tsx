@@ -666,8 +666,8 @@ export default function MemberDetailsScreen() {
         <Card.Content style={styles.headerContent}>
           <View style={styles.headerRow}>
             {/* Avatar */}
-            {member.profilePicture ? (
-              <Image source={{ uri: member.profilePicture }} style={styles.avatar} />
+            {member.profilePicture || member.profileImage ? (
+              <Image source={{ uri: (member.profilePicture || member.profileImage)! }} style={styles.avatar} />
             ) : (
               <Avatar.Text size={64} label={getInitials(member.fullName)} style={styles.avatarPlaceholder} />
             )}

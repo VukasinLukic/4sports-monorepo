@@ -1,5 +1,5 @@
 const tintColorLight = '#0a7ea4';
-const tintColorDark = '#4caf50';
+const tintColorDark = '#1DDD63';
 
 // Theme-based colors (for potential light/dark mode support)
 export const ThemeColors = {
@@ -12,21 +12,21 @@ export const ThemeColors = {
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#FAFAFA',
+    background: '#0A0A0A',
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: '#A3A3A3',
+    tabIconDefault: '#A3A3A3',
     tabIconSelected: tintColorDark,
   },
 };
 
-// Main app colors (dark theme)
+// Main app colors — matches web admin dark theme
 export const Colors = {
-  // Primary Colors (Sports Green Theme)
-  primary: '#4caf50',
-  primaryDark: '#388e3c',
-  primaryLight: '#81c784',
+  // Primary Colors (web: --primary: 142 77% 49%)
+  primary: '#1DDD63',
+  primaryDark: '#16AC4D',
+  primaryLight: '#61EA93',
 
   // Secondary Colors
   secondary: '#ff9800',
@@ -34,46 +34,46 @@ export const Colors = {
   secondaryLight: '#ffb74d',
 
   // Background
-  background: '#1a1a1a',
-  surface: '#2d2d2d',
-  card: '#3a3a3a',
+  background: '#0A0A0A',
+  surface: '#121212',
+  card: '#121212',
 
-  // Text
-  text: '#ffffff',
-  textSecondary: '#b0b0b0',
-  textDisabled: '#757575',
+  // Text (web: --foreground: 0 0% 98%, --muted-foreground: 0 0% 64%)
+  text: '#FAFAFA',
+  textSecondary: '#A3A3A3',
+  textDisabled: '#666666',
 
-  // Status Colors
-  success: '#4caf50',
-  error: '#f44336',
+  // Status Colors (web: --destructive: 0 84% 60%)
+  success: '#1DDD63',
+  error: '#EF4444',
   warning: '#ff9800',
   info: '#2196f3',
 
   // Attendance Status
-  present: '#4caf50',
-  absent: '#f44336',
+  present: '#1DDD63',
+  absent: '#EF4444',
   excused: '#ff9800',
 
   // Payment Status
-  paid: '#4caf50',
-  unpaid: '#f44336',
+  paid: '#1DDD63',
+  unpaid: '#EF4444',
   partial: '#ff9800',
 
   // Medical Status
-  valid: '#4caf50',
-  expired: '#f44336',
+  valid: '#1DDD63',
+  expired: '#EF4444',
   expiring: '#ff9800',
 
   // Event Types
-  eventTraining: '#4caf50',
+  eventTraining: '#1DDD63',
   eventCompetition: '#ff9800',
   eventMeeting: '#2196f3',
 
-  // UI Elements
-  border: '#424242',
-  divider: '#424242',
-  shadow: 'rgba(0, 0, 0, 0.3)',
-  overlay: 'rgba(0, 0, 0, 0.5)',
+  // UI Elements (web: --input: 0 0% 18% used as border)
+  border: '#2E2E2E',
+  divider: '#2E2E2E',
+  shadow: 'rgba(0, 0, 0, 0.5)',
+  overlay: 'rgba(0, 0, 0, 0.7)',
 };
 
 // Legacy alias for backward compatibility

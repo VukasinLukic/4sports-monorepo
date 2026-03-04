@@ -19,7 +19,7 @@ export const getCoaches = async (req: Request, res: Response) => {
     }
 
     const coaches = await User.find({ role: 'COACH', clubId: user.clubId })
-      .select('firstName lastName fullName email phoneNumber clubId createdAt')
+      .select('firstName lastName fullName email phoneNumber profileImage clubId createdAt')
       .sort({ createdAt: -1 });
 
     console.log(`✅ Found ${coaches.length} coaches for club ${user.clubId}`);
@@ -57,7 +57,7 @@ export const getCoach = async (req: Request, res: Response) => {
     }
 
     const coach = await User.findOne({ _id: id, role: 'COACH', clubId: user.clubId })
-      .select('firstName lastName fullName email phoneNumber clubId createdAt');
+      .select('firstName lastName fullName email phoneNumber profileImage clubId createdAt');
 
     if (!coach) {
       return res.status(404).json({

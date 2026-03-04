@@ -30,14 +30,15 @@ export default function CreateEventScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ date?: string; groupId?: string }>();
 
+  // Days ordered Mon-Sun; value is the JS getDay() index (0=Sun, 1=Mon, ..., 6=Sat)
   const DAYS_OF_WEEK = [
-    t('dateTime.days.sun') || 'Ned',
-    t('dateTime.days.mon') || 'Pon',
-    t('dateTime.days.tue') || 'Uto',
-    t('dateTime.days.wed') || 'Sre',
-    t('dateTime.days.thu') || 'Čet',
-    t('dateTime.days.fri') || 'Pet',
-    t('dateTime.days.sat') || 'Sub',
+    { label: t('dateTime.days.mon') || 'Pon', value: 1 },
+    { label: t('dateTime.days.tue') || 'Uto', value: 2 },
+    { label: t('dateTime.days.wed') || 'Sre', value: 3 },
+    { label: t('dateTime.days.thu') || 'Čet', value: 4 },
+    { label: t('dateTime.days.fri') || 'Pet', value: 5 },
+    { label: t('dateTime.days.sat') || 'Sub', value: 6 },
+    { label: t('dateTime.days.sun') || 'Ned', value: 0 },
   ];
 
   // Required fields
@@ -50,7 +51,7 @@ export default function CreateEventScreen() {
   // Recurring
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringFrequency, setRecurringFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
-  const [recurringDays, setRecurringDays] = useState<number[]>([]);
+  const [recurringDays, setRecurringDays] = useState<number[]>([new Date().getDay()]);
   const [recurringUntil, setRecurringUntil] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
 
   // Advanced options (optional)
@@ -91,6 +92,13 @@ export default function CreateEventScreen() {
     fetchGroups();
     loadSavedData();
   }, []);
+
+  // Re-sync date whenever the param changes (e.g. navigating from calendar with different selected date)
+  useEffect(() => {
+    if (params.date) {
+      setDate(new Date(params.date));
+    }
+  }, [params.date]);
 
   const loadSavedData = async () => {
     try {
@@ -481,14 +489,14 @@ export default function CreateEventScreen() {
 
           {recurringFrequency === 'weekly' && (
             <View style={styles.daysRow}>
-              {DAYS_OF_WEEK.map((day, index) => (
+              {DAYS_OF_WEEK.map((day) => (
                 <TouchableOpacity
-                  key={day}
-                  style={[styles.dayButton, recurringDays.includes(index) && styles.dayButtonSelected]}
-                  onPress={() => toggleRecurringDay(index)}
+                  key={day.value}
+                  style={[styles.dayButton, recurringDays.includes(day.value) && styles.dayButtonSelected]}
+                  onPress={() => toggleRecurringDay(day.value)}
                 >
-                  <Text style={[styles.dayButtonText, recurringDays.includes(index) && styles.dayButtonTextSelected]}>
-                    {day}
+                  <Text style={[styles.dayButtonText, recurringDays.includes(day.value) && styles.dayButtonTextSelected]}>
+                    {day.label}
                   </Text>
                 </TouchableOpacity>
               ))}

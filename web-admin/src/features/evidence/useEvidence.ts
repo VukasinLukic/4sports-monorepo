@@ -174,6 +174,32 @@ export const useUpdateMedical = () => {
   });
 };
 
+// Bulk update medical info for a group
+export const useBulkUpdateMedical = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      memberIds: string[];
+      lastCheckDate: string;
+      expiryDate: string;
+    }) => {
+      await Promise.all(
+        data.memberIds.map((memberId) =>
+          api.post(`/evidence/medical/${memberId}`, {
+            lastCheckDate: data.lastCheckDate,
+            expiryDate: data.expiryDate,
+          })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['medical-evidence'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+    },
+  });
+};
+
 // Send payment reminder to member
 export const useSendPaymentReminder = () => {
   return useMutation({

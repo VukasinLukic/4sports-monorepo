@@ -31,7 +31,7 @@ const SWIPE_THRESHOLD = 100;
 interface CommentAuthor {
   _id: string;
   fullName: string;
-  profilePicture?: string;
+  profileImage?: string;
 }
 
 interface Comment {
@@ -235,8 +235,8 @@ export default function CommentBottomSheet({
   };
 
   const getAuthorAvatar = (comment: Comment) => {
-    if (typeof comment.authorId === 'object' && comment.authorId?.profilePicture) {
-      return comment.authorId.profilePicture;
+    if (typeof comment.authorId === 'object' && comment.authorId?.profileImage) {
+      return comment.authorId.profileImage;
     }
     return null;
   };
