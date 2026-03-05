@@ -209,9 +209,9 @@ async function seed() {
       description: g.description,
       coaches: coachAssignment[i],
       isActive: true,
-    });
+    } as any);
     groups.push(group);
-    console.log(`  ✅ Group: ${group.name} (${group.ageGroup}) — Coaches: ${coachAssignment[i].length}`);
+    console.log(`  ✅ Group: ${(group as any).name} (${(group as any).ageGroup}) — Coaches: ${coachAssignment[i].length}`);
   }
   console.log();
 
@@ -458,7 +458,7 @@ async function seed() {
         createdBy: randomPick(group.coaches),
         isMandatory: true,
         status: weekOffset > 0 ? 'COMPLETED' : 'SCHEDULED',
-      });
+      } as any);
       allEvents.push(tuesdayEvent);
       eventCount++;
 
@@ -482,7 +482,7 @@ async function seed() {
         createdBy: randomPick(group.coaches),
         isMandatory: true,
         status: weekOffset > 0 ? 'COMPLETED' : 'SCHEDULED',
-      });
+      } as any);
       allEvents.push(thursdayEvent);
       eventCount++;
     }
@@ -507,7 +507,7 @@ async function seed() {
         createdBy: randomPick(group.coaches),
         isMandatory: true,
         status: 'COMPLETED',
-      });
+      } as any);
       allEvents.push(matchEvent);
       eventCount++;
     }
@@ -531,7 +531,7 @@ async function seed() {
         createdBy: randomPick(group.coaches),
         isMandatory: true,
         status: 'SCHEDULED',
-      });
+      } as any);
       allEvents.push(futureEvent);
       eventCount++;
     }

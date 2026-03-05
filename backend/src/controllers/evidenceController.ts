@@ -307,6 +307,7 @@ export const updateMedicalInfo = async (req: Request, res: Response) => {
     if (medications !== undefined) member.medicalInfo.medications = medications;
     if (conditions !== undefined) member.medicalInfo.conditions = conditions;
 
+    member.markModified('medicalInfo');
     await member.save();
 
     return res.status(200).json({ success: true, data: member, message: 'Medical info updated' });
