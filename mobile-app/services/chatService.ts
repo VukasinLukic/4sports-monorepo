@@ -50,7 +50,7 @@ const uploadImage = async (imageUri: string): Promise<string> => {
   const fileName = uriParts[uriParts.length - 1];
   const fileType = fileName.split('.').pop()?.toLowerCase() || 'jpg';
 
-  formData.append('file', {
+  formData.append('files', {
     uri: imageUri,
     name: fileName,
     type: `image/${fileType}`,
@@ -62,7 +62,7 @@ const uploadImage = async (imageUri: string): Promise<string> => {
     },
   });
 
-  return response.data.data.url;
+  return response.data.data.urls[0];
 };
 
 export const chatService = {
