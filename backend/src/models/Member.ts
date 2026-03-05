@@ -227,7 +227,7 @@ const memberSchema = new Schema<IMember, IMemberModel>(
         type: String,
         trim: true,
         match: [
-          /^\d{8,}$/,
+          /^\+?\d{8,}$/,
           'Please provide a valid phone number with at least 8 digits',
         ],
       },

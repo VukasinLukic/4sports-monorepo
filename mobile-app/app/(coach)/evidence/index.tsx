@@ -142,7 +142,7 @@ export default function EvidenceScreen() {
                   paidAmount: evidence.payment.paidAmount ?? 0,
                   amount: evidence.payment.amount ?? 0,
                 } : undefined,
-                isValidMedical: evidence?.status === 'VALID',
+                isValidMedical: evidence?.medicalStatus === 'VALID',
                 lastActive: member.updatedAt,
               };
             });
