@@ -119,9 +119,26 @@ export const chatService = {
       }
     };
 
-    return onSnapshot(q, () => {
-      fetchFreshConversations();
+    // Debounce to avoid request storms from rapid Firestore changes
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    let isFirstSnapshot = true;
+
+    const unsubscribe = onSnapshot(q, () => {
+      if (isFirstSnapshot) {
+        isFirstSnapshot = false;
+        fetchFreshConversations();
+        return;
+      }
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchFreshConversations();
+      }, 500);
     });
+
+    return () => {
+      clearTimeout(debounceTimer);
+      unsubscribe();
+    };
   },
 
   /**

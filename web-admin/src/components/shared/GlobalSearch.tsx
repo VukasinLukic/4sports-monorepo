@@ -8,11 +8,20 @@ import { useCoaches } from '@/features/coaches/useCoaches';
 export function GlobalSearch() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // Fetch data for search
-  const { data: members } = useMembers({ search: query });
+  // Debounce search query to avoid API call on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Fetch data for search - uses debounced query
+  const { data: members } = useMembers({ search: debouncedQuery });
   const { data: coaches } = useCoaches();
 
   // Filter results based on query
