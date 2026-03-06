@@ -79,7 +79,7 @@ export default function EventSessionScreen() {
       if (!isLoading && !isRefreshing) {
         fetchData();
       }
-    }, 10000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [fetchData, isLoading, isRefreshing]);

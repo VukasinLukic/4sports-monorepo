@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/services/api';
 import { db } from '@/config/firebase';
 import {
@@ -78,6 +78,8 @@ export const useConversations = () => {
     // Initial fetch with fresh avatars
     fetchConversations();
 
+    let debounceTimer: ReturnType<typeof setTimeout>;
+
     try {
       const conversationsRef = collection(db, 'conversations');
       const q = query(
@@ -87,11 +89,21 @@ export const useConversations = () => {
         orderBy('updatedAt', 'desc')
       );
 
+      let isFirstSnapshot = true;
       // Use onSnapshot only to detect changes, then re-fetch from API for fresh avatars
       const unsubscribe: Unsubscribe = onSnapshot(
         q,
         () => {
-          fetchConversations();
+          // Skip the initial snapshot (we already fetched above)
+          if (isFirstSnapshot) {
+            isFirstSnapshot = false;
+            return;
+          }
+          // Debounce subsequent fetches to avoid request storms
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            fetchConversations();
+          }, 500);
         },
         (err) => {
           console.error('Error subscribing to conversations:', err);
@@ -100,7 +112,10 @@ export const useConversations = () => {
         }
       );
 
-      return () => unsubscribe();
+      return () => {
+        clearTimeout(debounceTimer);
+        unsubscribe();
+      };
     } catch (err) {
       console.error('Error setting up conversations subscription:', err);
       setError(err as Error);
@@ -117,6 +132,8 @@ export const useMessages = (conversationId: string | null) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  const markAsReadTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (!conversationId || !db) {
@@ -142,9 +159,12 @@ export const useMessages = (conversationId: string | null) => {
           setMessages(newMessages);
           setLoading(false);
 
-          // Mark messages as read
+          // Debounce mark as read to avoid request storms
           if (backendUser?._id && conversationId) {
-            api.post(`/chat/conversations/${conversationId}/read`).catch(console.error);
+            clearTimeout(markAsReadTimer.current);
+            markAsReadTimer.current = setTimeout(() => {
+              api.post(`/chat/conversations/${conversationId}/read`).catch(console.error);
+            }, 1000);
           }
         },
         (err) => {
@@ -154,7 +174,10 @@ export const useMessages = (conversationId: string | null) => {
         }
       );
 
-      return () => unsubscribe();
+      return () => {
+        clearTimeout(markAsReadTimer.current);
+        unsubscribe();
+      };
     } catch (err) {
       console.error('Error setting up messages subscription:', err);
       setError(err as Error);
