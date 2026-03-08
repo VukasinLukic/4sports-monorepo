@@ -32,7 +32,8 @@ const corsOptions = {
     const allowedOrigins = [
       process.env.WEB_ADMIN_URL || 'http://localhost:5173',
       process.env.MOBILE_APP_URL || 'exp://localhost:19000',
-    ];
+      process.env.PROMO_SITE_URL,
+    ].filter(Boolean) as string[];
 
     // In development, allow all origins
     if (process.env.NODE_ENV !== 'production') {
