@@ -18,6 +18,7 @@ import evidenceRoutes from './evidenceRoutes';
 import clubRoutes from './clubRoutes';
 import chatRoutes from './chatRoutes';
 import reminderRoutes from './reminderRoutes';
+import contactRoutes from './contactRoutes';
 
 /**
  * Main Router
@@ -46,6 +47,7 @@ router.use('/evidence', evidenceRoutes);
 router.use('/clubs', clubRoutes);
 router.use('/chat', chatRoutes);
 router.use('/reminders', reminderRoutes);
+router.use('/contact', contactRoutes);
 
 /**
  * Future Routes (Phase 3+)
