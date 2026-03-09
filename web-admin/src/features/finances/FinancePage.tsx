@@ -270,7 +270,7 @@ export function FinancePage() {
             <div className="text-2xl font-bold text-red-600">
               {formatCurrency(summary?.totalExpenses || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">{t('finances.currentMonth')}</p>
+            <p className="text-xs text-muted-foreground">{t('finances.totalExpensesDescription')}</p>
           </CardContent>
         </Card>
 

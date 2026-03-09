@@ -57,12 +57,16 @@ export const useFinances = (filters?: {
   });
 };
 
-// Fetch finance summary stats (including membership payments)
+// Fetch finance summary stats (including membership payments) - ALL TIME totals
 export const useFinanceSummary = () => {
   return useQuery({
     queryKey: ['finances-summary'],
     queryFn: async () => {
-      const response = await api.get<{ success: boolean; data: any }>('/finances/summary');
+      // Fetch all-time summary by passing a wide date range
+      const params = new URLSearchParams();
+      params.append('startDate', '2020-01-01');
+      params.append('endDate', '2099-12-31');
+      const response = await api.get<{ success: boolean; data: any }>(`/finances/summary?${params.toString()}`);
       const data = response.data.data || {};
 
       let totalIncome = data.totalIncome || 0;

@@ -398,6 +398,7 @@ export default {
     totalIncomeDescription: 'Total income (including memberships)',
     totalExpenses: 'Total Expenses',
     currentMonth: 'Current month',
+    totalExpensesDescription: 'Total expenses (all time)',
     netProfitLoss: 'Net Profit/Loss',
     transactions: 'Transactions',
     allTransactions: 'All Transactions',

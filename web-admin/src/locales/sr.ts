@@ -402,6 +402,7 @@ export default {
     totalIncomeDescription: 'Ukupan prihod (uključujući članarine)',
     totalExpenses: 'Ukupni rashodi',
     currentMonth: 'Tekući mesec',
+    totalExpensesDescription: 'Ukupni rashodi (sve vreme)',
     netProfitLoss: 'Neto dobit/gubitak',
     transactions: 'Transakcije',
     allTransactions: 'Sve transakcije',
