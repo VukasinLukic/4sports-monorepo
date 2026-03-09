@@ -14,8 +14,6 @@ import {
 import {
   Calendar,
   Plus,
-  ChevronLeft,
-  ChevronRight,
   Trash2,
   Filter,
   Pencil,
@@ -194,10 +192,10 @@ export function CalendarPage() {
     return filtered.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [events, filterType, selectedDate]);
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
+  const navigateToMonth = (monthIndex: number) => {
     setCurrentDate((prev) => {
       const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
+      newDate.setMonth(monthIndex);
       return newDate;
     });
   };
@@ -264,41 +262,46 @@ export function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">{t('calendar.title')}</h1>
-          <p className="text-muted-foreground">{t('calendar.subtitle')}</p>
-        </div>
-        <Button className="bg-green-600 hover:bg-green-700" onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('calendar.newEvent')}
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold">{t('calendar.title')}</h1>
+        <p className="text-muted-foreground">{t('calendar.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar Grid */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => navigateMonth('prev')}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentDate(new Date())}
-                >
-                  {t('calendar.today')}
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => navigateMonth('next')}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
+                </CardTitle>
+                {/* Month navigation */}
+                <div className="flex gap-1">
+                  {MONTHS.map((month, index) => (
+                    <button
+                      key={index}
+                      onClick={() => navigateToMonth(index)}
+                      className={cn(
+                        "text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors",
+                        currentDate.getMonth() === index
+                          ? "bg-green-600 text-white border-green-600"
+                          : "bg-background text-muted-foreground border-green-600 hover:bg-green-50 hover:text-green-700"
+                      )}
+                    >
+                      {month.slice(0, 3)}
+                    </button>
+                  ))}
+                </div>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentDate(new Date())}
+              >
+                {t('calendar.today')}
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -457,119 +460,128 @@ export function CalendarPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2" style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'rgb(34, 197, 94) transparent',
-              }}>
-                <style>{`
-                  div[style*="scrollbar-color"] ::-webkit-scrollbar {
-                    width: 6px;
-                  }
-                  div[style*="scrollbar-color"] ::-webkit-scrollbar-track {
-                    background: transparent;
-                  }
-                  div[style*="scrollbar-color"] ::-webkit-scrollbar-thumb {
-                    background-color: rgb(34, 197, 94);
-                    border-radius: 3px;
-                  }
-                  div[style*="scrollbar-color"] ::-webkit-scrollbar-thumb:hover {
-                    background-color: rgb(22, 163, 74);
-                  }
-                `}</style>
-                {filteredEvents.map((event) => {
-                  const groupName = typeof event.groupId === 'object' ? event.groupId.name : '';
-                  const groupColor = typeof event.groupId === 'object' ? event.groupId.color : '#22c55e';
-                  const eventDate = new Date(event.startTime);
-                  const dayOfWeek = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' }).toUpperCase();
-                  const dayOfMonth = eventDate.getDate();
-                  const eventTypeColor = getEventTypeColor(event.type);
-                  const timeUntil = getTimeUntilEvent(event.startTime);
+              <>
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2" style={{
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: 'rgb(34, 197, 94) transparent',
+                }}>
+                  <style>{`
+                    div[style*="scrollbar-color"] ::-webkit-scrollbar {
+                      width: 6px;
+                    }
+                    div[style*="scrollbar-color"] ::-webkit-scrollbar-track {
+                      background: transparent;
+                    }
+                    div[style*="scrollbar-color"] ::-webkit-scrollbar-thumb {
+                      background-color: rgb(34, 197, 94);
+                      border-radius: 3px;
+                    }
+                    div[style*="scrollbar-color"] ::-webkit-scrollbar-thumb:hover {
+                      background-color: rgb(22, 163, 74);
+                    }
+                  `}</style>
+                  {filteredEvents.map((event) => {
+                    const groupName = typeof event.groupId === 'object' ? event.groupId.name : '';
+                    const groupColor = typeof event.groupId === 'object' ? event.groupId.color : '#22c55e';
+                    const eventDate = new Date(event.startTime);
+                    const dayOfWeek = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' }).toUpperCase();
+                    const dayOfMonth = eventDate.getDate();
+                    const eventTypeColor = getEventTypeColor(event.type);
+                    const timeUntil = getTimeUntilEvent(event.startTime);
 
-                  return (
-                    <div
-                      key={event._id}
-                      className="relative flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                      onClick={() => navigate(`/calendar/${event._id}`)}
-                    >
-                      {/* Date Badge */}
-                      <div className={`${eventTypeColor} text-white rounded-sm p-2 flex flex-col items-center justify-center min-w-[50px] font-medium shrink-0 self-start`}>
-                        <div className="text-xl font-bold leading-none">{dayOfMonth}</div>
-                        <div className="text-[10px] mt-0.5">{dayOfWeek}</div>
-                      </div>
+                    return (
+                      <div
+                        key={event._id}
+                        className="relative flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                        onClick={() => navigate(`/calendar/${event._id}`)}
+                      >
+                        {/* Date Badge */}
+                        <div className={`${eventTypeColor} text-white rounded-sm p-2 flex flex-col items-center justify-center min-w-[50px] font-medium shrink-0 self-start`}>
+                          <div className="text-xl font-bold leading-none">{dayOfMonth}</div>
+                          <div className="text-[10px] mt-0.5">{dayOfWeek}</div>
+                        </div>
 
-                      {/* Event Details */}
-                      <div className="flex-1 min-w-0 flex flex-col gap-1">
-                        <h4 className="font-semibold text-sm leading-tight">{event.title}</h4>
+                        {/* Event Details */}
+                        <div className="flex-1 min-w-0 flex flex-col gap-1">
+                          <h4 className="font-semibold text-sm leading-tight">{event.title}</h4>
 
-                        {groupName && (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <div
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: groupColor }}
-                            />
-                            <span>{groupName}</span>
+                          {groupName && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <div
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: groupColor }}
+                              />
+                              <span>{groupName}</span>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>{timeUntil}</span>
                           </div>
-                        )}
+                        </div>
 
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          <span>{timeUntil}</span>
+                        {/* Time and Actions */}
+                        <div className="flex flex-col items-end gap-2 self-start absolute top-3 right-3 z-50">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {formatEventTime(event.startTime)} - {formatEventTime(event.endTime)}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              className="hover:bg-green-800 h-7 w-7 inline-flex items-center justify-center rounded-md text-primary hover:bg-accent transition-colors cursor-pointer"
+                              style={{ pointerEvents: 'auto' }}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              onMouseUp={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditingEvent(event);
+                                setCreateDialogOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5 pointer-events-none" />
+                            </button>
+                            <button
+                              type="button"
+                              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                              style={{ pointerEvents: 'auto' }}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              onMouseUp={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDeleteClick(event);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 pointer-events-none" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      {/* Time and Actions */}
-                      <div className="flex flex-col items-end gap-2 self-start absolute top-3 right-3 z-50">
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {formatEventTime(event.startTime)} - {formatEventTime(event.endTime)}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            className="hover:bg-green-800 h-7 w-7 inline-flex items-center justify-center rounded-md text-primary hover:bg-accent transition-colors cursor-pointer"
-                            style={{ pointerEvents: 'auto' }}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            onMouseUp={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setEditingEvent(event);
-                              setCreateDialogOpen(true);
-                            }}
-                          >
-                            <Pencil className="h-3.5 w-3.5 pointer-events-none" />
-                          </button>
-                          <button
-                            type="button"
-                            className="h-7 w-7 inline-flex items-center justify-center rounded-md text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                            style={{ pointerEvents: 'auto' }}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            onMouseUp={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDeleteClick(event);
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 pointer-events-none" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+                <Button
+                  className="w-full mt-4 bg-green-600 hover:bg-green-700 h-12 text-base font-semibold"
+                  onClick={() => setCreateDialogOpen(true)}
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  {t('calendar.newEvent')}
+                </Button>
+              </>
             )}
           </CardContent>
         </Card>

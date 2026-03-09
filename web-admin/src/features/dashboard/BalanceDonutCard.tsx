@@ -46,17 +46,21 @@ export const BalanceDonutCard = ({ data }: BalanceDonutCardProps) => {
   };
 
   const filteredMethods = useMemo(() => {
+    // Only show CASH and CARD methods
+    const allowedMethods = data.methods.filter((m) => m.method === 'CASH' || m.method === 'CARD');
+
     if (filter === 'CASH') {
-      return data.methods.filter((m) => m.method === 'CASH');
+      return allowedMethods.filter((m) => m.method === 'CASH');
     }
     if (filter === 'ELECTRONIC') {
-      return data.methods.filter((m) => m.method === 'CARD' || m.method === 'BANK_TRANSFER');
+      return allowedMethods.filter((m) => m.method === 'CARD');
     }
-    return data.methods;
+    return allowedMethods;
   }, [data.methods, filter]);
 
   const chartData = useMemo(() => {
     return filteredMethods.map((m) => ({
+      method: m.method,
       name: getMethodLabel(m.method),
       value: m.amount,
       color: getMethodColor(m.method),
@@ -94,20 +98,20 @@ export const BalanceDonutCard = ({ data }: BalanceDonutCardProps) => {
       </CardHeader>
       <CardContent>
         {chartData.length === 0 || total === 0 ? (
-          <div className="h-[240px] flex items-center justify-center text-muted-foreground">
+          <div className="h-[180px] flex items-center justify-center text-muted-foreground">
             <p>{t('charts.noData')}</p>
           </div>
         ) : (
           <>
-            <div className="relative h-[220px]">
+            <div className="relative h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={chartData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
+                    innerRadius={50}
+                    outerRadius={75}
                     paddingAngle={2}
                     dataKey="value"
                     strokeWidth={0}
@@ -143,7 +147,7 @@ export const BalanceDonutCard = ({ data }: BalanceDonutCardProps) => {
               {chartData.map((item) => {
                 const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
                 return (
-                  <div key={item.name} className="flex items-center justify-between text-sm">
+                  <div key={item.method} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-block w-3 h-3 rounded-full flex-shrink-0"

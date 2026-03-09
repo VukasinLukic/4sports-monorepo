@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { TrendingUp, TrendingDown, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TFunction } from 'i18next';
@@ -37,6 +37,7 @@ export const RecentTransactionsCard = ({
   countTrend,
 }: RecentTransactionsCardProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const isPositive = countTrend >= 0;
 
   return (
@@ -71,42 +72,41 @@ export const RecentTransactionsCard = ({
       </CardHeader>
       <CardContent className="pt-0">
         {transactions.length === 0 ? (
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
             <p>{t('dashboard.noTransactions')}</p>
           </div>
         ) : (
-          <ScrollArea className="h-[350px] pr-3">
-            <div className="space-y-1">
-              {transactions.map((tx) => {
-                const isIncome = tx.type === 'INCOME';
-                const dateStr = tx.transactionDate || tx.createdAt;
-                const timeAgo = formatTimeAgo(dateStr, t);
-                const label = tx.description || getCategoryLabel(tx.category, t);
+          <div className="space-y-1">
+            {transactions.slice(0, 4).map((tx) => {
+              const isIncome = tx.type === 'INCOME';
+              const dateStr = tx.transactionDate || tx.createdAt;
+              const timeAgo = formatTimeAgo(dateStr, t);
+              const label = tx.description || getCategoryLabel(tx.category, t);
 
-                return (
-                  <div
-                    key={tx._id}
-                    className="flex items-center justify-between py-3 px-2 rounded-lg hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {label}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{timeAgo}</p>
-                    </div>
-                    <p
-                      className={cn(
-                        'text-sm font-semibold whitespace-nowrap ml-3',
-                        isIncome ? 'text-green-500' : 'text-red-500'
-                      )}
-                    >
-                      {isIncome ? '+' : '-'}{tx.amount.toLocaleString()} RSD
+              return (
+                <div
+                  key={tx._id}
+                  onClick={() => navigate(`/finances?txId=${tx._id}`)}
+                  className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {label}
                     </p>
+                    <p className="text-xs text-muted-foreground">{timeAgo}</p>
                   </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
+                  <p
+                    className={cn(
+                      'text-sm font-semibold whitespace-nowrap ml-3',
+                      isIncome ? 'text-green-500' : 'text-red-500'
+                    )}
+                  >
+                    {isIncome ? '+' : '-'}{tx.amount.toLocaleString()} RSD
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         )}
       </CardContent>
     </Card>

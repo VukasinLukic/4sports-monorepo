@@ -72,13 +72,13 @@ export const MemberGrowthCard = ({ data }: MemberGrowthCardProps) => {
           <TrendBadge value={data.newMembersTrend} />
         </div>
       </CardHeader>
-      <CardContent className="pt-2">
+      <CardContent className="pt-6">
         {chartData.length === 0 ? (
-          <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+          <div className="h-[160px] flex items-center justify-center text-muted-foreground">
             <p>{t('charts.noData')}</p>
           </div>
         ) : (
-          <div className="h-[200px]">
+          <div className="h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                 <defs>

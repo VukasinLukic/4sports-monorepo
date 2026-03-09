@@ -13,6 +13,45 @@ import type { GroupStatEntry } from '@/types';
 
 type FilterMode = 'profit' | 'income' | 'expense' | 'memberCount';
 
+// Custom Tooltip Component
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    name?: string;
+    value?: number;
+    payload?: { name: string; value: number; color: string };
+  }>;
+  filterMode: FilterMode;
+}
+
+const CustomTooltip = ({ active, payload, filterMode }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    const groupName = data.payload?.name || data.name || '';
+    const value = data.value || 0;
+    const formattedValue = filterMode === 'memberCount'
+      ? value.toString()
+      : `${value.toLocaleString()} RSD`;
+
+    return (
+      <div
+        style={{
+          backgroundColor: 'hsl(var(--card))',
+          border: '1px solid hsl(var(--border))',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          color: 'hsl(var(--foreground))',
+        }}
+      >
+        <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>
+          {groupName}: {formattedValue}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 interface GroupBreakdownChartProps {
   data: GroupStatEntry[];
   filterMode: FilterMode;
@@ -100,22 +139,7 @@ export const GroupBreakdownChart = ({ data, filterMode, onFilterChange }: GroupB
                       <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(value: number) => [
-                      filterMode === 'memberCount'
-                        ? value
-                        : `${value.toLocaleString()} RSD`,
-                      '',
-                    ]}
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))',
-                    }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                  />
+                  <Tooltip content={<CustomTooltip filterMode={filterMode} />} />
                 </PieChart>
               </ResponsiveContainer>
             </div>

@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ import { ErrorMessage } from '@/components/shared/ErrorMessage';
 import { DateRangePicker } from '@/components/shared/DateRangePicker';
 import { AddFinanceDialog } from './AddFinanceDialog';
 import { EditFinanceDialog } from './EditFinanceDialog';
+import { ViewTransactionDialog } from './ViewTransactionDialog';
 import {
   useFinanceSummary,
   useFilteredFinances,
@@ -34,26 +36,44 @@ export function FinancePage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { checkAndStartTutorial } = useOnboarding();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const txIdHandled = useRef(false);
 
   // Dialog state
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [viewingTransaction, setViewingTransaction] = useState<FinanceEntry | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<FinanceEntry | null>(null);
 
-  // Initialize filters with "This Month" by default
+  // Check if we arrived with a txId from dashboard
+  const txIdParam = searchParams.get('txId');
+
+  // Initialize filters — if txId is present, start with 'all' so the transaction is visible
   const now = new Date();
-  const [filters, setFilters] = useState<FinanceFilters>({
-    dateRange: {
-      startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
-      endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0],
-      preset: 'thisMonth',
-    },
-    groupIds: [],
-    coachIds: [],
-    transactionType: 'ALL',
-    categories: [],
+  const [filters, setFilters] = useState<FinanceFilters>(() => {
+    if (txIdParam) {
+      return {
+        dateRange: { startDate: null, endDate: null, preset: 'all' as const },
+        groupIds: [],
+        coachIds: [],
+        transactionType: 'ALL' as const,
+        categories: [],
+      };
+    }
+    return {
+      dateRange: {
+        startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
+        endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0],
+        preset: 'thisMonth' as const,
+      },
+      groupIds: [],
+      coachIds: [],
+      transactionType: 'ALL' as const,
+      categories: [],
+    };
   });
-  const [groupBy, setGroupBy] = useState<GroupByOption>('none');
+  const [groupBy, setGroupBy] = useState<GroupByOption>(txIdParam ? 'month' : 'none');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // Data fetching
@@ -100,21 +120,22 @@ export function FinancePage() {
     }
   }, [filteredTransactions, groupBy, groups, t]);
 
-  // Start tutorial on first visit
-  useEffect(() => {
-    if (!summaryLoading && !transactionsLoading) {
-      checkAndStartTutorial('finances');
-    }
-  }, [summaryLoading, transactionsLoading, checkAndStartTutorial]);
+  // Handle view
+  const handleView = useCallback((transaction: FinanceEntry) => {
+    setViewingTransaction(transaction);
+    setViewDialogOpen(true);
+  }, []);
 
   // Handle delete
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
       await deleteEntryMutation.mutateAsync(id);
       toast({
         title: t('common.success'),
         description: t('finances.transactionDeleted'),
       });
+      // Close view dialog if it's open
+      setViewDialogOpen(false);
     } catch (error) {
       toast({
         title: t('common.error'),
@@ -122,13 +143,55 @@ export function FinancePage() {
         variant: 'destructive',
       });
     }
-  };
+  }, [deleteEntryMutation, toast, t]);
 
-  // Handle edit
-  const handleEdit = (transaction: FinanceEntry) => {
+  // Handle edit - can be called from view dialog or table
+  const handleEdit = useCallback((transaction: FinanceEntry) => {
     setEditingTransaction(transaction);
     setEditDialogOpen(true);
-  };
+  }, []);
+
+  // Handle edit from view dialog
+  const handleEditFromView = useCallback(() => {
+    if (viewingTransaction) {
+      setViewDialogOpen(false);
+      handleEdit(viewingTransaction);
+    }
+  }, [viewingTransaction, handleEdit]);
+
+  // Handle delete from view dialog
+  const handleDeleteFromView = useCallback(async () => {
+    if (viewingTransaction) {
+      await handleDelete(viewingTransaction.id);
+    }
+  }, [viewingTransaction, handleDelete]);
+
+  // Handle txId from URL - open view dialog when transaction is found
+  useEffect(() => {
+    if (txIdParam && filteredTransactions && !txIdHandled.current) {
+      const transaction = filteredTransactions.find((tx) => tx.id === txIdParam);
+      if (transaction) {
+        handleView(transaction);
+        txIdHandled.current = true;
+        // Clear the URL param after opening
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [txIdParam, filteredTransactions, setSearchParams, handleView]);
+
+  // Auto-select "group by month" when "all time" date range is selected
+  useEffect(() => {
+    if (filters.dateRange.preset === 'all' && groupBy === 'none') {
+      setGroupBy('month');
+    }
+  }, [filters.dateRange.preset, groupBy]);
+
+  // Start tutorial on first visit
+  useEffect(() => {
+    if (!summaryLoading && !transactionsLoading) {
+      checkAndStartTutorial('finances');
+    }
+  }, [summaryLoading, transactionsLoading, checkAndStartTutorial]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('sr-RS', {
@@ -256,7 +319,13 @@ export function FinancePage() {
 
       {/* NEW: Transactions Display */}
       {groupBy === 'none' ? (
-        <TransactionsFlatTable transactions={filteredTransactions} groups={groups} onEdit={handleEdit} onDelete={handleDelete} />
+        <TransactionsFlatTable
+          transactions={filteredTransactions}
+          groups={groups}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onView={handleView}
+        />
       ) : (
         <TransactionsGroupedTable
           groupedData={groupedData}
@@ -268,6 +337,10 @@ export function FinancePage() {
             else next.add(key);
             setExpandedGroups(next);
           }}
+          groups={groups}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onView={handleView}
         />
       )}
 
@@ -305,6 +378,14 @@ export function FinancePage() {
 
       {/* Dialogs */}
       <AddFinanceDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+      <ViewTransactionDialog
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+        transaction={viewingTransaction}
+        onEdit={handleEditFromView}
+        onDelete={handleDeleteFromView}
+        groupName={viewingTransaction?.groupId ? groups?.find(g => g._id === viewingTransaction.groupId)?.name : undefined}
+      />
       <EditFinanceDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}

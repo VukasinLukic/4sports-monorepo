@@ -135,7 +135,7 @@ export function ProfilePage() {
     if (!member?._id) return;
     try {
       await paymentReminder.mutateAsync(member._id);
-      toast({ title: t('profile.reminderSent') });
+      toast({ title: t('profile.reminderSent'), variant: 'success' });
     } catch {
       toast({ title: t('profile.reminderFailed'), variant: 'destructive' });
     }
@@ -145,7 +145,7 @@ export function ProfilePage() {
     if (!member?._id) return;
     try {
       await medicalReminder.mutateAsync(member._id);
-      toast({ title: t('profile.reminderSent') });
+      toast({ title: t('profile.reminderSent'), variant: 'success' });
     } catch {
       toast({ title: t('profile.reminderFailed'), variant: 'destructive' });
     }
@@ -303,12 +303,10 @@ export function ProfilePage() {
                   {t('profile.paymentReminder')}
                 </Button>
               )}
-              {member.medicalCheckStatus !== 'VALID' && (
-                <Button size="sm" variant="outline" onClick={handleSendMedicalReminder} disabled={medicalReminder.isPending}>
-                  <Stethoscope className="mr-2 h-4 w-4" />
-                  {t('profile.medicalReminder')}
-                </Button>
-              )}
+              <Button size="sm" variant="outline" onClick={handleSendMedicalReminder} disabled={medicalReminder.isPending}>
+                <Stethoscope className="mr-2 h-4 w-4" />
+                {t('profile.medicalReminder')}
+              </Button>
             </div>
           </div>
         </CardContent>

@@ -476,6 +476,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate, event }: C
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => handleStartTimeChange(e.target.value)}
+                  className="[&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 />
                 {errors.startTime && <p className="text-sm text-red-500">{errors.startTime}</p>}
               </div>
@@ -488,13 +489,14 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate, event }: C
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => handleChange('endTime', e.target.value)}
+                  className="[&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 />
                 {errors.endTime && <p className="text-sm text-red-500">{errors.endTime}</p>}
               </div>
             </div>
 
             {/* Recurring Toggle */}
-            <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <div className="flex items-center gap-2">
                 <Repeat className="h-4 w-4 text-muted-foreground" />
                 <Label htmlFor="isRecurring" className="cursor-pointer">{t('calendar.recurring')}</Label>
@@ -591,7 +593,7 @@ export function CreateEventDialog({ open, onOpenChange, selectedDate, event }: C
             {/* Separator */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+                <span className="w-full border-t border-border" />
               </div>
             </div>
 

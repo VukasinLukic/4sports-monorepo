@@ -12,6 +12,7 @@ interface TransactionsFlatTableProps {
   groups?: Group[];
   onEdit?: (transaction: FinanceEntry) => void;
   onDelete?: (id: string) => void;
+  onView?: (transaction: FinanceEntry) => void;
 }
 
 const categoryKeyMap: Record<string, string> = {
@@ -25,7 +26,7 @@ const categoryKeyMap: Record<string, string> = {
   UTILITIES: 'finances.categories.utilities',
 };
 
-export function TransactionsFlatTable({ transactions, groups, onEdit, onDelete }: TransactionsFlatTableProps) {
+export function TransactionsFlatTable({ transactions, groups, onEdit, onDelete, onView }: TransactionsFlatTableProps) {
   const { t } = useTranslation();
   const { backendUser } = useAuth();
 
@@ -64,7 +65,11 @@ export function TransactionsFlatTable({ transactions, groups, onEdit, onDelete }
         </TableHeader>
         <TableBody>
           {transactions.map((txn) => (
-            <TableRow key={txn.id}>
+            <TableRow
+              key={txn.id}
+              onClick={() => onView?.(txn)}
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
+            >
               <TableCell className="whitespace-nowrap">
                 {format(new Date(txn.date), 'MMM d, yyyy')}
               </TableCell>
@@ -102,14 +107,17 @@ export function TransactionsFlatTable({ transactions, groups, onEdit, onDelete }
                   ? t('finances.you')
                   : txn.recordedBy}
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 {txn.isManual && (
                   <div className="flex gap-1">
                     {onEdit && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onEdit(txn)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(txn);
+                        }}
                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                       >
                         <Pencil className="h-4 w-4" />
@@ -119,7 +127,10 @@ export function TransactionsFlatTable({ transactions, groups, onEdit, onDelete }
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onDelete(txn.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(txn.id);
+                        }}
                         className="h-8 w-8 text-red-500 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />
