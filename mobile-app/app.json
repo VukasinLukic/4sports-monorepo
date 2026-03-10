@@ -5,13 +5,13 @@
     "version": "1.0.0",
     "scheme": "foursports",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/mobile_icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "owner": "4sports",
+    "owner": "simica67",
     "description": "Sports club management app for coaches and parents. Manage attendance, payments, medical checks, events and more.",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/mobile_icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#1a1a1a"
     },
@@ -30,10 +30,11 @@
         "backgroundColor": "#1a1a1a"
       },
       "permissions": [
-        "CAMERA",
-        "NOTIFICATIONS",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.NOTIFICATIONS",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -53,7 +54,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./assets/mobile_icon.png",
           "color": "#4caf50"
         }
       ],
@@ -70,7 +71,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "4df7cb9d-efe8-4ec7-9d9f-6f4d560d734e"
       }
     }
   }

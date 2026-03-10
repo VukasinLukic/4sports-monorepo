@@ -107,10 +107,8 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
  */
 export async function sendTokenToBackend(token: string): Promise<boolean> {
   try {
-    await api.post('/notifications/register-token', {
+    await api.post('/chat/fcm-token', {
       token,
-      platform: Platform.OS,
-      deviceName: Device.deviceName,
     });
     console.log('Push token registered with backend');
     return true;
@@ -125,7 +123,7 @@ export async function sendTokenToBackend(token: string): Promise<boolean> {
  */
 export async function removeTokenFromBackend(token: string): Promise<boolean> {
   try {
-    await api.post('/notifications/unregister-token', { token });
+    await api.post('/chat/fcm-token', { token: '' });
     console.log('Push token removed from backend');
     return true;
   } catch (error) {

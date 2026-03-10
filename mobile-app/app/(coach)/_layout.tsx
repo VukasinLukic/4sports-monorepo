@@ -5,10 +5,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import TopHeader from '@/components/TopHeader';
 import { useChat } from '@/services/ChatContext';
+import { useLanguage } from '@/services/LanguageContext';
 
 export default function CoachLayout() {
   const { totalUnreadCount } = useChat();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
 
   return (
     <>
@@ -38,7 +40,7 @@ export default function CoachLayout() {
         <Tabs.Screen
           name="evidence"
           options={{
-            title: 'Evidencija',
+            title: t('navigation.evidence'),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="clipboard-check-outline"
@@ -53,7 +55,7 @@ export default function CoachLayout() {
         <Tabs.Screen
           name="calendar"
           options={{
-            title: 'Kalendar',
+            title: t('navigation.calendar'),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="calendar-month"
@@ -96,7 +98,7 @@ export default function CoachLayout() {
         <Tabs.Screen
           name="groups"
           options={{
-            title: 'Grupe',
+            title: t('navigation.groups'),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="account-group-outline"

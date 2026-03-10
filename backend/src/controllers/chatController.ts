@@ -453,8 +453,8 @@ export const getClubUsersForChat = async (req: Request, res: Response): Promise<
       clubId: clubId,
     };
 
-    // Members can only message COACH and OWNER
-    if (currentUserRole === 'MEMBER' || currentUserRole === 'PARENT') {
+    // Parents can only message COACH and OWNER
+    if (currentUserRole === 'PARENT') {
       query.role = { $in: ['COACH', 'OWNER'] };
     }
 

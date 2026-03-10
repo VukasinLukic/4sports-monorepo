@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useAuth } from '@/services/AuthContext';
@@ -76,6 +76,11 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
+        <Image
+          source={require('@/assets/Logo 4sports.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <Text style={styles.logo}>4SPORTS</Text>
         <Text style={styles.subtitle}>Sports Club Management</Text>
 
@@ -102,6 +107,11 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
     padding: Spacing.lg,
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
+    marginBottom: Spacing.md,
   },
   logo: {
     fontSize: FontSize.xxxl * 1.5,

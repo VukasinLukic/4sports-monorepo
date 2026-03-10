@@ -42,7 +42,7 @@ interface GroupWithMembers extends Group {
 }
 
 export default function GroupsScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [groups, setGroups] = useState<GroupWithMembers[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<GroupWithMembers[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -207,6 +207,8 @@ export default function GroupsScreen() {
     const diffMs = nowOnly.getTime() - dateOnly.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
+    // Future dates - show as "today" since training hasn't happened yet
+    if (diffDays < 0) return t('common.today') || 'Today';
     if (diffDays === 0) return t('common.today') || 'Today';
     if (diffDays === 1) return t('common.yesterday') || 'Yesterday';
     if (diffDays === 2) return t('time.twoDaysAgo') || '2 days ago';
@@ -217,7 +219,8 @@ export default function GroupsScreen() {
         ? (t('time.oneWeekAgo') || '1 week ago')
         : `${weeks} ${t('time.weeksAgo') || 'weeks ago'}`;
     }
-    return date.toLocaleDateString('sr-RS', { day: 'numeric', month: 'short' });
+    const dateLocale = language === 'en' ? 'en-US' : 'sr-RS';
+    return date.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
   };
 
   const getGroupColor = (group: Group) => group.color || Colors.primary;

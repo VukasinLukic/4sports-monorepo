@@ -214,7 +214,11 @@ export default function ChatScreen() {
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.senderId === user?._id;
-    const timestamp = item.timestamp?.toDate?.() || new Date();
+    const timestamp = item.timestamp?.toDate?.()
+      || (item.timestamp?._seconds != null ? new Date(item.timestamp._seconds * 1000) : null)
+      || (item.timestamp?.seconds != null ? new Date(item.timestamp.seconds * 1000) : null)
+      || (item.timestamp ? new Date(item.timestamp) : new Date())
+      || new Date();
 
     return (
       <View

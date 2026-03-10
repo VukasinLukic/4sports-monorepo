@@ -5,10 +5,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import TopHeader from '@/components/TopHeader';
 import { useChat } from '@/services/ChatContext';
+import { useLanguage } from '@/services/LanguageContext';
 
 export default function MemberLayout() {
   const { totalUnreadCount } = useChat();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
 
   return (
     <>
@@ -38,7 +40,7 @@ export default function MemberLayout() {
         <Tabs.Screen
           name="evidencija"
           options={{
-            title: 'Evidencija',
+            title: t('navigation.evidence'),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="clipboard-check-outline"
@@ -53,7 +55,7 @@ export default function MemberLayout() {
         <Tabs.Screen
           name="scan"
           options={{
-            title: 'Check In',
+            title: t('navigation.scan'),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="qrcode-scan"
@@ -79,7 +81,7 @@ export default function MemberLayout() {
         <Tabs.Screen
           name="calendar"
           options={{
-            title: 'Kalendar',
+            title: t('navigation.calendar'),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="calendar-month"

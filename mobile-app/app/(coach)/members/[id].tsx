@@ -171,11 +171,20 @@ export default function MemberDetailsScreen() {
     const monthsDiff = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth()) + 1;
     const monthsTraining = Math.max(1, monthsDiff);
 
-    // Calculate totalExpected from actual payment amounts (with fallback to monthlyFee)
     const membershipPayments = payments.filter((p: Payment) => p.type === 'MEMBERSHIP');
-    const totalExpected = membershipPayments.length > 0
-      ? membershipPayments.reduce((sum: number, p: Payment) => sum + (p.amount ?? monthlyFee), 0)
-      : monthsTraining * monthlyFee;
+
+    // Total expected: sum amounts from payment records + fill missing months with monthlyFee
+    // This ensures months without any payment record still count toward expected total
+    let totalExpected = 0;
+    if (membershipPayments.length > 0) {
+      // Sum the expected amount from each payment record
+      totalExpected = membershipPayments.reduce((sum: number, p: Payment) => sum + (p.amount ?? monthlyFee), 0);
+      // If there are months without any payment records, add those too
+      const missingMonths = Math.max(0, monthsTraining - membershipPayments.length);
+      totalExpected += missingMonths * monthlyFee;
+    } else {
+      totalExpected = monthsTraining * monthlyFee;
+    }
 
     // Total paid (include PARTIAL payments, use paidAmount field)
     const totalPaid = membershipPayments
