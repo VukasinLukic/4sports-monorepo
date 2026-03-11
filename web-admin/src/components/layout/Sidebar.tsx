@@ -114,8 +114,8 @@ export const Sidebar = ({ collapsed, mobileOpen, onClose, onMouseEnter, onMouseL
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className={cn(
-            'flex items-center border-b border-border',
-            collapsed ? 'justify-center p-2' : 'justify-between p-4'
+            'flex items-center border-b border-border p-4',
+            collapsed && 'justify-center'
           )}>
             <a
               href="https://4sports.rs"
@@ -163,7 +163,7 @@ export const Sidebar = ({ collapsed, mobileOpen, onClose, onMouseEnter, onMouseL
                       </span>
                     )}
                   </div>
-                  {!collapsed && <span className="font-medium">{name}</span>}
+                  {!collapsed && <span className="font-medium whitespace-nowrap overflow-hidden">{name}</span>}
                   {!collapsed && item.path === '/chat' && totalUnread > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center leading-none">
                       {totalUnread > 99 ? '99+' : totalUnread}
@@ -188,7 +188,7 @@ export const Sidebar = ({ collapsed, mobileOpen, onClose, onMouseEnter, onMouseL
                   title={collapsed ? t('sidebar.help') : undefined}
                 >
                   <HelpCircle size={20} className="shrink-0" />
-                  {!collapsed && <span className="font-medium">{t('sidebar.help')}</span>}
+                  {!collapsed && <span className="font-medium whitespace-nowrap overflow-hidden">{t('sidebar.help')}</span>}
                 </button>
               </PopoverTrigger>
               <PopoverContent side="right" align="end" className="w-56 p-2 space-y-1">
@@ -227,7 +227,7 @@ export const Sidebar = ({ collapsed, mobileOpen, onClose, onMouseEnter, onMouseL
             >
               <Building2 size={20} className="shrink-0" />
               {!collapsed && (
-                <span className="font-medium truncate">
+                <span className="font-medium whitespace-nowrap overflow-hidden">
                   {clubSettings?.clubName || t('sidebar.clubProfile')}
                 </span>
               )}

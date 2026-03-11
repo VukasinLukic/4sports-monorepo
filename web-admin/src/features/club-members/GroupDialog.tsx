@@ -10,10 +10,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCreateGroup, useUpdateGroup, useCoaches } from './useClubMembers';
+import { useCreateGroup, useUpdateGroup, useDeleteGroup, useCoaches } from './useClubMembers';
 import { useToast } from '@/hooks/use-toast';
 import { Group } from '@/types';
-import { Loader2, Check, X } from 'lucide-react';
+import { Loader2, Check, X, Trash2 } from 'lucide-react';
 
 const GROUP_COLORS = [
   '#22c55e', '#3b82f6', '#ef4444', '#f59e0b',
@@ -31,12 +31,15 @@ export function GroupDialog({ open, onOpenChange, group }: GroupDialogProps) {
   const { toast } = useToast();
   const createMutation = useCreateGroup();
   const updateMutation = useUpdateGroup();
+  const deleteMutation = useDeleteGroup();
   const { data: coaches = [] } = useCoaches();
 
   const [name, setName] = useState('');
   const [color, setColor] = useState('#22c55e');
   const [membershipFee, setMembershipFee] = useState('');
   const [selectedCoachIds, setSelectedCoachIds] = useState<string[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
 
   const isEdit = !!group;
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -47,6 +50,8 @@ export function GroupDialog({ open, onOpenChange, group }: GroupDialogProps) {
       setColor(group?.color || '#22c55e');
       setMembershipFee(group?.membershipFee?.toString() || '');
       setSelectedCoachIds(group?.coaches?.map(c => c._id) || []);
+      setShowDeleteConfirm(false);
+      setDeleteConfirmName('');
     }
   }, [open, group]);
 
@@ -56,6 +61,17 @@ export function GroupDialog({ open, onOpenChange, group }: GroupDialogProps) {
         ? prev.filter(id => id !== coachId)
         : [...prev, coachId]
     );
+  };
+
+  const handleDelete = async () => {
+    if (!group) return;
+    try {
+      await deleteMutation.mutateAsync(group._id);
+      toast({ title: t('common.success') });
+      onOpenChange(false);
+    } catch {
+      toast({ title: t('errors.deleteFailed'), variant: 'destructive' });
+    }
   };
 
   const handleSubmit = async () => {
@@ -185,18 +201,71 @@ export function GroupDialog({ open, onOpenChange, group }: GroupDialogProps) {
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!name.trim() || isPending}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEdit ? t('common.save') : t('common.add')}
-          </Button>
+        {/* Delete confirmation */}
+        {isEdit && showDeleteConfirm && (
+          <div className="border border-red-500/30 bg-red-500/5 rounded-lg p-4 space-y-3">
+            <p className="text-sm text-red-500 font-medium">
+              {t('clubMembers.deleteGroupConfirm')}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t('clubMembers.deleteGroupTypeName', { name: group?.name })}
+            </p>
+            <Input
+              value={deleteConfirmName}
+              onChange={(e) => setDeleteConfirmName(e.target.value)}
+              placeholder={group?.name}
+              className="border-red-500/30"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmName('');
+                }}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={deleteConfirmName !== group?.name || deleteMutation.isPending}
+                onClick={handleDelete}
+              >
+                {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('common.delete')}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter className="flex !justify-between">
+          {isEdit && !showDeleteConfirm ? (
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t('clubMembers.deleteGroup')}
+            </Button>
+          ) : (
+            <div />
+          )}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!name.trim() || isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEdit ? t('common.save') : t('common.add')}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

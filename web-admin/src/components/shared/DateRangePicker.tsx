@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
 
-export type DateRangePreset = 'all' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'custom';
+export type DateRangePreset = 'all' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'custom';
 
 export interface DateRangeValue {
   startDate: string | null;
@@ -50,6 +50,10 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
       case 'thisYear':
         startDate = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
         endDate = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
+        break;
+      case 'lastYear':
+        startDate = new Date(now.getFullYear() - 1, 0, 1).toISOString().split('T')[0];
+        endDate = new Date(now.getFullYear() - 1, 11, 31).toISOString().split('T')[0];
         break;
       case 'all':
         startDate = null;
@@ -101,6 +105,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
           <SelectItem value="thisMonth">{t('finances.thisMonth')}</SelectItem>
           <SelectItem value="lastMonth">{t('finances.lastMonth')}</SelectItem>
           <SelectItem value="thisYear">{t('finances.thisYear')}</SelectItem>
+          <SelectItem value="lastYear">{t('finances.lastYear')}</SelectItem>
           <SelectItem value="custom">{t('finances.customRange')}</SelectItem>
         </SelectContent>
       </Select>

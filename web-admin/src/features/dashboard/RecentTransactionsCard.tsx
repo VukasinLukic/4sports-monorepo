@@ -76,8 +76,8 @@ export const RecentTransactionsCard = ({
             <p>{t('dashboard.noTransactions')}</p>
           </div>
         ) : (
-          <div className="space-y-1">
-            {transactions.slice(0, 4).map((tx) => {
+          <div className="space-y-1 max-h-[220px] overflow-y-auto custom-scrollbar">
+            {transactions.map((tx) => {
               const isIncome = tx.type === 'INCOME';
               const dateStr = tx.transactionDate || tx.createdAt;
               const timeAgo = formatTimeAgo(dateStr, t);

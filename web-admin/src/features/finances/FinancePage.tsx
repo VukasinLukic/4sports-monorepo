@@ -179,9 +179,9 @@ export function FinancePage() {
     }
   }, [txIdParam, filteredTransactions, setSearchParams, handleView]);
 
-  // Auto-select "group by month" when "all time" date range is selected
+  // Auto-select "group by month" when "all time" or year-based date range is selected
   useEffect(() => {
-    if (filters.dateRange.preset === 'all' && groupBy === 'none') {
+    if ((filters.dateRange.preset === 'all' || filters.dateRange.preset === 'thisYear' || filters.dateRange.preset === 'lastYear') && groupBy === 'none') {
       setGroupBy('month');
     }
   }, [filters.dateRange.preset, groupBy]);

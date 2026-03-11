@@ -272,36 +272,38 @@ export function CalendarPage() {
         <Card className="lg:col-span-2">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
-                </CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
+              </CardTitle>
+              <div className="flex items-center gap-1.5">
                 {/* Month navigation */}
-                <div className="flex gap-1">
+                <div className="flex gap-0.5">
                   {MONTHS.map((month, index) => (
                     <button
                       key={index}
                       onClick={() => navigateToMonth(index)}
+                      title={month}
                       className={cn(
-                        "text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors",
+                        "h-8 w-8 text-[9px] font-medium rounded-sm border transition-colors flex items-center justify-center",
                         currentDate.getMonth() === index
                           ? "bg-green-600 text-white border-green-600"
-                          : "bg-background text-muted-foreground border-green-600 hover:bg-green-50 hover:text-green-700"
+                          : "bg-background text-muted-foreground border-border hover:bg-green-50 hover:text-green-700 hover:border-green-600"
                       )}
                     >
                       {month.slice(0, 3)}
                     </button>
                   ))}
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setCurrentDate(new Date())}
+                >
+                  {t('calendar.today')}
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentDate(new Date())}
-              >
-                {t('calendar.today')}
-              </Button>
             </div>
           </CardHeader>
           <CardContent>
