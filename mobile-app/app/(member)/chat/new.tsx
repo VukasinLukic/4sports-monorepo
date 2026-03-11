@@ -32,13 +32,11 @@ export default function NewConversationScreen() {
   const [members, setMembers] = useState<Member[]>([]);
 
   useEffect(() => {
-    fetchCoachesAndOwners();
+    fetchUsers();
   }, []);
 
-  // Members can only message coaches and owners (backend filters this)
-  const fetchCoachesAndOwners = async () => {
+  const fetchUsers = async () => {
     try {
-      // Use chat/users endpoint - backend already filters to COACH/OWNER for members
       const response = await api.get('/chat/users');
       setMembers(response.data.data);
     } catch (error) {
@@ -66,6 +64,8 @@ export default function NewConversationScreen() {
     const colors: Record<string, string> = {
       OWNER: '#EF4444',
       COACH: '#3B82F6',
+      MEMBER: '#10B981',
+      PARENT: '#8B5CF6',
     };
     return colors[role] || Colors.textSecondary;
   };
@@ -120,7 +120,7 @@ export default function NewConversationScreen() {
         />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search coaches..."
+          placeholder="Search members..."
           placeholderTextColor={Colors.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -144,9 +144,9 @@ export default function NewConversationScreen() {
             size={64}
             color={Colors.textSecondary}
           />
-          <Text style={styles.emptyText}>No coaches found</Text>
+          <Text style={styles.emptyText}>No users found</Text>
           <Text style={styles.emptySubtext}>
-            You can only message coaches and club owners
+            No club members available to chat with
           </Text>
         </View>
       ) : (

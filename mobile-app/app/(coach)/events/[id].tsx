@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity } from 'react-native';
-import { Text, Card, ActivityIndicator, Avatar, IconButton, Menu, FAB } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity, Modal } from 'react-native';
+import { Text, Card, ActivityIndicator, Avatar, IconButton, FAB } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,7 +28,8 @@ const getEventTypeColorFromString = (type: string): string => {
 };
 
 export default function EventDetailScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const dateLocale = language === 'sr' ? 'sr-RS' : 'en-US';
   const insets = useSafeAreaInsets();
   const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const [event, setEvent] = useState<Event | null>(null);
@@ -37,7 +38,8 @@ export default function EventDetailScreen() {
   const [activeTab, setActiveTab] = useState<TabType>(tab === 'participants' ? 'participants' : 'overview');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteMode, setDeleteMode] = useState<'this' | 'future' | 'all'>('this');
 
   const fetchEvent = useCallback(async () => {
     try {
@@ -85,8 +87,8 @@ export default function EventDetailScreen() {
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     return {
-      date: date.toLocaleDateString('sr-RS', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-      time: date.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' }),
+      date: date.toLocaleDateString(dateLocale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+      time: date.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' }),
     };
   };
 
@@ -120,12 +122,10 @@ export default function EventDetailScreen() {
   };
 
   const handleEditEvent = () => {
-    setMenuVisible(false);
     router.push({ pathname: '/(coach)/events/edit', params: { id } });
   };
 
   const handleCancelEvent = async () => {
-    setMenuVisible(false);
     Alert.alert(
       t('events.cancelEvent'),
       t('events.cancelEventConfirm'),
@@ -148,79 +148,25 @@ export default function EventDetailScreen() {
     );
   };
 
-  const handleDeleteEvent = async () => {
-    setMenuVisible(false);
+  const isRecurringSeries = !!(event?.isRecurring || event?.parentEventId);
 
-    const isRecurringSeries = !!(event?.isRecurring || event?.parentEventId);
+  const handleDeleteEvent = () => {
+    setDeleteMode('this');
+    setShowDeleteDialog(true);
+  };
 
-    if (!isRecurringSeries) {
-      Alert.alert(
-        t('events.deleteEvent'),
-        t('events.deleteEventConfirm'),
-        [
-          { text: t('common.no'), style: 'cancel' },
-          {
-            text: t('common.yes'),
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await api.delete(`/events/${id}`);
-                Alert.alert(t('common.success'), t('events.eventDeleted'));
-                router.back();
-              } catch (error) {
-                Alert.alert(t('common.error'), t('events.deleteFailed'));
-              }
-            },
-          },
-        ]
-      );
-      return;
+  const confirmDelete = async () => {
+    setShowDeleteDialog(false);
+    try {
+      if (isRecurringSeries) {
+        await api.delete(`/events/${id}`, { params: { deleteMode } });
+      } else {
+        await api.delete(`/events/${id}`);
+      }
+      router.back();
+    } catch (error) {
+      Alert.alert(t('common.error'), t('events.deleteFailed'));
     }
-
-    Alert.alert(
-      t('events.deleteRecurringTitle'),
-      t('events.deleteRecurringDesc'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('events.deleteThis'),
-          onPress: async () => {
-            try {
-              await api.delete(`/events/${id}`, { params: { deleteMode: 'this' } });
-              Alert.alert(t('common.success'), t('events.eventDeleted'));
-              router.back();
-            } catch (error) {
-              Alert.alert(t('common.error'), t('events.deleteFailed'));
-            }
-          },
-        },
-        {
-          text: t('events.deleteFuture'),
-          onPress: async () => {
-            try {
-              await api.delete(`/events/${id}`, { params: { deleteMode: 'future' } });
-              Alert.alert(t('common.success'), t('events.eventDeleted'));
-              router.back();
-            } catch (error) {
-              Alert.alert(t('common.error'), t('events.deleteFailed'));
-            }
-          },
-        },
-        {
-          text: t('events.deleteAll'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/events/${id}`, { params: { deleteMode: 'all' } });
-              Alert.alert(t('common.success'), t('events.eventDeleted'));
-              router.back();
-            } catch (error) {
-              Alert.alert(t('common.error'), t('events.deleteFailed'));
-            }
-          },
-        },
-      ]
-    );
   };
 
   const handleToggleAttendance = async (participant: EventParticipant, markPresent: boolean) => {
@@ -276,28 +222,17 @@ export default function EventDetailScreen() {
 
         <View style={styles.headerActions}>
           <IconButton
-            icon="bell-ring-outline"
-            size={24}
+            icon="pencil"
+            size={22}
             iconColor={Colors.text}
-            onPress={handleSendReminder}
+            onPress={handleEditEvent}
           />
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                icon="dots-vertical"
-                size={24}
-                iconColor={Colors.text}
-                onPress={() => setMenuVisible(true)}
-              />
-            }
-            contentStyle={styles.menuContent}
-          >
-            <Menu.Item onPress={handleEditEvent} title={t('common.edit')} leadingIcon="pencil" />
-            <Menu.Item onPress={handleCancelEvent} title={t('common.cancel')} leadingIcon="close-circle-outline" />
-            <Menu.Item onPress={handleDeleteEvent} title={t('common.delete')} leadingIcon="delete" titleStyle={{ color: Colors.error }} />
-          </Menu>
+          <IconButton
+            icon="delete-outline"
+            size={22}
+            iconColor={Colors.error}
+            onPress={handleDeleteEvent}
+          />
         </View>
       </View>
 
@@ -436,14 +371,14 @@ export default function EventDetailScreen() {
                 </Card.Content>
               </Card>
             ) : (
-              participants.map((participant) => {
+              participants.filter(p => p.memberId && (typeof p.memberId === 'object' ? p.memberId.fullName : true)).map((participant) => {
                 const isPresent = participant.status === 'PRESENT' || participant.status === 'LATE';
 
                 return (
                   <Card key={participant._id} style={[styles.participantCard, isPresent ? styles.presentCard : styles.absentCard]}>
                     <Card.Content style={styles.participantContent}>
                       <View style={styles.participantInfo}>
-                        <Text style={styles.participantName}>{participant.memberId.fullName}</Text>
+                        <Text style={styles.participantName}>{typeof participant.memberId === 'object' ? participant.memberId.fullName : t('common.unknown')}</Text>
                         <View style={styles.attendanceRow}>
                           <Text style={[styles.attendanceText, { color: isPresent ? Colors.success : Colors.error }]}>
                             {isPresent ? t('attendance.arrived') : t('attendance.notArrived')}
@@ -480,6 +415,66 @@ export default function EventDetailScreen() {
           onPress={handleShowQRCode}
         />
       )}
+
+      {/* Delete Event Dialog */}
+      <Modal
+        visible={showDeleteDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteDialog(false)}
+      >
+        <TouchableOpacity
+          style={styles.dialogOverlay}
+          activeOpacity={1}
+          onPress={() => setShowDeleteDialog(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.dialogContainer}>
+            <Text style={styles.dialogTitle}>
+              {isRecurringSeries ? t('events.deleteRecurringTitle') : t('events.deleteEvent')}
+            </Text>
+            <Text style={styles.dialogDescription}>
+              {isRecurringSeries ? t('events.deleteRecurringDesc') : t('events.deleteEventConfirm')}
+            </Text>
+
+            {isRecurringSeries && (['this', 'future', 'all'] as const).map((mode) => {
+              const labels = {
+                this: t('events.deleteThis'),
+                future: t('events.deleteFuture'),
+                all: t('events.deleteAll'),
+              };
+              return (
+                <TouchableOpacity
+                  key={mode}
+                  style={[styles.radioOption, deleteMode === mode && styles.radioOptionSelected]}
+                  onPress={() => setDeleteMode(mode)}
+                >
+                  <View style={[styles.radioCircle, deleteMode === mode && styles.radioCircleSelected]}>
+                    {deleteMode === mode && <View style={styles.radioCircleInner} />}
+                  </View>
+                  <Text style={[styles.radioLabel, deleteMode === mode && styles.radioLabelSelected]}>
+                    {labels[mode]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            <View style={styles.dialogActions}>
+              <TouchableOpacity
+                style={styles.dialogCancelButton}
+                onPress={() => setShowDeleteDialog(false)}
+              >
+                <Text style={styles.dialogCancelText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dialogDeleteButton}
+                onPress={confirmDelete}
+              >
+                <Text style={styles.dialogDeleteText}>{t('common.delete')}</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -495,7 +490,6 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
   typeBadge: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: BorderRadius.sm },
   typeBadgeText: { fontSize: FontSize.sm, fontWeight: '600', color: '#fff' },
-  menuContent: { backgroundColor: Colors.surface },
 
   title: { fontSize: FontSize.xl, fontWeight: 'bold', color: Colors.text, paddingHorizontal: Spacing.md, marginTop: Spacing.sm },
 
@@ -541,4 +535,22 @@ const styles = StyleSheet.create({
   checkboxChecked: { backgroundColor: Colors.success, borderColor: Colors.success },
 
   qrFab: { position: 'absolute', right: Spacing.lg, bottom: Spacing.lg + 16, backgroundColor: Colors.primary },
+
+  // Delete recurring dialog
+  dialogOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  dialogContainer: { backgroundColor: Colors.surface, borderRadius: BorderRadius.lg, padding: Spacing.lg, width: '85%', maxWidth: 360 },
+  dialogTitle: { fontSize: FontSize.lg, fontWeight: 'bold', color: Colors.text, marginBottom: Spacing.xs },
+  dialogDescription: { fontSize: FontSize.sm, color: Colors.textSecondary, marginBottom: Spacing.lg },
+  radioOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: Spacing.md, borderRadius: BorderRadius.md, marginBottom: Spacing.xs, borderWidth: 1.5, borderColor: 'transparent' },
+  radioOptionSelected: { borderColor: Colors.error, backgroundColor: Colors.error + '15' },
+  radioCircle: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: Colors.textSecondary, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.sm },
+  radioCircleSelected: { borderColor: Colors.error },
+  radioCircleInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.error },
+  radioLabel: { fontSize: FontSize.md, color: Colors.text, flex: 1 },
+  radioLabelSelected: { color: Colors.error, fontWeight: '600' },
+  dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: Spacing.lg, gap: Spacing.sm },
+  dialogCancelButton: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: BorderRadius.md, backgroundColor: Colors.border },
+  dialogCancelText: { fontSize: FontSize.md, fontWeight: '600', color: Colors.text },
+  dialogDeleteButton: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: BorderRadius.md, backgroundColor: Colors.error },
+  dialogDeleteText: { fontSize: FontSize.md, fontWeight: '600', color: '#fff' },
 });

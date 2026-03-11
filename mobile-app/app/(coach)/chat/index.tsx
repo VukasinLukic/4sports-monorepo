@@ -141,9 +141,29 @@ export default function ChatListScreen() {
     </TouchableOpacity>
   );
 
+  const parseTimestamp = (timestamp: any): Date | null => {
+    if (!timestamp) return null;
+    try {
+      let date: Date;
+      if (timestamp.toDate) {
+        date = timestamp.toDate();
+      } else if (timestamp._seconds != null) {
+        date = new Date(timestamp._seconds * 1000);
+      } else if (timestamp.seconds != null) {
+        date = new Date(timestamp.seconds * 1000);
+      } else {
+        date = new Date(timestamp);
+      }
+      return isNaN(date.getTime()) ? null : date;
+    } catch {
+      return null;
+    }
+  };
+
   const formatMessageTime = (timestamp: any): string => {
-    if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const date = parseTimestamp(timestamp);
+    if (!date) return '';
+
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));

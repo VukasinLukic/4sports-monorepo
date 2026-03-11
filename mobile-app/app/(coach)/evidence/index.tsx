@@ -1523,7 +1523,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm2,
     borderRadius: BorderRadius.md,
     gap: Spacing.sm,
     elevation: 4,
@@ -1533,7 +1533,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   remindAllText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     fontWeight: '600',
     color: '#fff',
   },

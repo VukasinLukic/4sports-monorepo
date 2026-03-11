@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
-import { Text, Card, Chip, ActivityIndicator, Menu, Button } from 'react-native-paper';
+import { Text, Card, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import EventCalendar from '@/components/EventCalendar';
+import DropdownMenu from '@/components/DropdownMenu';
 import api from '@/services/api';
 import { Event, Group } from '@/types';
 
@@ -193,9 +194,20 @@ export default function MemberCalendar() {
 
         {/* Group Filter */}
         <View style={styles.groupFilterContainer}>
-          <Menu
+          <DropdownMenu
             visible={groupMenuVisible}
             onDismiss={() => setGroupMenuVisible(false)}
+            onSelect={(key) => {
+              setSelectedGroupId(key === 'all' ? null : key);
+            }}
+            items={[
+              { key: 'all', title: t('groups.allGroups') || 'Sve grupe', selected: selectedGroupId === null },
+              ...groups.map(group => ({
+                key: group._id,
+                title: group.name,
+                selected: selectedGroupId === group._id,
+              })),
+            ]}
             anchor={
               <Button
                 mode="outlined"
@@ -207,28 +219,7 @@ export default function MemberCalendar() {
                 {getSelectedGroupName()}
               </Button>
             }
-            contentStyle={styles.menuContent}
-          >
-            <Menu.Item
-              onPress={() => {
-                setSelectedGroupId(null);
-                setGroupMenuVisible(false);
-              }}
-              title={t('groups.allGroups') || 'Sve grupe'}
-              leadingIcon={selectedGroupId === null ? 'check' : undefined}
-            />
-            {groups.map(group => (
-              <Menu.Item
-                key={group._id}
-                onPress={() => {
-                  setSelectedGroupId(group._id);
-                  setGroupMenuVisible(false);
-                }}
-                title={group.name}
-                leadingIcon={selectedGroupId === group._id ? 'check' : undefined}
-              />
-            ))}
-          </Menu>
+          />
         </View>
 
         {/* Type Filter Chips */}
@@ -284,7 +275,8 @@ export default function MemberCalendar() {
           sortedEvents.map(event => {
             const eventDate = new Date(event.date || event.startTime);
             const dayNumber = eventDate.getDate();
-            const dayName = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' });
+            const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+            const dayName = t(`dateTime.days.${dayKeys[eventDate.getDay()]}`);
             const groupName = typeof event.groupId === 'object' ? event.groupId.name : '';
             const groupColor = typeof event.groupId === 'object' ? event.groupId.color : Colors.primary;
             const relativeTime = getRelativeTimeText(eventDate, t);
@@ -370,9 +362,6 @@ const styles = StyleSheet.create({
   },
   groupFilterButton: {
     borderColor: Colors.border,
-  },
-  menuContent: {
-    backgroundColor: Colors.surface,
   },
   filterRow: {
     flexDirection: 'row',

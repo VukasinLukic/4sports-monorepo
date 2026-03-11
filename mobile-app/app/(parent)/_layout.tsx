@@ -1,8 +1,10 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { useLanguage } from '@/services/LanguageContext';
 
 export default function ParentLayout() {
+  const { t } = useLanguage();
 
   return (
     <Tabs
@@ -35,8 +37,8 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          headerTitle: 'My Children',
+          title: t('navigation.home'),
+          headerTitle: t('profile.myChildren'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="home" size={size} color={color} />
           ),
@@ -45,8 +47,8 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="scan"
         options={{
-          title: 'Check In',
-          headerTitle: 'Scan QR Code',
+          title: t('navigation.scan'),
+          headerTitle: t('qr.scanQR'),
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="qrcode-scan" size={size} color={color} />
@@ -56,8 +58,8 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Calendar',
-          headerTitle: 'Events',
+          title: t('navigation.calendar'),
+          headerTitle: t('events.title'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="calendar" size={size} color={color} />
           ),
@@ -66,8 +68,8 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="news"
         options={{
-          title: 'News',
-          headerTitle: 'News Feed',
+          title: t('navigation.news'),
+          headerTitle: t('news.newsFeed'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="newspaper-variant" size={size} color={color} />
           ),
@@ -76,8 +78,8 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          headerTitle: 'Profile',
+          title: t('navigation.profile'),
+          headerTitle: t('profile.title'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account-circle" size={size} color={color} />
           ),
@@ -94,14 +96,14 @@ export default function ParentLayout() {
         name="payments"
         options={{
           href: null,
-          headerTitle: 'Payment History',
+          headerTitle: t('payments.paymentHistory'),
         }}
       />
       <Tabs.Screen
         name="attendance"
         options={{
           href: null,
-          headerTitle: 'Attendance History',
+          headerTitle: t('members.attendanceHistory'),
         }}
       />
       <Tabs.Screen

@@ -24,6 +24,20 @@ export default function MemberEventDetailScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [myRsvpStatus, setMyRsvpStatus] = useState<'CONFIRMED' | 'DECLINED' | 'PENDING' | null>(null);
   const [isSubmittingRsvp, setIsSubmittingRsvp] = useState(false);
+  const [memberId, setMemberId] = useState<string | null>(null);
+
+  // Fetch the member ID for the current user
+  useEffect(() => {
+    const fetchMemberId = async () => {
+      try {
+        const response = await api.get('/members/me');
+        setMemberId(response.data.data?._id || null);
+      } catch (error) {
+        console.error('Error fetching member ID:', error);
+      }
+    };
+    fetchMemberId();
+  }, []);
 
   const fetchEvent = useCallback(async () => {
     try {
@@ -42,17 +56,18 @@ export default function MemberEventDetailScreen() {
       setParticipants(partList);
       setStats(response.data.data.stats || null);
 
-      // Find my RSVP status
-      if (user?._id) {
-        const myParticipation = partList.find((p: EventParticipant) =>
-          p.memberId?._id === user._id || p.memberId === user._id
-        );
+      // Find my RSVP status - check both user ID and member ID
+      if (user?._id || memberId) {
+        const myParticipation = partList.find((p: EventParticipant) => {
+          const pMemberId = typeof p.memberId === 'object' ? p.memberId._id : p.memberId;
+          return pMemberId === memberId || pMemberId === user?._id;
+        });
         setMyRsvpStatus(myParticipation?.rsvpStatus || null);
       }
     } catch (error) {
       console.error('Error fetching participants:', error);
     }
-  }, [id, user?._id]);
+  }, [id, user?._id, memberId]);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -90,15 +105,17 @@ export default function MemberEventDetailScreen() {
   };
 
   const handleRsvp = async (status: 'CONFIRMED' | 'DECLINED') => {
-    if (!event || !user?._id) return;
+    if (!event || !memberId) return;
 
     setIsSubmittingRsvp(true);
     try {
       await api.post(`/events/${event._id}/confirm`, {
-        memberId: user._id,
+        memberId: memberId,
         rsvpStatus: status,
       });
       setMyRsvpStatus(status);
+      // Refresh participants to get updated data
+      fetchParticipants();
     } catch (error) {
       console.error('RSVP error:', error);
       Alert.alert(t('common.error'), t('rsvp.failed') || 'Greška pri potvrdi prisustva');
@@ -465,7 +482,7 @@ export default function MemberEventDetailScreen() {
                 </Card.Content>
               </Card>
             ) : (
-              participants.map((participant) => {
+              participants.filter(p => p.memberId && (typeof p.memberId === 'object' ? p.memberId.fullName : true)).map((participant) => {
                 const eventStarted = event && new Date(event.startTime) <= new Date();
                 const rsvpColor = getRsvpColor(participant.rsvpStatus);
                 const statusColor = getStatusColor(participant.status);
@@ -497,11 +514,11 @@ export default function MemberEventDetailScreen() {
                     <Card.Content style={styles.participantContent}>
                       <Avatar.Text
                         size={44}
-                        label={participant.memberId.fullName?.slice(0, 2).toUpperCase() || '??'}
+                        label={(typeof participant.memberId === 'object' ? participant.memberId.fullName : '')?.slice(0, 2).toUpperCase() || '??'}
                         style={styles.participantAvatar}
                       />
                       <View style={styles.participantInfo}>
-                        <Text style={styles.participantName}>{participant.memberId.fullName}</Text>
+                        <Text style={styles.participantName}>{typeof participant.memberId === 'object' ? participant.memberId.fullName : t('common.unknown')}</Text>
                         <Text style={[styles.participantStatusText, { color: rsvpColor }]}>
                           {getRsvpText()}
                         </Text>

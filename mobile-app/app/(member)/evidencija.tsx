@@ -408,31 +408,23 @@ export default function EvidencijaScreen() {
       {/* Summary Stats */}
       <Card style={styles.card}>
         <Card.Content>
-          <View style={styles.statWithEditRow}>
-            <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.monthlyFee} RSD</Text>
-                <Text style={styles.statLabel}>{t('payments.membershipFee')}</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.paymentMonths}</Text>
-                <Text style={styles.statLabel}>{t('time.months')}</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: stats.debt > 0 ? Colors.error : Colors.success }]}>
-                  {stats.debt} RSD
-                </Text>
-                <Text style={styles.statLabel}>{t('payments.debt')}</Text>
-              </View>
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{stats.monthlyFee} RSD</Text>
+              <Text style={styles.statLabel}>{t('payments.membershipFee')}</Text>
             </View>
-            <TouchableOpacity
-              style={styles.editMembershipButton}
-              onPress={() => router.push('/profile/edit')}
-            >
-              <MaterialCommunityIcons name="pencil" size={16} color={Colors.primary} />
-            </TouchableOpacity>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{stats.paymentMonths}</Text>
+              <Text style={styles.statLabel}>{t('time.months')}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: stats.debt > 0 ? Colors.error : Colors.success }]}>
+                {stats.debt} RSD
+              </Text>
+              <Text style={styles.statLabel}>{t('payments.debt')}</Text>
+            </View>
           </View>
         </Card.Content>
       </Card>

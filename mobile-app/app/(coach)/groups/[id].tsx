@@ -14,13 +14,13 @@ import {
   Avatar,
   IconButton,
   Divider,
-  Menu,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
+import DropdownMenu from '@/components/DropdownMenu';
 import api from '@/services/api';
 import { Group, Member } from '@/types';
 
@@ -75,7 +75,6 @@ export default function GroupDetailsScreen() {
   };
 
   const handleEditGroup = () => {
-    setMenuVisible(false);
     router.push({
       pathname: '/(coach)/groups/form',
       params: { id: group?._id },
@@ -83,7 +82,6 @@ export default function GroupDetailsScreen() {
   };
 
   const handleDeleteGroup = () => {
-    setMenuVisible(false);
     Alert.alert(
       t('groups.deleteGroup'),
       t('groups.deleteGroupConfirm'),
@@ -183,9 +181,17 @@ export default function GroupDetailsScreen() {
         options={{
           title: group.name,
           headerRight: () => (
-            <Menu
+            <DropdownMenu
               visible={menuVisible}
               onDismiss={() => setMenuVisible(false)}
+              onSelect={(key) => {
+                if (key === 'edit') handleEditGroup();
+                else if (key === 'delete') handleDeleteGroup();
+              }}
+              items={[
+                { key: 'edit', title: t('groups.editGroup'), icon: 'pencil' },
+                { key: 'delete', title: t('groups.deleteGroup'), icon: 'delete', titleColor: Colors.error, divider: true },
+              ]}
               anchor={
                 <IconButton
                   icon="dots-vertical"
@@ -193,21 +199,7 @@ export default function GroupDetailsScreen() {
                   onPress={() => setMenuVisible(true)}
                 />
               }
-              contentStyle={styles.menuContent}
-            >
-              <Menu.Item
-                onPress={handleEditGroup}
-                title={t('groups.editGroup')}
-                leadingIcon="pencil"
-              />
-              <Divider />
-              <Menu.Item
-                onPress={handleDeleteGroup}
-                title={t('groups.deleteGroup')}
-                leadingIcon="delete"
-                titleStyle={{ color: Colors.error }}
-              />
-            </Menu>
+            />
           ),
         }}
       />
@@ -375,9 +367,6 @@ const styles = StyleSheet.create({
   backButton: {
     marginTop: Spacing.lg,
     backgroundColor: Colors.primary,
-  },
-  menuContent: {
-    backgroundColor: Colors.surface,
   },
   infoCard: {
     backgroundColor: Colors.surface,

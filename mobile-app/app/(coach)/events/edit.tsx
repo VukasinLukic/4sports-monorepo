@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity, LayoutAnimation, UIManager } from 'react-native';
-import { Text, TextInput, Button, ActivityIndicator, Switch, IconButton, Menu, SegmentedButtons } from 'react-native-paper';
+import { Text, TextInput, Button, ActivityIndicator, Switch, IconButton, SegmentedButtons } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
+import DropdownMenu from '@/components/DropdownMenu';
 import api from '@/services/api';
 import { Group, Event } from '@/types';
 
@@ -26,7 +27,8 @@ const DEFAULT_EVENT_TYPES = [
 ];
 
 export default function EditEventScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const dateLocale = language === 'sr' ? 'sr-RS' : 'en-US';
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -74,10 +76,8 @@ export default function EditEventScreen() {
   const [newEventType, setNewEventType] = useState('');
 
   // Menus
-  const [locationMenuVisible, setLocationMenuVisible] = useState(false);
-  const [eventTypeMenuVisible, setEventTypeMenuVisible] = useState(false);
-  const [groupMenuVisible, setGroupMenuVisible] = useState(false);
-  const [equipmentMenuVisible, setEquipmentMenuVisible] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const closeMenu = () => setActiveMenu(null);
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [showAddEventType, setShowAddEventType] = useState(false);
   const [showAddEquipment, setShowAddEquipment] = useState(false);
@@ -372,31 +372,24 @@ export default function EditEventScreen() {
 
         {/* Event Type Dropdown */}
         <Text style={styles.label}>{t('events.eventType')} *</Text>
-        <Menu
-          visible={eventTypeMenuVisible}
-          onDismiss={() => setEventTypeMenuVisible(false)}
+        <DropdownMenu
+          visible={activeMenu === 'eventType'}
+          onDismiss={closeMenu}
+          onSelect={(key) => {
+            if (key === '__add_new__') setShowAddEventType(true);
+            else setEventType(key);
+          }}
+          items={[
+            ...eventTypes.map(type => ({ key: type.id, title: type.label, selected: eventType === type.id })),
+            { key: '__add_new__', title: `+ ${t('events.addNewType')}`, titleColor: Colors.primary },
+          ]}
           anchor={
-            <TouchableOpacity style={styles.dropdownButton} onPress={() => setEventTypeMenuVisible(true)}>
+            <TouchableOpacity style={styles.dropdownButton} onPress={() => setActiveMenu('eventType')}>
               <Text style={styles.dropdownText}>{getSelectedEventTypeName()}</Text>
               <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.textSecondary} />
             </TouchableOpacity>
           }
-          contentStyle={styles.menuContent}
-        >
-          {eventTypes.map(type => (
-            <Menu.Item
-              key={type.id}
-              onPress={() => { setEventType(type.id); setEventTypeMenuVisible(false); }}
-              title={type.label}
-              leadingIcon={eventType === type.id ? 'check' : undefined}
-            />
-          ))}
-          <Menu.Item
-            onPress={() => { setEventTypeMenuVisible(false); setShowAddEventType(true); }}
-            title={`+ ${t('events.addNewType')}`}
-            titleStyle={{ color: Colors.primary }}
-          />
-        </Menu>
+        />
 
         {showAddEventType && (
           <View style={styles.addNewRow}>
@@ -427,33 +420,25 @@ export default function EditEventScreen() {
 
         {/* Group Dropdown */}
         <Text style={styles.label}>{t('groups.group')} *</Text>
-        <Menu
-          visible={groupMenuVisible}
-          onDismiss={() => setGroupMenuVisible(false)}
+        <DropdownMenu
+          visible={activeMenu === 'group'}
+          onDismiss={closeMenu}
+          onSelect={(key) => setSelectedGroupId(key)}
+          items={groups.map(group => ({ key: group._id, title: group.name, selected: selectedGroupId === group._id }))}
           anchor={
-            <TouchableOpacity style={styles.dropdownButton} onPress={() => setGroupMenuVisible(true)}>
+            <TouchableOpacity style={styles.dropdownButton} onPress={() => setActiveMenu('group')}>
               <Text style={styles.dropdownText}>{getSelectedGroupName()}</Text>
               <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.textSecondary} />
             </TouchableOpacity>
           }
-          contentStyle={styles.menuContent}
-        >
-          {groups.map(group => (
-            <Menu.Item
-              key={group._id}
-              onPress={() => { setSelectedGroupId(group._id); setGroupMenuVisible(false); }}
-              title={group.name}
-              leadingIcon={selectedGroupId === group._id ? 'check' : undefined}
-            />
-          ))}
-        </Menu>
+        />
 
         {/* Date */}
         <Text style={styles.label}>{t('events.eventDate')} *</Text>
         <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowDatePicker(true)}>
           <MaterialCommunityIcons name="calendar" size={20} color={Colors.textSecondary} />
           <Text style={[styles.dropdownText, { marginLeft: Spacing.sm }]}>
-            {date.toLocaleDateString('sr-RS', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {date.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </Text>
         </TouchableOpacity>
         {showDatePicker && (
@@ -574,11 +559,19 @@ export default function EditEventScreen() {
 
             {/* Location Dropdown */}
             <Text style={styles.label}>{t('events.location')}</Text>
-            <Menu
-              visible={locationMenuVisible}
-              onDismiss={() => setLocationMenuVisible(false)}
+            <DropdownMenu
+              visible={activeMenu === 'location'}
+              onDismiss={closeMenu}
+              onSelect={(key) => {
+                if (key === '__add_new__') setShowAddLocation(true);
+                else setLocation(key);
+              }}
+              items={[
+                ...savedLocations.map(loc => ({ key: loc, title: loc, selected: location === loc })),
+                { key: '__add_new__', title: `+ ${t('events.addNewLocation')}`, titleColor: Colors.primary },
+              ]}
               anchor={
-                <TouchableOpacity style={styles.dropdownButton} onPress={() => setLocationMenuVisible(true)}>
+                <TouchableOpacity style={styles.dropdownButton} onPress={() => setActiveMenu('location')}>
                   <MaterialCommunityIcons name="map-marker-outline" size={20} color={Colors.textSecondary} />
                   <Text style={[styles.dropdownText, { marginLeft: Spacing.sm, flex: 1 }]}>
                     {location || t('events.selectLocation')}
@@ -586,22 +579,7 @@ export default function EditEventScreen() {
                   <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.textSecondary} />
                 </TouchableOpacity>
               }
-              contentStyle={styles.menuContent}
-            >
-              {savedLocations.map((loc, index) => (
-                <Menu.Item
-                  key={index}
-                  onPress={() => { setLocation(loc); setLocationMenuVisible(false); }}
-                  title={loc}
-                  leadingIcon={location === loc ? 'check' : 'map-marker'}
-                />
-              ))}
-              <Menu.Item
-                onPress={() => { setLocationMenuVisible(false); setShowAddLocation(true); }}
-                title={`+ ${t('events.addNewLocation')}`}
-                titleStyle={{ color: Colors.primary }}
-              />
-            </Menu>
+            />
 
             {showAddLocation && (
               <View style={styles.addNewRow}>
@@ -631,11 +609,19 @@ export default function EditEventScreen() {
 
             {/* Equipment */}
             <Text style={styles.label}>{t('events.equipment')}</Text>
-            <Menu
-              visible={equipmentMenuVisible}
-              onDismiss={() => setEquipmentMenuVisible(false)}
+            <DropdownMenu
+              visible={activeMenu === 'equipment'}
+              onDismiss={closeMenu}
+              onSelect={(key) => {
+                if (key === '__add_new__') setShowAddEquipment(true);
+                else addEquipmentItem(key);
+              }}
+              items={[
+                ...savedEquipment.map(item => ({ key: item, title: item, selected: equipment.includes(item) })),
+                { key: '__add_new__', title: `+ ${t('events.addNewEquipment')}`, titleColor: Colors.primary },
+              ]}
               anchor={
-                <TouchableOpacity style={styles.dropdownButton} onPress={() => setEquipmentMenuVisible(true)}>
+                <TouchableOpacity style={styles.dropdownButton} onPress={() => setActiveMenu('equipment')}>
                   <MaterialCommunityIcons name="bag-personal-outline" size={20} color={Colors.textSecondary} />
                   <Text style={[styles.dropdownText, { marginLeft: Spacing.sm, flex: 1 }]}>
                     {equipment.length > 0 ? `${equipment.length} ${t('events.items')}` : t('events.addEquipment')}
@@ -643,22 +629,7 @@ export default function EditEventScreen() {
                   <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.textSecondary} />
                 </TouchableOpacity>
               }
-              contentStyle={styles.menuContent}
-            >
-              {savedEquipment.map((item, index) => (
-                <Menu.Item
-                  key={index}
-                  onPress={() => { addEquipmentItem(item); setEquipmentMenuVisible(false); }}
-                  title={item}
-                  leadingIcon={equipment.includes(item) ? 'check' : 'plus'}
-                />
-              ))}
-              <Menu.Item
-                onPress={() => { setEquipmentMenuVisible(false); setShowAddEquipment(true); }}
-                title={`+ ${t('events.addNewEquipment')}`}
-                titleStyle={{ color: Colors.primary }}
-              />
-            </Menu>
+            />
 
             {showAddEquipment && (
               <View style={styles.addNewRow}>
@@ -752,7 +723,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   dropdownText: { fontSize: FontSize.md, color: Colors.text, flex: 1 },
-  menuContent: { backgroundColor: Colors.surface },
   addNewRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.sm, gap: Spacing.xs },
   addNewInput: { flex: 1, backgroundColor: Colors.surface },
   timeRow: { flexDirection: 'row', gap: Spacing.md },
