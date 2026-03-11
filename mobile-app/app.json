@@ -26,6 +26,7 @@
     },
     "android": {
       "package": "com.foursports.mobile",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a1a"

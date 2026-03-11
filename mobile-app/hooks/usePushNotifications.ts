@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import {
   registerForPushNotificationsAsync,
@@ -9,6 +10,8 @@ import {
   NotificationData,
   NotificationType,
 } from '@/services/pushNotifications';
+
+const NOTIFICATION_PREF_KEY = '@push_notifications_enabled';
 
 interface UsePushNotificationsResult {
   expoPushToken: string | null;
@@ -23,12 +26,13 @@ interface UsePushNotificationsResult {
 export function usePushNotifications(): UsePushNotificationsResult {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(true); // Default ON
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
+  const hasInitialized = useRef(false);
 
   // Handle notification navigation based on type
   const handleNotificationNavigation = useCallback((data: NotificationData) => {
@@ -94,16 +98,15 @@ export function usePushNotifications(): UsePushNotificationsResult {
         // Send token to backend
         const success = await sendTokenToBackend(token);
         setIsRegistered(success);
+        await AsyncStorage.setItem(NOTIFICATION_PREF_KEY, success ? 'true' : 'false');
 
         if (!success) {
           setError('Failed to register with server');
         }
       } else {
         // Token is null - push notifications not available (Expo Go or missing projectId)
-        // This is expected in development, not an error
         console.log('Push notifications not available in this environment');
-        setIsRegistered(false);
-        // Don't set error - this is expected behavior in Expo Go
+        // Keep the saved preference — don't override to false in dev
       }
     } catch (err) {
       console.error('Error registering for notifications:', err);
@@ -117,24 +120,37 @@ export function usePushNotifications(): UsePushNotificationsResult {
   const unregisterFromNotifications = useCallback(async () => {
     if (expoPushToken) {
       await removeTokenFromBackend(expoPushToken);
-      setIsRegistered(false);
     }
+    setIsRegistered(false);
+    await AsyncStorage.setItem(NOTIFICATION_PREF_KEY, 'false');
   }, [expoPushToken]);
 
-  // Setup notification listeners
+  // Load saved preference and setup listeners
   useEffect(() => {
-    // Register for notifications on mount
-    registerForNotifications();
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    const init = async () => {
+      // Load saved preference (default to true)
+      const saved = await AsyncStorage.getItem(NOTIFICATION_PREF_KEY);
+      const enabled = saved === null ? true : saved === 'true';
+      setIsRegistered(enabled);
+
+      // Auto-register if enabled
+      if (enabled) {
+        registerForNotifications();
+      }
+    };
+
+    init();
 
     // Listener for notifications received while app is foregrounded
-    notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      console.log('Notification received in foreground:', notification);
-      setNotification(notification);
+    notificationListener.current = Notifications.addNotificationReceivedListener((notif) => {
+      setNotification(notif);
     });
 
     // Listener for when user taps on notification
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log('Notification tapped:', response);
       const data = parseNotificationData(response.notification);
       if (data) {
         handleNotificationNavigation(data);

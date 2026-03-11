@@ -34,6 +34,11 @@ interface GroupMember {
     fullName: string;
     email: string;
   };
+  currentMonthPayment?: {
+    status: string;
+    paidAmount: number;
+    amount: number;
+  } | null;
 }
 
 export default function GroupDetailsScreen() {
@@ -148,6 +153,20 @@ export default function GroupDetailsScreen() {
       age--;
     }
     return age;
+  };
+
+  const getPaymentBadge = (member: GroupMember) => {
+    const payment = member.currentMonthPayment;
+    if (!payment) {
+      return { label: t('payments.unpaid'), color: Colors.error, bg: '#FFEBEE' };
+    }
+    if (payment.status === 'PAID') {
+      return { label: t('payments.paid'), color: '#2E7D32', bg: '#E8F5E9' };
+    }
+    if (payment.status === 'PARTIAL') {
+      return { label: `${t('payments.partial')} (${payment.paidAmount}/${payment.amount})`, color: '#F57C00', bg: '#FFF3E0' };
+    }
+    return { label: t('payments.unpaid'), color: Colors.error, bg: '#FFEBEE' };
   };
 
   if (isLoading) {
@@ -321,6 +340,16 @@ export default function GroupDetailsScreen() {
                           {t('roles.parent')}: {member.parentId.fullName}
                         </Text>
                       )}
+                      {(() => {
+                        const badge = getPaymentBadge(member);
+                        return (
+                          <View style={[styles.paymentBadge, { backgroundColor: badge.bg }]}>
+                            <Text style={[styles.paymentBadgeText, { color: badge.color }]}>
+                              {badge.label}
+                            </Text>
+                          </View>
+                        );
+                      })()}
                     </View>
 
                     <IconButton
@@ -511,5 +540,16 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  paymentBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.xs,
+  },
+  paymentBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
   },
 });
