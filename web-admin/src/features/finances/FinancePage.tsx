@@ -179,12 +179,15 @@ export function FinancePage() {
     }
   }, [txIdParam, filteredTransactions, setSearchParams, handleView]);
 
-  // Auto-select "group by month" when "all time" or year-based date range is selected
+  // Auto-select grouping based on date range preset
   useEffect(() => {
-    if ((filters.dateRange.preset === 'all' || filters.dateRange.preset === 'thisYear' || filters.dateRange.preset === 'lastYear') && groupBy === 'none') {
-      setGroupBy('month');
+    const preset = filters.dateRange.preset;
+    if (preset === 'all' || preset === 'thisYear' || preset === 'lastYear') {
+      if (groupBy === 'none') setGroupBy('month');
+    } else if (preset === 'thisMonth' || preset === 'lastMonth') {
+      if (groupBy !== 'none') setGroupBy('none');
     }
-  }, [filters.dateRange.preset, groupBy]);
+  }, [filters.dateRange.preset]);
 
   // Start tutorial on first visit
   useEffect(() => {
