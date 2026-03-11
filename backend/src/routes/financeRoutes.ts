@@ -12,6 +12,7 @@ import {
   updateBudgetStatus,
   updateTransaction,
   deleteTransaction,
+  migratePaymentMethod,
 } from '../controllers/financeController';
 
 const router = express.Router();
@@ -124,5 +125,12 @@ router.patch('/budgets/:id/actuals', protect, updateBudgetActuals);
  * @access  Protected (OWNER)
  */
 router.patch('/budgets/:id/status', protect, updateBudgetStatus);
+
+/**
+ * @route   POST /api/finances/migrate-payment-method
+ * @desc    One-time migration: backfill paymentMethod on transactions from linked payments
+ * @access  Protected (OWNER, COACH)
+ */
+router.post('/migrate-payment-method', protect, migratePaymentMethod);
 
 export default router;

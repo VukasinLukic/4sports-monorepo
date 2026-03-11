@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { FinanceEntry } from '@/types';
-import { Pencil, Trash2, Calendar, Tag, FileText, DollarSign, Users } from 'lucide-react';
+import { Pencil, Trash2, Calendar, Tag, FileText, DollarSign, Users, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ViewTransactionDialogProps {
@@ -44,6 +44,7 @@ export function ViewTransactionDialog({
       'RENT': 'finances.categories.facilityRent',
       'SALARY': 'finances.categories.coachSalary',
       'UTILITIES': 'finances.categories.utilities',
+      'BALANCE_ADJUSTMENT': 'finances.categories.balanceAdjustment',
       'OTHER': isIncome ? 'finances.categories.otherIncome' : 'finances.categories.otherExpense',
     };
     const key = categoryMap[transaction.category] || transaction.category;
@@ -144,6 +145,21 @@ export function ViewTransactionDialog({
                 </div>
               </div>
             )}
+
+            {/* Payment Method */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+              <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground">{t('finances.paymentMethod')}</p>
+                <p className="text-base font-medium">
+                  {transaction.paymentMethod === 'CASH'
+                    ? t('finances.cash')
+                    : transaction.paymentMethod === 'CARD'
+                      ? t('finances.card')
+                      : t('finances.noPaymentMethod')}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Metadata */}

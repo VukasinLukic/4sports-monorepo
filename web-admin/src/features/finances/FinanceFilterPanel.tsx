@@ -79,6 +79,7 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
     { value: 'EVENT_FEE', label: t('finances.categories.eventFee') },
     { value: 'SPONSORSHIP', label: t('finances.categories.sponsorship') },
     { value: 'EQUIPMENT', label: t('finances.categories.equipmentSales') },
+    { value: 'BALANCE_ADJUSTMENT', label: t('finances.categories.balanceAdjustment') },
     { value: 'OTHER', label: t('finances.categories.otherIncome') },
   ];
   const expenseCategories = [
@@ -86,6 +87,7 @@ export function FinanceFilterPanel({ filters, onFilterChange, groups, coaches, s
     { value: 'RENT', label: t('finances.categories.facilityRent') },
     { value: 'SALARY', label: t('finances.categories.coachSalary') },
     { value: 'UTILITIES', label: t('finances.categories.utilities') },
+    { value: 'BALANCE_ADJUSTMENT', label: t('finances.categories.balanceAdjustment') },
     { value: 'OTHER', label: t('finances.categories.otherExpense') },
   ];
   const availableCategories = filters.transactionType === 'INCOME'

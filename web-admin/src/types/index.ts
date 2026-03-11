@@ -135,6 +135,7 @@ export interface FinanceEntry {
   createdAt: string;
   groupId?: string;
   coachId?: string;
+  paymentMethod?: 'CASH' | 'CARD';
 }
 
 export interface CreateFinanceEntryData {
@@ -145,6 +146,7 @@ export interface CreateFinanceEntryData {
   date: string;
   groupId?: string;
   invoiceUrl?: string;
+  paymentMethod?: 'CASH' | 'CARD';
 }
 
 export interface FinanceSummary {
@@ -236,7 +238,9 @@ export interface PaymentMethodBreakdown {
   totalBalance: number;
   methods: Array<{
     method: string;
-    amount: number;
+    income: number;
+    expense: number;
+    balance: number;
     count: number;
   }>;
 }

@@ -24,6 +24,7 @@ const categoryKeyMap: Record<string, string> = {
   RENT: 'finances.categories.facilityRent',
   SALARY: 'finances.categories.coachSalary',
   UTILITIES: 'finances.categories.utilities',
+  BALANCE_ADJUSTMENT: 'finances.categories.balanceAdjustment',
 };
 
 export function TransactionsFlatTable({ transactions, groups, onEdit, onDelete, onView }: TransactionsFlatTableProps) {

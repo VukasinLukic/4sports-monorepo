@@ -28,6 +28,7 @@ async function createTransactionForPayment(
     amount: paidAmount,
     description: `Članarina - ${memberName}`,
     transactionDate: payment.paidDate || new Date(),
+    paymentMethod: payment.paymentMethod || undefined,
     groupId: groupId || undefined,
     paymentId: payment._id,
     createdBy,

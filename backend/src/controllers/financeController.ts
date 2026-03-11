@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Transaction from '../models/Transaction';
+import Payment from '../models/Payment';
 import Budget from '../models/Budget';
 
 // ============================================
@@ -9,7 +10,7 @@ import Budget from '../models/Budget';
 export const createTransaction = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
-    const { type, category, amount, description, transactionDate, groupId, paymentId, receiptUrl, notes } = req.body;
+    const { type, category, amount, description, transactionDate, groupId, paymentId, receiptUrl, notes, paymentMethod } = req.body;
     const clubId = req.user.clubId;
 
     if (!clubId) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
@@ -24,6 +25,7 @@ export const createTransaction = async (req: Request, res: Response) => {
       amount,
       description,
       transactionDate,
+      paymentMethod: paymentMethod || undefined,
       groupId: groupId || undefined,
       paymentId,
       receiptUrl,
@@ -241,7 +243,7 @@ export const updateTransaction = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
     }
 
-    const { type, category, amount, description, transactionDate, groupId, notes } = req.body;
+    const { type, category, amount, description, transactionDate, groupId, notes, paymentMethod } = req.body;
 
     if (type) transaction.type = type;
     if (category) transaction.category = category;
@@ -250,6 +252,7 @@ export const updateTransaction = async (req: Request, res: Response) => {
     if (transactionDate) transaction.transactionDate = transactionDate;
     if (groupId !== undefined) (transaction as any).groupId = groupId || undefined;
     if (notes !== undefined) transaction.notes = notes;
+    if (paymentMethod !== undefined) (transaction as any).paymentMethod = paymentMethod || undefined;
 
     await transaction.save();
 
@@ -286,5 +289,45 @@ export const deleteTransaction = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('❌ Delete Transaction Error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete transaction' } });
+  }
+};
+
+// ============================================
+// MIGRATION: Backfill paymentMethod on existing transactions
+// ============================================
+
+export const migratePaymentMethod = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+    const clubId = req.user.clubId;
+    if (!clubId) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
+
+    // Find all transactions linked to payments that don't have paymentMethod set
+    const transactions = await Transaction.find({
+      clubId,
+      paymentId: { $exists: true, $ne: null },
+      $or: [
+        { paymentMethod: { $exists: false } },
+        { paymentMethod: null },
+      ],
+    });
+
+    let updated = 0;
+    for (const tx of transactions) {
+      const payment = await Payment.findById(tx.paymentId);
+      if (payment?.paymentMethod && (payment.paymentMethod === 'CASH' || payment.paymentMethod === 'CARD')) {
+        (tx as any).paymentMethod = payment.paymentMethod;
+        await tx.save();
+        updated++;
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { total: transactions.length, updated },
+    });
+  } catch (error: any) {
+    console.error('❌ Migration Error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Migration failed' } });
   }
 };

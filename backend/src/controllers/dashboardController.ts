@@ -312,13 +312,18 @@ export const getCoachDashboardV2 = async (req: Request, res: Response) => {
       // 7. All active members for this club
       Member.find({ 'clubs.clubId': clubObjId, 'clubs.status': 'ACTIVE' }).lean(),
 
-      // 8. Payment method breakdown (all PAID payments)
-      Payment.aggregate([
-        { $match: { clubId: clubObjId, status: 'PAID' } },
+      // 8. Payment method breakdown from Transaction (income - expense per method)
+      Transaction.aggregate([
+        { $match: { clubId: clubObjId, paymentMethod: { $exists: true, $ne: null } } },
         {
           $group: {
-            _id: { $ifNull: ['$paymentMethod', 'OTHER'] },
-            amount: { $sum: '$amount' },
+            _id: '$paymentMethod',
+            totalIncome: {
+              $sum: { $cond: [{ $eq: ['$type', 'INCOME'] }, '$amount', 0] },
+            },
+            totalExpense: {
+              $sum: { $cond: [{ $eq: ['$type', 'EXPENSE'] }, '$amount', 0] },
+            },
             count: { $sum: 1 },
           },
         },
@@ -484,13 +489,14 @@ export const getCoachDashboardV2 = async (req: Request, res: Response) => {
       monthlyData: memberMonthlyData,
     };
 
-    // ─── Process Payment Method Breakdown ───
-    const totalBalance = paymentMethodAgg.reduce((s: number, r: any) => s + r.amount, 0);
+    // ─── Process Payment Method Breakdown (balance = income - expense per method) ───
     const paymentMethodBreakdown = {
-      totalBalance,
+      totalBalance: paymentMethodAgg.reduce((s: number, r: any) => s + (r.totalIncome - r.totalExpense), 0),
       methods: paymentMethodAgg.map((r: any) => ({
         method: r._id,
-        amount: r.amount,
+        income: r.totalIncome,
+        expense: r.totalExpense,
+        balance: r.totalIncome - r.totalExpense,
         count: r.count,
       })),
     };
