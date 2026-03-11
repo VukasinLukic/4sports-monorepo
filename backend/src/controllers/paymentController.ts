@@ -225,3 +225,53 @@ export const markPaymentPaid = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to mark payment as paid' } });
   }
 };
+
+export const resetPayment = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+    const { id } = req.params;
+    const clubId = req.user.clubId;
+
+    const payment = await Payment.findById(id);
+    if (!payment) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Payment not found' } });
+    if (payment.clubId.toString() !== clubId?.toString()) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
+
+    // Delete associated transaction(s)
+    await Transaction.deleteMany({ paymentId: payment._id });
+
+    // Reset payment to PENDING, keep original amount
+    payment.paidAmount = 0;
+    payment.status = 'PENDING';
+    payment.paidDate = undefined as any;
+    payment.paymentMethod = undefined as any;
+    payment.receiptNumber = undefined as any;
+    await payment.save();
+
+    return res.status(200).json({ success: true, data: payment });
+  } catch (error: any) {
+    console.error('❌ Reset Payment Error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to reset payment' } });
+  }
+};
+
+export const deletePayment = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+    const { id } = req.params;
+    const clubId = req.user.clubId;
+
+    const payment = await Payment.findById(id);
+    if (!payment) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Payment not found' } });
+    if (payment.clubId.toString() !== clubId?.toString()) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
+
+    // Delete associated transaction(s) created for this payment
+    await Transaction.deleteMany({ paymentId: payment._id });
+
+    await Payment.findByIdAndDelete(id);
+
+    return res.status(200).json({ success: true, message: 'Payment deleted' });
+  } catch (error: any) {
+    console.error('❌ Delete Payment Error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete payment' } });
+  }
+};

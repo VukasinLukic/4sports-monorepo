@@ -87,7 +87,7 @@ export const getMyMemberProfile = async (req: Request, res: Response) => {
     // Find member linked to this user
     const member = await Member.findOne({ userId: req.user._id })
       .populate('clubs.clubId', 'name')
-      .populate('clubs.groupId', 'name ageGroup color');
+      .populate('clubs.groupId', 'name ageGroup color membershipFee');
 
     if (!member) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member profile not found' } });
@@ -238,7 +238,7 @@ export const getAllMembers = async (req: Request, res: Response) => {
     // Get members for this club (optionally filtered by group)
     const members = await Member.find(query)
       .populate('parentId', 'fullName email phoneNumber')
-      .populate('clubs.groupId', 'name ageGroup color')
+      .populate('clubs.groupId', 'name ageGroup color membershipFee')
       .sort({ fullName: 1 });
 
     // Get current month payments
@@ -346,7 +346,7 @@ export const getMemberByUserId = async (req: Request, res: Response) => {
 
     // Find member by userId
     const member = await Member.findOne({ userId })
-      .populate('clubs.groupId', 'name ageGroup color');
+      .populate('clubs.groupId', 'name ageGroup color membershipFee');
 
     if (!member) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found' } });
@@ -395,7 +395,7 @@ export const getMember = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
 
     const { id } = req.params;
-    const member = await Member.findById(id).populate('parentId', 'fullName email phoneNumber').populate('clubs.clubId', 'name').populate('clubs.groupId', 'name ageGroup color');
+    const member = await Member.findById(id).populate('parentId', 'fullName email phoneNumber').populate('clubs.clubId', 'name').populate('clubs.groupId', 'name ageGroup color membershipFee');
 
     if (!member) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found' } });
 

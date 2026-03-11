@@ -6,6 +6,8 @@ import {
   getMemberPayments,
   getMyPayments,
   markPaymentPaid,
+  resetPayment,
+  deletePayment,
 } from '../controllers/paymentController';
 
 const router = express.Router();
@@ -44,5 +46,19 @@ router.get('/member/:memberId', protect, getMemberPayments);
  * @access  Protected (OWNER, COACH)
  */
 router.patch('/:id/paid', protect, markPaymentPaid);
+
+/**
+ * @route   PATCH /api/payments/:id/reset
+ * @desc    Reset a payment to PENDING (undo payment, keep record with original amount)
+ * @access  Protected (OWNER, COACH)
+ */
+router.patch('/:id/reset', protect, resetPayment);
+
+/**
+ * @route   DELETE /api/payments/:id
+ * @desc    Delete a payment and its associated transaction
+ * @access  Protected (OWNER, COACH)
+ */
+router.delete('/:id', protect, deletePayment);
 
 export default router;

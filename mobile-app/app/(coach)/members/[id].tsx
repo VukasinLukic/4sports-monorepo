@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
-import { useMember, useMemberAttendance, useMemberPayments } from '@/hooks/useMembers';
+import { useMember, useMemberAttendance, useMemberPayments, useResetPayment } from '@/hooks/useMembers';
 import { useLanguage } from '@/services/LanguageContext';
 import { Attendance, Payment } from '@/types';
 import api from '@/services/api';
@@ -25,6 +25,7 @@ export default function MemberDetailsScreen() {
   const { data: member, isLoading, refetch: refetchMember } = useMember(memberId);
   const { data: attendance = [], refetch: refetchAttendance } = useMemberAttendance(memberId);
   const { data: payments = [], refetch: refetchPayments } = useMemberPayments(memberId);
+  const { mutateAsync: resetPaymentAsync, isPending: isResettingPayment } = useResetPayment();
 
   const months = language === 'sr' ? MONTHS_SR : MONTHS_EN;
 
@@ -163,7 +164,16 @@ export default function MemberDetailsScreen() {
   // Calculate membership stats
   const calculateMembershipStats = () => {
     const DEFAULT_MONTHLY_FEE = 3000;
-    const monthlyFee = member?.membershipFee || DEFAULT_MONTHLY_FEE;
+    const getGroupFee = (): number | undefined => {
+      if (!member?.clubs?.length) return undefined;
+      for (const c of member.clubs) {
+        if (c.groupId && typeof c.groupId === 'object' && (c.groupId as any).membershipFee) {
+          return (c.groupId as any).membershipFee;
+        }
+      }
+      return undefined;
+    };
+    const monthlyFee = member?.membershipFee || getGroupFee() || DEFAULT_MONTHLY_FEE;
     const joinDate = member?.createdAt ? new Date(member.createdAt) : new Date();
     const now = new Date();
 
@@ -203,21 +213,12 @@ export default function MemberDetailsScreen() {
   // Generate monthly payment history for ALL months with data
   const generateMonthlyHistory = () => {
     const stats = calculateMembershipStats();
-    const history: { month: string; year: number; amount: number; expectedAmount: number; status: 'PAID' | 'PARTIAL' | 'UNPAID'; monthIndex: number }[] = [];
+    const history: { month: string; year: number; amount: number; expectedAmount: number; status: 'PAID' | 'PARTIAL' | 'UNPAID'; monthIndex: number; paymentIds: string[] }[] = [];
 
     const now = new Date();
 
-    // Debug logging
-    console.log('Payments received:', payments.length, payments);
-
     // Find earliest payment to determine how many months back to go
     const membershipPayments = payments.filter((p: Payment) => p.type === 'MEMBERSHIP');
-
-    if (membershipPayments.length > 0) {
-      console.log('PAYMENT STRUCTURE - First payment:', JSON.stringify(membershipPayments[0], null, 2));
-      console.log('Payment keys:', Object.keys(membershipPayments[0]));
-      console.log('Has amount field?', 'amount' in membershipPayments[0], membershipPayments[0]?.amount);
-    }
     let monthsToGenerate = 12; // Default to 12
 
     if (membershipPayments.length > 0) {
@@ -236,7 +237,6 @@ export default function MemberDetailsScreen() {
       const monthsDiff = (now.getFullYear() - earliestDate.getFullYear()) * 12 + (now.getMonth() - earliestDate.getMonth()) + 1;
       monthsToGenerate = Math.max(12, monthsDiff);
 
-      console.log('Earliest payment:', earliestDate, 'Months to generate:', monthsToGenerate);
     }
 
     // Generate all months from now back to earliest payment
@@ -273,17 +273,6 @@ export default function MemberDetailsScreen() {
         status = 'PARTIAL';
       }
 
-      // Debug January or current month
-      if ((monthIndex === 0 && i < 3) || i === 0) {
-        console.log(`[Payment History] ${months[monthIndex]} ${year}:`, {
-          monthPayments: monthPayments.length,
-          amount: monthPayments[0]?.amount,
-          paidAmount,
-          expectedAmount,
-          status
-        });
-      }
-
       history.push({
         month: months[monthIndex],
         year,
@@ -291,10 +280,34 @@ export default function MemberDetailsScreen() {
         expectedAmount,
         status,
         monthIndex,
+        paymentIds: monthPayments.map((p: Payment) => p._id),
       });
     }
 
     return history;
+  };
+
+  const handleResetPayment = (item: { month: string; year: number; paymentIds: string[] }) => {
+    if (item.paymentIds.length === 0) return;
+    Alert.alert(
+      t('payments.deletePayment') || 'Obriši uplatu',
+      `${t('payments.deletePaymentConfirm')} ${member?.fullName} - ${item.month} ${item.year}?`,
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            // Reset all payments for this month back to PENDING
+            for (const paymentId of item.paymentIds) {
+              await resetPaymentAsync({ paymentId, memberId: memberId! });
+            }
+            // Force refetch to update stats/debt immediately
+            await refetchPayments();
+          },
+        },
+      ]
+    );
   };
 
   if (isLoading && !isRefreshing) {
@@ -518,34 +531,33 @@ export default function MemberDetailsScreen() {
                 <Text style={styles.historyMonth}>{item.month} {item.year}</Text>
                 <Text style={styles.historyAmount}>{item.amount} / {item.expectedAmount} RSD</Text>
               </View>
-              <View style={[
-                styles.historyStatus,
-                { backgroundColor: item.status === 'PAID' ? Colors.success + '20' : item.status === 'PARTIAL' ? Colors.warning + '20' : Colors.error + '20' }
-              ]}>
-                <Text style={[
-                  styles.historyStatusText,
-                  { color: item.status === 'PAID' ? Colors.success : item.status === 'PARTIAL' ? Colors.warning : Colors.error }
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={[
+                  styles.historyStatus,
+                  { backgroundColor: item.status === 'PAID' ? Colors.success + '20' : item.status === 'PARTIAL' ? Colors.warning + '20' : Colors.error + '20' }
                 ]}>
-                  {item.status === 'PAID' ? t('status.paid') : item.status === 'PARTIAL' ? t('status.partial') : t('status.notPaid')}
-                </Text>
+                  <Text style={[
+                    styles.historyStatusText,
+                    { color: item.status === 'PAID' ? Colors.success : item.status === 'PARTIAL' ? Colors.warning : Colors.error }
+                  ]}>
+                    {item.status === 'PAID' ? t('status.paid') : item.status === 'PARTIAL' ? t('status.partial') : t('status.notPaid')}
+                  </Text>
+                </View>
+                {item.paymentIds.length > 0 && item.status !== 'UNPAID' && (
+                  <TouchableOpacity
+                    onPress={() => handleResetPayment(item)}
+                    disabled={isResettingPayment}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <MaterialCommunityIcons name="trash-can-outline" size={18} color={Colors.error} />
+                  </TouchableOpacity>
+                )}
               </View>
             </Card.Content>
           </Card>
         ))
       )}
 
-      <Button
-        mode="contained"
-        icon="cash-plus"
-        onPress={() => router.push({
-          pathname: '/(coach)/payments/record',
-          params: { memberId: member._id, memberName: member.fullName }
-        })}
-        style={styles.actionButton}
-        buttonColor={Colors.success}
-      >
-        {t('payments.recordPayment')}
-      </Button>
     </>
   );
 
@@ -767,12 +779,26 @@ export default function MemberDetailsScreen() {
       {activeTab === 'attendance' && renderAttendanceTab()}
     </ScrollView>
 
-    {/* Fixed Chat Button */}
-    {member.userId && (
-      <TouchableOpacity style={styles.chatFab} onPress={handleStartChat}>
-        <MaterialCommunityIcons name="message-text" size={24} color="#fff" />
-      </TouchableOpacity>
-    )}
+    {/* Fixed bottom buttons */}
+    <View style={styles.fabRow}>
+      {activeTab === 'membership' && (
+        <TouchableOpacity
+          style={styles.recordPaymentFab}
+          onPress={() => router.push({
+            pathname: '/(coach)/payments/record',
+            params: { memberId: member._id, memberName: member.fullName }
+          })}
+        >
+          <MaterialCommunityIcons name="cash-plus" size={20} color="#fff" />
+          <Text style={styles.recordPaymentText}>{t('payments.recordPayment')}</Text>
+        </TouchableOpacity>
+      )}
+      {member.userId && (
+        <TouchableOpacity style={styles.chatFab} onPress={handleStartChat}>
+          <MaterialCommunityIcons name="message-text" size={20} color="#fff" />
+        </TouchableOpacity>
+      )}
+    </View>
   </View>
   );
 }
@@ -790,14 +816,41 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     paddingBottom: 100,
   },
-  chatFab: {
+  fabRow: {
     position: 'absolute',
-    right: Spacing.md,
     bottom: Spacing.xl,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    left: Spacing.md,
+    right: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: Spacing.sm,
+  },
+  recordPaymentFab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.success,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  recordPaymentText: {
+    color: '#fff',
+    fontSize: FontSize.md,
+    fontWeight: '600',
+  },
+  chatFab: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
@@ -1136,9 +1189,5 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginTop: Spacing.sm,
-  },
-  // Action button
-  actionButton: {
-    marginTop: Spacing.md,
   },
 });

@@ -110,7 +110,7 @@ interface RecordPaymentData {
   memberId: string;
   amount: number;
   paidAmount?: number;
-  paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'CARD';
+  paymentMethod: 'CASH' | 'CARD';
   paymentDate?: string;
   note?: string;
   period?: {
@@ -126,6 +126,23 @@ export function useRecordPayment() {
     mutationFn: async (data: RecordPaymentData) => {
       const response = await api.post('/payments', data);
       return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      queryClient.invalidateQueries({ queryKey: ['member', variables.memberId] });
+      queryClient.invalidateQueries({ queryKey: ['member-payments', variables.memberId] });
+    },
+  });
+}
+
+// Delete a payment
+export function useResetPayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ paymentId }: { paymentId: string; memberId: string }) => {
+      const response = await api.patch(`/payments/${paymentId}/reset`);
+      return response.data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
