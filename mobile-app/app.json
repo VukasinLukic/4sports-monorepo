@@ -9,7 +9,6 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "owner": "simica67",
-    "owner": "simica67",
     "description": "Sports club management app for coaches and parents. Manage attendance, payments, medical checks, events and more.",
     "splash": {
       "image": "./assets/mobile_icon.png",
@@ -28,7 +27,7 @@
       "package": "com.foursports.mobile",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/mobile_icon.png",
         "backgroundColor": "#1a1a1a"
       },
       "permissions": [
@@ -43,7 +42,7 @@
       "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/mobile_icon.png"
     },
     "plugins": [
       "expo-router",

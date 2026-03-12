@@ -1,9 +1,29 @@
-import { getMessaging } from '../config/firebase';
 import User from '../models/User';
 import mongoose from 'mongoose';
 
+const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+
+interface ExpoPushMessage {
+  to: string;
+  title: string;
+  body: string;
+  data?: Record<string, string>;
+  sound?: string;
+  priority?: 'default' | 'normal' | 'high';
+  channelId?: string;
+}
+
+interface ExpoPushResponse {
+  data: Array<{
+    status: 'ok' | 'error';
+    id?: string;
+    message?: string;
+    details?: { error?: string };
+  }>;
+}
+
 /**
- * Send push notification to user(s)
+ * Send push notification to user(s) via Expo Push API
  * @param userIds - Array of user IDs to send notification to
  * @param title - Notification title
  * @param body - Notification body
@@ -29,45 +49,63 @@ export const sendPushNotification = async (
 
     const tokens = users.map((user) => user.pushToken).filter((token): token is string => !!token);
 
+    console.log(`📱 Push: sending to ${userIds.length} users, found ${users.length} with tokens, ${tokens.length} valid tokens`);
+    console.log(`📱 Push: tokens = ${tokens.map(t => t.substring(0, 30) + '...').join(', ')}`);
+
     if (tokens.length === 0) {
       console.log('⚠️  No valid push tokens found');
       return;
     }
 
-    const messaging = getMessaging();
-
-    // Prepare messages for each token
-    const messages = tokens.map((token) => ({
-      notification: {
-        title,
-        body,
-      },
+    // Prepare Expo push messages
+    const messages: ExpoPushMessage[] = tokens.map((token) => ({
+      to: token,
+      title,
+      body,
       data: data || {},
-      token,
+      sound: 'default',
+      priority: 'high',
     }));
 
-    // Send to multiple devices
-    const response = await messaging.sendEach(messages);
+    // Send via Expo Push API (supports batching up to 100)
+    const response = await fetch(EXPO_PUSH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip, deflate',
+      },
+      body: JSON.stringify(messages),
+    });
 
-    console.log(`✅ Push notifications sent: ${response.successCount} successful, ${response.failureCount} failed`);
+    const result = await response.json() as ExpoPushResponse;
+    console.log(`📱 Push API response:`, JSON.stringify(result));
+
+    let successCount = 0;
+    let failureCount = 0;
+    const invalidTokens: string[] = [];
+
+    result.data.forEach((receipt, idx) => {
+      if (receipt.status === 'ok') {
+        successCount++;
+      } else {
+        failureCount++;
+        // Clean up tokens with DeviceNotRegistered error (app uninstalled)
+        if (receipt.details?.error === 'DeviceNotRegistered' && tokens[idx]) {
+          invalidTokens.push(tokens[idx]);
+        }
+      }
+    });
+
+    console.log(`✅ Push notifications sent: ${successCount} successful, ${failureCount} failed`);
 
     // Clean up invalid tokens
-    if (response.failureCount > 0) {
-      const failedTokens: string[] = [];
-      response.responses.forEach((resp: any, idx: number) => {
-        if (!resp.success && tokens[idx]) {
-          failedTokens.push(tokens[idx]);
-        }
-      });
-
-      if (failedTokens.length > 0) {
-        // Remove invalid tokens from database
-        await User.updateMany(
-          { pushToken: { $in: failedTokens } },
-          { $unset: { pushToken: '' } }
-        );
-        console.log(`🧹 Removed ${failedTokens.length} invalid push tokens`);
-      }
+    if (invalidTokens.length > 0) {
+      await User.updateMany(
+        { pushToken: { $in: invalidTokens } },
+        { $unset: { pushToken: '' } }
+      );
+      console.log(`🧹 Removed ${invalidTokens.length} invalid push tokens`);
     }
   } catch (error) {
     console.error('❌ Push Notification Error:', error);

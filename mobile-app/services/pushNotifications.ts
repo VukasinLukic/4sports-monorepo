@@ -20,14 +20,12 @@ export interface PushNotificationState {
 
 /**
  * Register for push notifications and get Expo Push Token
+ * Returns { token, error } to provide detailed failure info
  */
-export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  let token: string | null = null;
-
+export async function registerForPushNotificationsAsync(): Promise<{ token: string | null; error: string | null }> {
   // Must be a physical device for push notifications
   if (!Device.isDevice) {
-    console.log('Push notifications require a physical device');
-    return null;
+    return { token: null, error: 'Not a physical device' };
   }
 
   // Check existing permissions
@@ -41,22 +39,19 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   }
 
   if (finalStatus !== 'granted') {
-    console.log('Push notification permission denied');
-    return null;
+    return { token: null, error: `Permission ${finalStatus}` };
   }
 
   // Get Expo Push Token
+  let token: string | null = null;
   try {
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId
+      ?? Constants.easConfig?.projectId
+      ?? (Constants as any).manifest2?.extra?.eas?.projectId
+      ?? (Constants as any).manifest?.extra?.eas?.projectId;
 
-    // Check if projectId is valid (not placeholder)
-    const isValidProjectId = projectId && projectId !== 'your-project-id' && projectId.length > 10;
-
-    if (!isValidProjectId) {
-      // In development/Expo Go without valid project ID, push notifications won't work
-      console.log('Push notifications not available: No valid EAS project ID configured');
-      console.log('This is expected in Expo Go. Push notifications work in development builds.');
-      return null;
+    if (!projectId || projectId.length < 10) {
+      return { token: null, error: `No projectId (expoConfig: ${!!Constants.expoConfig})` };
     }
 
     const tokenResponse = await Notifications.getExpoPushTokenAsync({
@@ -64,13 +59,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     });
     token = tokenResponse.data;
   } catch (error: any) {
-    // Handle specific Expo Go / development errors gracefully
-    if (error?.message?.includes('projectId') || error?.message?.includes('uuid')) {
-      console.log('Push notifications not available in Expo Go without valid project ID');
-      return null;
-    }
-    console.error('Error getting push token:', error);
-    return null;
+    return { token: null, error: `Token error: ${error?.message?.substring(0, 80)}` };
   }
 
   // Configure Android channel
@@ -99,7 +88,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     });
   }
 
-  return token;
+  return { token, error: null };
 }
 
 /**

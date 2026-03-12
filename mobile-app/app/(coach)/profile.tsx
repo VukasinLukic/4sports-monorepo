@@ -21,7 +21,7 @@ interface ClubInfo {
 export default function CoachProfile() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
-  const { isRegistered, registerForNotifications, unregisterFromNotifications } = usePushNotifications();
+  const { isRegistered, registerForNotifications, unregisterFromNotifications, debugInfo } = usePushNotifications();
 
   const [clubInfo, setClubInfo] = useState<ClubInfo | null>(null);
   const [memberCount, setMemberCount] = useState<number>(0);
@@ -242,6 +242,11 @@ export default function CoachProfile() {
             { color: notificationsEnabled ? Colors.success : Colors.textSecondary }
           ]}
         />
+        {debugInfo && (
+          <Text style={{ fontSize: 10, color: Colors.textSecondary, paddingHorizontal: 16, paddingVertical: 4 }}>
+            {debugInfo}
+          </Text>
+        )}
         <Divider />
         <List.Item
           title={t('profile.helpSupport')}
