@@ -198,7 +198,7 @@ export default function UserProfileScreen() {
 
       {/* Fixed Chat Button */}
       {userId && user && (
-        <TouchableOpacity style={styles.chatFab} onPress={handleStartChat}>
+        <TouchableOpacity style={[styles.chatFab, { bottom: (insets.bottom || 10) + 78 }]} onPress={handleStartChat}>
           <MaterialCommunityIcons name="message-text" size={24} color="#fff" />
         </TouchableOpacity>
       )}
@@ -334,7 +334,6 @@ const styles = StyleSheet.create({
   chatFab: {
     position: 'absolute',
     right: Spacing.md,
-    bottom: Spacing.xl,
     width: 56,
     height: 56,
     borderRadius: 28,

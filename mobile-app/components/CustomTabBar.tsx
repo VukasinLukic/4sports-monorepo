@@ -9,7 +9,14 @@ const ICON_SIZE = 26;
 const ACTIVE_PILL_COLOR = Colors.primary;
 const DOCK_BORDER_RADIUS = 32;
 const DOCK_MARGIN_H = 20;
-const DOCK_MARGIN_BOTTOM = 14;
+const DOCK_MARGIN_BOTTOM = 10;
+const DOCK_HEIGHT = 68;
+
+/** Returns the bottom value for FABs/buttons that need to sit above the tab bar */
+export function getFabBottom(insetsBottom: number): number {
+  const dockBottom = insetsBottom || DOCK_MARGIN_BOTTOM;
+  return dockBottom + DOCK_HEIGHT + 10; // dock position + dock height + gap
+}
 
 function TabItem({
   route,
@@ -100,7 +107,14 @@ function TabItem({
 
 export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const bottomOffset = Math.max(insets.bottom, DOCK_MARGIN_BOTTOM);
+  const bottomOffset = insets.bottom || DOCK_MARGIN_BOTTOM;
+
+  // Hide tab bar when inside a chat conversation (nested beyond index)
+  const focusedRoute = state.routes[state.index];
+  const nestedState = focusedRoute?.state;
+  if (focusedRoute?.name === 'chat' && nestedState && nestedState.index !== undefined && nestedState.index > 0) {
+    return null;
+  }
 
   // Filter visible tabs - only those with an icon (hidden screens have href:null and no icon)
   const visibleTabs = state.routes

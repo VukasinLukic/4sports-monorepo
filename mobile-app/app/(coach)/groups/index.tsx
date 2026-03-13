@@ -21,6 +21,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
@@ -47,6 +48,7 @@ interface GroupWithMembers extends Group {
 }
 
 export default function GroupsScreen() {
+  const insets = useSafeAreaInsets();
   const { t, language } = useLanguage();
   const [groups, setGroups] = useState<GroupWithMembers[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<GroupWithMembers[]>([]);
@@ -469,7 +471,7 @@ export default function GroupsScreen() {
       )}
 
       {/* Bottom Buttons */}
-      <View style={styles.bottomButtons}>
+      <View style={[styles.bottomButtons, { bottom: (insets.bottom || 10) + 72 }]}>
         <Button
           mode="contained"
           icon="plus"
@@ -698,7 +700,6 @@ const styles = StyleSheet.create({
   },
   bottomButtons: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     flexDirection: 'row',

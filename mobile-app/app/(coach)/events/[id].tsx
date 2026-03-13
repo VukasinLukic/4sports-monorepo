@@ -410,7 +410,7 @@ export default function EventDetailScreen() {
       {activeTab === 'overview' && (
         <FAB
           icon="qrcode"
-          style={styles.qrFab}
+          style={[styles.qrFab, { bottom: (insets.bottom || 10) + 78 }]}
           color="#fff"
           onPress={handleShowQRCode}
         />
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
   checkbox: { width: 28, height: 28, borderRadius: 6, borderWidth: 2, borderColor: Colors.border, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.surface },
   checkboxChecked: { backgroundColor: Colors.success, borderColor: Colors.success },
 
-  qrFab: { position: 'absolute', right: Spacing.lg, bottom: Spacing.lg + 16, backgroundColor: Colors.primary },
+  qrFab: { position: 'absolute', right: Spacing.lg, backgroundColor: Colors.primary },
 
   // Delete recurring dialog
   dialogOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },

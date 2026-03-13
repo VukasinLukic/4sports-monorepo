@@ -242,11 +242,6 @@ export default function CoachProfile() {
             { color: notificationsEnabled ? Colors.success : Colors.textSecondary }
           ]}
         />
-        {debugInfo && (
-          <Text style={{ fontSize: 10, color: Colors.textSecondary, paddingHorizontal: 16, paddingVertical: 4 }}>
-            {debugInfo}
-          </Text>
-        )}
         <Divider />
         <List.Item
           title={t('profile.helpSupport')}

@@ -3,6 +3,8 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from '
 import { Text, Card, FAB, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getFabBottom } from '@/components/CustomTabBar';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
@@ -50,6 +52,7 @@ const getEventTypeColorFromString = (type: string): string => {
 };
 
 export default function CoachCalendar() {
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
@@ -357,7 +360,7 @@ export default function CoachCalendar() {
       {/* FAB for creating new event */}
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { bottom: getFabBottom(insets.bottom) }]}
         color={Colors.text}
         onPress={() => router.push({
           pathname: '/(coach)/events/create',
@@ -514,7 +517,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: Spacing.md,
-    bottom: Spacing.md,
     backgroundColor: Colors.primary,
   },
 });

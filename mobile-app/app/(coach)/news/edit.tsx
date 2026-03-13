@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
+    paddingBottom: 150,
   },
   label: {
     fontSize: FontSize.sm,

@@ -25,6 +25,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
@@ -55,6 +56,7 @@ interface MemberWithStatus extends Member {
 }
 
 export default function EvidenceScreen() {
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<EvidenceTab>('membership');
   const [searchQuery, setSearchQuery] = useState('');
@@ -849,7 +851,7 @@ export default function EvidenceScreen() {
 
       {/* Remind All Button */}
       <TouchableOpacity
-        style={styles.remindAllButton}
+        style={[styles.remindAllButton, { bottom: (insets.bottom || 10) + 78 }]}
         onPress={handleRemindAll}
         disabled={loadingActions.has('remind-all')}
       >
@@ -1529,7 +1531,6 @@ const styles = StyleSheet.create({
   },
   remindAllButton: {
     position: 'absolute',
-    bottom: Spacing.lg,
     left: Spacing.lg,
     right: Spacing.lg,
     backgroundColor: Colors.primary,

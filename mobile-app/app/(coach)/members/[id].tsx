@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Image, 
 import { Text, Card, Avatar, Button, ActivityIndicator, Divider } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useMember, useMemberAttendance, useMemberPayments, useResetPayment } from '@/hooks/useMembers';
@@ -16,6 +17,7 @@ const MONTHS_SR = ['Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun', 'Jul', 'A
 const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export default function MemberDetailsScreen() {
+  const insets = useSafeAreaInsets();
   const { id: memberId } = useLocalSearchParams<{ id: string }>();
   const { t, language } = useLanguage();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -780,7 +782,7 @@ export default function MemberDetailsScreen() {
     </ScrollView>
 
     {/* Fixed bottom buttons */}
-    <View style={styles.fabRow}>
+    <View style={[styles.fabRow, { bottom: (insets.bottom || 10) + 78 }]}>
       {activeTab === 'membership' && (
         <TouchableOpacity
           style={styles.recordPaymentFab}
@@ -818,7 +820,6 @@ const styles = StyleSheet.create({
   },
   fabRow: {
     position: 'absolute',
-    bottom: Spacing.xl,
     left: Spacing.md,
     right: Spacing.md,
     flexDirection: 'row',

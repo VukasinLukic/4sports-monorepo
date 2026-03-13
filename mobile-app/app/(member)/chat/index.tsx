@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/services/AuthContext';
 import { chatService, Conversation } from '@/services/chatService';
@@ -24,6 +25,7 @@ interface ConversationWithUnread extends Conversation {
 }
 
 export default function ChatListScreen() {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -284,7 +286,7 @@ export default function ChatListScreen() {
 
       {/* FAB - New Conversation */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: (insets.bottom || 10) + 78 }]}
         onPress={() => router.push('/(member)/chat/new')}
       >
         <MaterialCommunityIcons name="plus" size={28} color="#FFFFFF" />
@@ -464,7 +466,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 20,
     width: 56,
     height: 56,
     borderRadius: 28,

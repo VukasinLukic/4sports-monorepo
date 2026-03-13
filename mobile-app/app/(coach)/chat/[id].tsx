@@ -388,7 +388,7 @@ export default function ChatScreen() {
         )}
 
         {/* Input Area */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { paddingBottom: 8 + insets.bottom }]}>
           <TouchableOpacity style={styles.attachButton} onPress={pickImage}>
             <MaterialCommunityIcons
               name="image-plus"
