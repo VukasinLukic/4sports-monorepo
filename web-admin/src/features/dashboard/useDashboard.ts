@@ -41,7 +41,6 @@ const emptyDashboardStats: CoachDashboardStats = {
 
 const fetchDashboardStats = async (): Promise<CoachDashboardStats> => {
   const response = await api.get<{ success: boolean; data: CoachDashboardStats }>('/dashboard/coach');
-  console.log('✅ Dashboard API response:', response.data);
 
   // Return data or empty stats for new clubs
   return response.data.data || emptyDashboardStats;

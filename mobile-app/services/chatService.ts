@@ -114,8 +114,8 @@ export const chatService = {
       try {
         const response = await api.get('/chat/conversations');
         callback(response.data.data || []);
-      } catch {
-        // Silently ignore — caller retains previous state
+      } catch (error) {
+        console.error('Chat service error:', error);
       }
     };
 

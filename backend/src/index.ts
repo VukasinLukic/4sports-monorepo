@@ -10,6 +10,7 @@ import { connectDB } from './config/db';
 import './config/cloudinary'; // Initialize Cloudinary
 import { startScheduler } from './services/schedulerService';
 import routes from './routes';
+import { globalErrorHandler } from './middleware/errorMiddleware';
 
 // Initialize Express app
 const app = express();
@@ -80,11 +81,17 @@ app.get('/health', (_req: Request, res: Response) => {
 // API Routes
 app.use('/api/v1', routes);
 
+// Global error handler - catches all unhandled errors from routes
+app.use(globalErrorHandler);
+
 // 404 handler - route not found
 app.use((req: Request, res: Response) => {
   res.status(404).json({
-    status: 'error',
-    message: `Route ${req.originalUrl} not found`,
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
+      message: `Route ${req.originalUrl} not found`,
+    },
   });
 });
 

@@ -138,7 +138,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
 
       // Auto-register if enabled
       if (enabled) {
-        registerForNotifications();
+        registerForNotifications().catch((err) => console.error('Push registration failed:', err));
       }
     };
 

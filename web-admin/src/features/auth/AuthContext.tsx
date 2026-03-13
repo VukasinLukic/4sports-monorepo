@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
+import { useTranslation } from 'react-i18next';
 import { auth, FIREBASE_ENABLED } from '@/config/firebase';
 import { loginWithEmail, registerWithEmail, logout as logoutService } from '@/services/auth';
 import api from '@/services/api';
+import { getFirebaseErrorMessage } from '@/lib/errorMessages';
 
 // Backend user data
 interface BackendUser {
@@ -51,6 +53,7 @@ const createMockUser = (email: string): User => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +132,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           role: 'OWNER',
           clubId: 'mock-club-id',
         });
-        console.log('🎭 Mock login successful:', email);
         return;
       }
 
@@ -152,7 +154,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Access denied. Only club owners can access the admin panel. Coaches should use the mobile app.');
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to login';
+      const firebaseCode = (err as any)?.code;
+      const errorMessage = firebaseCode?.startsWith('auth/')
+        ? getFirebaseErrorMessage(firebaseCode, t)
+        : err instanceof Error ? err.message : t('errors.loginFailed');
       setError(errorMessage);
       throw err;
     }
@@ -173,7 +178,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           role: 'OWNER',
           clubId: 'mock-club-id',
         });
-        console.log('🎭 Mock register successful:', email);
         return mockUser;
       }
 
@@ -187,7 +191,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       return firebaseUser;
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to register';
+      const firebaseCode = (err as any)?.code;
+      const errorMessage = firebaseCode?.startsWith('auth/')
+        ? getFirebaseErrorMessage(firebaseCode, t)
+        : err instanceof Error ? err.message : t('errors.registerFailed');
       setError(errorMessage);
       throw err;
     }
@@ -201,7 +208,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Mock logout - redirect to login
         setUser(null);
         setBackendUser(null);
-        console.log('🎭 Mock logout successful');
         return;
       }
 

@@ -41,18 +41,14 @@ export const createTransaction = async (req: Request, res: Response) => {
 };
 
 export const getClubTransactions = async (req: Request, res: Response) => {
-  console.log('💰 getClubTransactions controller called');
   try {
     if (!req.user) {
-      console.log('💰 No user found');
       return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
     }
     const clubId = req.user.clubId;
-    console.log('💰 User clubId:', clubId);
     if (!clubId) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You must be associated with a club' } });
 
     const transactions = await Transaction.findByClub(clubId);
-    console.log('💰 Found transactions:', transactions.length);
     return res.status(200).json({ success: true, data: transactions });
   } catch (error: any) {
     console.error('❌ Get Transactions Error:', error);
@@ -61,10 +57,8 @@ export const getClubTransactions = async (req: Request, res: Response) => {
 };
 
 export const getFinancialSummary = async (req: Request, res: Response) => {
-  console.log('💰 getFinancialSummary controller called');
   try {
     if (!req.user) {
-      console.log('💰 No user found in summary');
       return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
     }
     const clubId = req.user.clubId;

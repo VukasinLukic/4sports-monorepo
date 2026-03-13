@@ -11,11 +11,8 @@ import api from '@/services/api';
 import {
   Building2,
   MapPin,
-  Phone,
-  Mail,
   Calendar,
   Trophy,
-  Users,
   Shield,
   PencilIcon,
   Save,

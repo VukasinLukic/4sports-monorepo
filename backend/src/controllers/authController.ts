@@ -60,7 +60,6 @@ export const register = async (
         error: {
           code: 'INVALID_TOKEN',
           message: 'Invalid Firebase token',
-          details: firebaseError.message,
         },
       });
     }
@@ -253,7 +252,6 @@ export const register = async (
       error: {
         code: 'SERVER_ERROR',
         message: 'Registration failed',
-        details: error.message,
       },
     });
   }
@@ -303,7 +301,6 @@ export const login = async (
         error: {
           code: 'INVALID_TOKEN',
           message: 'Invalid Firebase token',
-          details: firebaseError.message,
         },
       });
     }
@@ -353,7 +350,6 @@ export const login = async (
       error: {
         code: 'SERVER_ERROR',
         message: 'Login failed',
-        details: error.message,
       },
     });
   }
@@ -378,12 +374,23 @@ export const checkEmail = async (
   req: Request,
   res: Response
 ): Promise<any> => {
-  const { email } = req.query;
-  if (!email || typeof email !== 'string') {
-    return res.status(400).json({ success: false, error: { message: 'Email is required' } });
+  try {
+    const { email } = req.query;
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, error: { message: 'Email is required' } });
+    }
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).select('_id').lean();
+    return res.json({ success: true, data: { exists: !!user } });
+  } catch (error: any) {
+    console.error('❌ Check Email Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: 'Failed to check email',
+      },
+    });
   }
-  const user = await User.findOne({ email: email.toLowerCase().trim() }).select('_id').lean();
-  return res.json({ success: true, data: { exists: !!user } });
 };
 
 export const getUserPublicProfile = async (
@@ -495,13 +502,6 @@ export const getCurrentUser = async (
       profilePicture: user.profileImage, // alias so frontend User type works
     };
 
-    console.log('📤 Returning user data:', {
-      _id: userData._id,
-      email: userData.email,
-      clubId: userData.clubId,
-      clubIdType: typeof userData.clubId
-    });
-
     // ========================================
     // 3. RETURN SUCCESS RESPONSE
     // ========================================
@@ -516,7 +516,6 @@ export const getCurrentUser = async (
       error: {
         code: 'SERVER_ERROR',
         message: 'Failed to fetch current user',
-        details: error.message,
       },
     });
   }

@@ -8,7 +8,6 @@ export const useCoaches = () => {
     queryKey: ['coaches'],
     queryFn: async () => {
       const response = await api.get<{ success: boolean; data: Coach[] }>('/coaches');
-      console.log('✅ Coaches API response:', response.data);
       return response.data.data || [];
     },
   });
