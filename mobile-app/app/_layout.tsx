@@ -83,15 +83,14 @@ const theme = {
   },
 };
 
-export default function RootLayout() {
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      NavigationBar.setBackgroundColorAsync('transparent');
-      NavigationBar.setPositionAsync('absolute');
-      NavigationBar.setButtonStyleAsync('light');
-    }
-  }, []);
+// Set Android nav bar transparent BEFORE first render so SafeAreaProvider measures correct insets
+if (Platform.OS === 'android') {
+  NavigationBar.setBackgroundColorAsync('transparent');
+  NavigationBar.setPositionAsync('absolute');
+  NavigationBar.setButtonStyleAsync('light');
+}
 
+export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StableInsetsProvider>

@@ -4,6 +4,7 @@ import { auth } from './firebase';
 import { loginWithEmail, registerWithEmail, logout as logoutUser } from './auth';
 import api from './api';
 import { User, UserRole } from '@/types';
+import { registerForPushNotificationsAsync, sendTokenToBackend } from './pushNotifications';
 import {
   StoredAccount,
   getStoredAccounts,
@@ -168,6 +169,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
         await setCurrentAccountId(userCredential.user.uid);
 
+        // Register for push notifications after successful login
+        registerForPushNotificationsAsync().then(result => {
+          if (result.token) sendTokenToBackend(result.token);
+        }).catch(() => {});
+
         return userData;
       } else {
         throw new Error('User profile not found in backend');
@@ -272,6 +278,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         hasStoredCredentials: true,
       });
       await setCurrentAccountId(userCredential.user.uid);
+
+      // Register for push notifications after successful registration
+      registerForPushNotificationsAsync().then(result => {
+        if (result.token) sendTokenToBackend(result.token);
+      }).catch(() => {});
 
     } catch (error: any) {
       console.error('Registration error:', error);
