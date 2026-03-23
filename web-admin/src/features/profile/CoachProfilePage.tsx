@@ -35,7 +35,7 @@ function formatAmount(amount: number) {
 }
 
 // Generate last 12 months for picker
-const getRecentMonths = () => {
+const getRecentMonths = (locale: string) => {
   const result = [];
   const now = new Date();
   for (let i = 0; i < 12; i++) {
@@ -43,7 +43,7 @@ const getRecentMonths = () => {
     result.push({
       month: d.getMonth() + 1,
       year: d.getFullYear(),
-      label: d.toLocaleDateString('sr-RS', { month: 'long', year: 'numeric' }),
+      label: d.toLocaleDateString(locale === 'sr' ? 'sr-Latn-RS' : 'en-US', { month: 'long', year: 'numeric' }),
     });
   }
   return result;
@@ -53,14 +53,14 @@ type CoachTab = 'overview' | 'finances' | 'events' | 'roster';
 
 export function CoachProfilePage({ userId }: { userId: string }) {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<CoachTab>('overview');
-  
+
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
-  const recentMonths = useMemo(() => getRecentMonths(), []);
+  const recentMonths = useMemo(() => getRecentMonths(i18n.language), [i18n.language]);
   
   const createConversation = useCreateConversation();
 
@@ -127,7 +127,7 @@ export function CoachProfilePage({ userId }: { userId: string }) {
                 )}
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-4 w-4" />
-                  <span>{t('coachProfile.joinedOn')}: {new Date(coach.createdAt).toLocaleDateString('sr-RS')}</span>
+                  <span>{t('coachProfile.joinedOn')}: {new Date(coach.createdAt).toLocaleDateString(i18n.language === 'sr' ? 'sr-Latn-RS' : 'en-US')}</span>
                 </div>
               </div>
             </div>
@@ -525,10 +525,12 @@ function EventsTab({ data, t }: { data: CoachStatsData; t: (key: string) => stri
 }
 
 function UpcomingEventRow({ event, t }: { event: CoachUpcomingEvent; t: (key: string) => string }) {
+  const { i18n } = useTranslation();
+  const locale = i18n.language === 'sr' ? 'sr-Latn-RS' : 'en-US';
   const date = new Date(event.startTime);
   const endDate = new Date(event.endTime);
-  const dateStr = date.toLocaleDateString('sr-RS', { day: 'numeric', month: 'short' });
-  const timeStr = `${date.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })}`;
+  const dateStr = date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+  const timeStr = `${date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
 
   return (
     <div className="flex items-center justify-between py-3 border-b last:border-0">
