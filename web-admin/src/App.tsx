@@ -19,15 +19,18 @@ import { EventDetailPage } from './features/calendar/EventDetailPage';
 import { ChatPage } from './features/chat/ChatPage';
 import { EvidencePage } from './features/evidence/EvidencePage';
 import { ProfilePage } from './features/profile/ProfilePage';
+import { ClubProfilePage } from './features/club-profile/ClubProfilePage';
 import { NotFoundPage } from './features/dashboard/NotFoundPage';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 import { DevModeBanner } from './components/shared/DevModeBanner';
 import { TutorialTooltip } from './components/shared/TutorialTooltip';
 import { Toaster } from './components/ui/toaster';
+import { ErrorBoundary } from './components/shared/ErrorBoundary';
 
 function App() {
   return (
+    <ErrorBoundary>
     <ThemeProvider defaultTheme="dark">
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -140,6 +143,16 @@ function App() {
               }
             />
             <Route
+              path="/club-profile"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ClubProfilePage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/profile/:userId"
               element={
                 <ProtectedRoute>
@@ -168,6 +181,7 @@ function App() {
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
     </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

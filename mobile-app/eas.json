@@ -15,7 +15,13 @@
         "simulator": true
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://localhost:5000/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://api.4sports.rs/api/v1",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBIr7AZpGedaC4F0nQCO8O_pGXPdxqduNE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "project4sports.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "project4sports",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "project4sports.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "448424297604",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:448424297604:web:84bd5672d84f85c2e32ed1"
       }
     },
     "preview": {
@@ -24,7 +30,13 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://4sports-api.onrender.com/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://api.4sports.rs/api/v1",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBIr7AZpGedaC4F0nQCO8O_pGXPdxqduNE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "project4sports.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "project4sports",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "project4sports.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "448424297604",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:448424297604:web:84bd5672d84f85c2e32ed1"
       }
     },
     "production": {
@@ -33,7 +45,13 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://4sports-api.onrender.com/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://api.4sports.rs/api/v1",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBIr7AZpGedaC4F0nQCO8O_pGXPdxqduNE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "project4sports.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "project4sports",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "project4sports.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "448424297604",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:448424297604:web:84bd5672d84f85c2e32ed1"
       }
     }
   },
@@ -42,10 +60,6 @@
       "android": {
         "serviceAccountKeyPath": "./google-services-key.json",
         "track": "internal"
-      },
-      "ios": {
-        "appleId": "your-apple-id@email.com",
-        "ascAppId": "your-asc-app-id"
       }
     }
   }

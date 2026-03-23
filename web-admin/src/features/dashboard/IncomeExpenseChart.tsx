@@ -22,9 +22,12 @@ interface IncomeExpenseChartProps {
   data: MonthlyFinanceEntry[];
   year: number;
   onYearChange: (year: number) => void;
+  totalIncome?: number;
+  totalExpense?: number;
+  profit?: number;
 }
 
-export const IncomeExpenseChart = ({ data, year, onYearChange }: IncomeExpenseChartProps) => {
+export const IncomeExpenseChart = ({ data, year, onYearChange, totalIncome, totalExpense, profit }: IncomeExpenseChartProps) => {
   const { t } = useTranslation();
   const shortMonths = t('calendar.shortMonths', { returnObjects: true }) as string[];
 
@@ -120,6 +123,26 @@ export const IncomeExpenseChart = ({ data, year, onYearChange }: IncomeExpenseCh
                 <span className="text-sm text-muted-foreground">{expenseLabel}</span>
               </div>
             </div>
+            {totalIncome != null && totalExpense != null && profit != null && (
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-border text-sm">
+                <div className="flex flex-col items-center flex-1">
+                  <span className="text-muted-foreground text-xs">{t('dashboard.incomeCard')}</span>
+                  <span className="font-semibold text-[#22c55e]">{totalIncome.toLocaleString()} RSD</span>
+                </div>
+                <div className="w-px h-8 bg-border" />
+                <div className="flex flex-col items-center flex-1">
+                  <span className="text-muted-foreground text-xs">{t('dashboard.expenseCard')}</span>
+                  <span className="font-semibold text-[#ef4444]">{totalExpense.toLocaleString()} RSD</span>
+                </div>
+                <div className="w-px h-8 bg-border" />
+                <div className="flex flex-col items-center flex-1">
+                  <span className="text-muted-foreground text-xs">{t('dashboard.profitCard')}</span>
+                  <span className={`font-semibold ${profit >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                    {profit >= 0 ? '+' : ''}{profit.toLocaleString()} RSD
+                  </span>
+                </div>
+              </div>
+            )}
           </>
         )}
       </CardContent>

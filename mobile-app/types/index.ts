@@ -23,7 +23,6 @@ export enum PaymentStatus {
 // Payment Methods
 export enum PaymentMethod {
   CASH = 'CASH',
-  BANK_TRANSFER = 'BANK_TRANSFER',
   CARD = 'CARD',
 }
 
@@ -76,12 +75,12 @@ export interface Member {
   age?: number | null;
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
   clubId?: string;
-  groupId?: string | { _id: string; name: string; color?: string };
+  groupId?: string | { _id: string; name: string; color?: string; membershipFee?: number };
   parentId?: string; // For child members
   userId?: string;   // For self-registered members (MEMBER role)
   clubs?: Array<{
     clubId: string | { _id: string; name: string };
-    groupId: string | { _id: string; name: string; color?: string };
+    groupId: string | { _id: string; name: string; color?: string; membershipFee?: number };
     status: 'ACTIVE' | 'INACTIVE';
     joinedAt: string;
   }>;

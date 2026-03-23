@@ -1,42 +1,24 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
+import { useLanguage } from '@/services/LanguageContext';
+import CustomTabBar from '@/components/CustomTabBar';
 
 export default function ParentLayout() {
+  const { t } = useLanguage();
 
   return (
     <Tabs
       initialRouteName="index"
       backBehavior="initialRoute"
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: Colors.border,
-          borderTopWidth: 1,
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 65,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
-        headerStyle: {
-          backgroundColor: Colors.background,
-        },
-        headerTintColor: Colors.text,
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          headerTitle: 'My Children',
+          title: t('navigation.home'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="home" size={size} color={color} />
           ),
@@ -45,9 +27,7 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="scan"
         options={{
-          title: 'Check In',
-          headerTitle: 'Scan QR Code',
-          headerShown: false,
+          title: t('navigation.scan'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="qrcode-scan" size={size} color={color} />
           ),
@@ -56,8 +36,7 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Calendar',
-          headerTitle: 'Events',
+          title: t('navigation.calendar'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="calendar" size={size} color={color} />
           ),
@@ -66,8 +45,7 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="news"
         options={{
-          title: 'News',
-          headerTitle: 'News Feed',
+          title: t('navigation.news'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="newspaper-variant" size={size} color={color} />
           ),
@@ -76,40 +54,17 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          headerTitle: 'Profile',
+          title: t('navigation.profile'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account-circle" size={size} color={color} />
           ),
         }}
       />
-      {/* Hide folder routes and secondary screens from tab bar */}
-      <Tabs.Screen
-        name="member"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="payments"
-        options={{
-          href: null,
-          headerTitle: 'Payment History',
-        }}
-      />
-      <Tabs.Screen
-        name="attendance"
-        options={{
-          href: null,
-          headerTitle: 'Attendance History',
-        }}
-      />
-      <Tabs.Screen
-        name="club"
-        options={{
-          href: null,
-        }}
-      />
+      {/* Hidden screens */}
+      <Tabs.Screen name="member" options={{ href: null }} />
+      <Tabs.Screen name="payments" options={{ href: null }} />
+      <Tabs.Screen name="attendance" options={{ href: null }} />
+      <Tabs.Screen name="club" options={{ href: null }} />
     </Tabs>
   );
 }

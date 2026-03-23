@@ -7,12 +7,9 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed] = useState(true);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const handleToggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
 
   const handleMobileMenuClick = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -25,12 +22,13 @@ export const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={handleToggleSidebar}
+        collapsed={sidebarCollapsed && !sidebarHovered}
         mobileOpen={mobileMenuOpen}
         onClose={handleCloseMobileMenu}
+        onMouseEnter={() => setSidebarHovered(true)}
+        onMouseLeave={() => setSidebarHovered(false)}
       />
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
+      <div className={`transition-all duration-300 ${sidebarCollapsed && !sidebarHovered ? 'md:ml-16' : 'md:ml-64'}`}>
         <Header onMenuClick={handleMobileMenuClick} />
         <main className="p-4 md:p-6">
           <div className="max-w-[1400px] mx-auto">{children}</div>

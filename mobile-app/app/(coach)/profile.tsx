@@ -21,7 +21,7 @@ interface ClubInfo {
 export default function CoachProfile() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
-  const { isRegistered, registerForNotifications, unregisterFromNotifications } = usePushNotifications();
+  const { isRegistered, registerForNotifications, unregisterFromNotifications, debugInfo } = usePushNotifications();
 
   const [clubInfo, setClubInfo] = useState<ClubInfo | null>(null);
   const [memberCount, setMemberCount] = useState<number>(0);
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
+    paddingBottom: 120,
   },
   centerContainer: {
     flex: 1,

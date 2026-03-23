@@ -25,6 +25,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
@@ -55,6 +56,7 @@ interface MemberWithStatus extends Member {
 }
 
 export default function EvidenceScreen() {
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<EvidenceTab>('membership');
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,8 +100,19 @@ export default function EvidenceScreen() {
   const groupMedicalExpiryDate = new Date(groupMedicalCheckDate);
   groupMedicalExpiryDate.setMonth(groupMedicalExpiryDate.getMonth() + 6);
 
-  // Default membership fee (will be dynamic when membershipFee is added to Member)
+  // Get membership fee: member's personal fee → group fee → default
   const DEFAULT_MEMBERSHIP_FEE = 3000;
+  const getMemberFee = (member: MemberWithStatus): number => {
+    if (member.membershipFee) return member.membershipFee;
+    if (member.clubs?.length) {
+      for (const c of member.clubs) {
+        if (c.groupId && typeof c.groupId === 'object' && c.groupId.membershipFee) {
+          return c.groupId.membershipFee;
+        }
+      }
+    }
+    return DEFAULT_MEMBERSHIP_FEE;
+  };
 
   // Overall stats
   const totalPaid = groupsWithMembers.reduce((sum, g) => sum + g.paidCount, 0);
@@ -203,7 +216,7 @@ export default function EvidenceScreen() {
   const handleMarkMember = async (member: MemberWithStatus) => {
     if (activeTab === 'membership') {
       // Open payment modal instead of directly marking
-      const fee = member.membershipFee || DEFAULT_MEMBERSHIP_FEE;
+      const fee = getMemberFee(member);
       setSelectedMemberForPayment(member);
       setPaymentAmount(fee.toString());
       setPaymentMethod(PaymentMethod.CASH);
@@ -234,10 +247,12 @@ export default function EvidenceScreen() {
       'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar',
     ];
 
+    const expectedFee = getMemberFee(selectedMemberForPayment);
     recordPayment(
       {
         memberId: selectedMemberForPayment._id,
-        amount,
+        amount: expectedFee,
+        paidAmount: amount,
         paymentMethod,
         paymentDate: new Date().toISOString().split('T')[0],
         note: paymentNote.trim() || `${months[selectedMonth - 1]} ${selectedYear}`,
@@ -836,7 +851,7 @@ export default function EvidenceScreen() {
 
       {/* Remind All Button */}
       <TouchableOpacity
-        style={styles.remindAllButton}
+        style={[styles.remindAllButton, { bottom: (insets.bottom || 10) + 78 }]}
         onPress={handleRemindAll}
         disabled={loadingActions.has('remind-all')}
       >
@@ -935,20 +950,20 @@ export default function EvidenceScreen() {
                 style={[
                   styles.methodButton,
                   styles.methodButtonRight,
-                  paymentMethod === PaymentMethod.BANK_TRANSFER && styles.methodButtonActive,
+                  paymentMethod === PaymentMethod.CARD && styles.methodButtonActive,
                 ]}
-                onPress={() => setPaymentMethod(PaymentMethod.BANK_TRANSFER)}
+                onPress={() => setPaymentMethod(PaymentMethod.CARD)}
               >
                 <MaterialCommunityIcons
-                  name="bank"
+                  name="credit-card"
                   size={20}
-                  color={paymentMethod === PaymentMethod.BANK_TRANSFER ? '#fff' : Colors.textSecondary}
+                  color={paymentMethod === PaymentMethod.CARD ? '#fff' : Colors.textSecondary}
                 />
                 <Text style={[
                   styles.methodButtonText,
-                  paymentMethod === PaymentMethod.BANK_TRANSFER && styles.methodButtonTextActive,
+                  paymentMethod === PaymentMethod.CARD && styles.methodButtonTextActive,
                 ]}>
-                  {t('payments.bankTransfer') || 'Prenos'}
+                  {t('payments.card') || 'Kartica'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1516,14 +1531,13 @@ const styles = StyleSheet.create({
   },
   remindAllButton: {
     position: 'absolute',
-    bottom: Spacing.lg,
     left: Spacing.lg,
     right: Spacing.lg,
     backgroundColor: Colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm2,
     borderRadius: BorderRadius.md,
     gap: Spacing.sm,
     elevation: 4,
@@ -1533,7 +1547,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   remindAllText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     fontWeight: '600',
     color: '#fff',
   },

@@ -109,7 +109,8 @@ export default function CoachDashboard() {
   const renderEventCard = (event: typeof dashboardStats.upcomingEvents[0], isToday: boolean) => {
     const eventDate = new Date(event.startTime);
     const dayNumber = eventDate.getDate();
-    const dayName = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' });
+    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+    const dayName = t(`dateTime.days.${dayKeys[eventDate.getDay()]}`);
     const eventTypeColor = getEventTypeColorFromString(event.type);
     const relativeTime = getRelativeTimeText(event.startTime);
 

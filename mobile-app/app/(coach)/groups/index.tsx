@@ -21,6 +21,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
@@ -34,6 +35,11 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 interface MemberWithAttendance extends Member {
   lastTrainingDate?: string;
+  currentMonthPayment?: {
+    status: string;
+    paidAmount: number;
+    amount: number;
+  } | null;
 }
 
 interface GroupWithMembers extends Group {
@@ -42,7 +48,8 @@ interface GroupWithMembers extends Group {
 }
 
 export default function GroupsScreen() {
-  const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
+  const { t, language } = useLanguage();
   const [groups, setGroups] = useState<GroupWithMembers[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<GroupWithMembers[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -103,8 +110,8 @@ export default function GroupsScreen() {
   const fetchGroupMembers = async (groupId: string) => {
     setLoadingMembers(groupId);
     try {
-      // Fetch members for this group
-      const membersRes = await api.get(`/members?groupId=${groupId}`);
+      // Fetch members for this group (includes currentMonthPayment)
+      const membersRes = await api.get(`/groups/${groupId}/members`);
       const membersData: MemberWithAttendance[] = membersRes.data.data || [];
 
       // Fetch last attendance for each member
@@ -207,6 +214,8 @@ export default function GroupsScreen() {
     const diffMs = nowOnly.getTime() - dateOnly.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
+    // Future dates - show as "today" since training hasn't happened yet
+    if (diffDays < 0) return t('common.today') || 'Today';
     if (diffDays === 0) return t('common.today') || 'Today';
     if (diffDays === 1) return t('common.yesterday') || 'Yesterday';
     if (diffDays === 2) return t('time.twoDaysAgo') || '2 days ago';
@@ -217,7 +226,8 @@ export default function GroupsScreen() {
         ? (t('time.oneWeekAgo') || '1 week ago')
         : `${weeks} ${t('time.weeksAgo') || 'weeks ago'}`;
     }
-    return date.toLocaleDateString('sr-RS', { day: 'numeric', month: 'short' });
+    const dateLocale = language === 'en' ? 'en-US' : 'sr-RS';
+    return date.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
   };
 
   const getGroupColor = (group: Group) => group.color || Colors.primary;
@@ -239,8 +249,22 @@ export default function GroupsScreen() {
     });
   };
 
+  const getPaymentInfo = (member: MemberWithAttendance) => {
+    const payment = member.currentMonthPayment;
+    if (!payment || payment.status === 'PENDING' || payment.status === 'OVERDUE') {
+      return { label: t('status.notPaid') || 'Not Paid', color: Colors.error };
+    }
+    if (payment.status === 'PAID') {
+      return { label: t('status.paid') || 'Paid', color: Colors.success };
+    }
+    if (payment.status === 'PARTIAL') {
+      return { label: `${t('payments.partial')} (${payment.paidAmount}/${payment.amount})`, color: '#F57C00' };
+    }
+    return { label: t('status.notPaid') || 'Not Paid', color: Colors.error };
+  };
+
   const renderMemberCard = (member: MemberWithAttendance) => {
-    const isPaid = member.paymentStatus === 'PAID';
+    const paymentInfo = getPaymentInfo(member);
     const avatar = member.profilePicture || member.profileImage;
 
     return (
@@ -262,8 +286,8 @@ export default function GroupsScreen() {
         {/* Info */}
         <View style={styles.memberInfo}>
           <Text style={styles.memberName}>{member.fullName}</Text>
-          <Text style={[styles.memberPayment, { color: isPaid ? Colors.success : Colors.error }]}>
-            {isPaid ? (t('status.paid') || 'Paid') : (t('status.notPaid') || 'Not Paid')}
+          <Text style={[styles.memberPayment, { color: paymentInfo.color }]}>
+            {paymentInfo.label}
           </Text>
           <Text style={styles.memberLastTraining}>
             {t('groups.lastTraining') || 'Last Training'}: {formatLastTraining(member.lastTrainingDate)}
@@ -447,7 +471,7 @@ export default function GroupsScreen() {
       )}
 
       {/* Bottom Buttons */}
-      <View style={styles.bottomButtons}>
+      <View style={[styles.bottomButtons, { bottom: (insets.bottom || 10) + 72 }]}>
         <Button
           mode="contained"
           icon="plus"
@@ -676,7 +700,6 @@ const styles = StyleSheet.create({
   },
   bottomButtons: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     flexDirection: 'row',

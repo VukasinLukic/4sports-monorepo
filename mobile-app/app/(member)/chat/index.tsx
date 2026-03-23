@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/services/AuthContext';
 import { chatService, Conversation } from '@/services/chatService';
@@ -24,6 +25,7 @@ interface ConversationWithUnread extends Conversation {
 }
 
 export default function ChatListScreen() {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -144,9 +146,29 @@ export default function ChatListScreen() {
     </TouchableOpacity>
   );
 
+  const parseTimestamp = (timestamp: any): Date | null => {
+    if (!timestamp) return null;
+    try {
+      let date: Date;
+      if (timestamp.toDate) {
+        date = timestamp.toDate();
+      } else if (timestamp._seconds != null) {
+        date = new Date(timestamp._seconds * 1000);
+      } else if (timestamp.seconds != null) {
+        date = new Date(timestamp.seconds * 1000);
+      } else {
+        date = new Date(timestamp);
+      }
+      return isNaN(date.getTime()) ? null : date;
+    } catch {
+      return null;
+    }
+  };
+
   const formatMessageTime = (timestamp: any): string => {
-    if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const date = parseTimestamp(timestamp);
+    if (!date) return '';
+
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -264,7 +286,7 @@ export default function ChatListScreen() {
 
       {/* FAB - New Conversation */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: (insets.bottom || 10) + 78 }]}
         onPress={() => router.push('/(member)/chat/new')}
       >
         <MaterialCommunityIcons name="plus" size={28} color="#FFFFFF" />
@@ -444,7 +466,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 20,
     width: 56,
     height: 56,
     borderRadius: 28,

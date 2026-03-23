@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Image,
   ActivityIndicator,
@@ -214,7 +215,11 @@ export default function ChatScreen() {
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.senderId === user?._id;
-    const timestamp = item.timestamp?.toDate?.() || new Date();
+    const timestamp = item.timestamp?.toDate?.()
+      || (item.timestamp?._seconds != null ? new Date(item.timestamp._seconds * 1000) : null)
+      || (item.timestamp?.seconds != null ? new Date(item.timestamp.seconds * 1000) : null)
+      || (item.timestamp ? new Date(item.timestamp) : new Date())
+      || new Date();
 
     return (
       <View
@@ -298,13 +303,6 @@ export default function ChatScreen() {
     );
   }
 
-  // iOS: KAV pushes content above keyboard
-  // Android: softwareKeyboardLayoutMode="resize" resizes the window automatically
-  const ContainerComponent = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
-  const containerProps = Platform.OS === 'ios'
-    ? { behavior: 'padding' as const, keyboardVerticalOffset: 88 }
-    : {};
-
   return (
     <>
       <Stack.Screen
@@ -354,7 +352,7 @@ export default function ChatScreen() {
         }}
       />
 
-      <ContainerComponent style={styles.container} {...containerProps}>
+      <View style={styles.container}>
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -384,7 +382,7 @@ export default function ChatScreen() {
         )}
 
         {/* Input Area */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { paddingBottom: 8 + insets.bottom }]}>
           <TouchableOpacity style={styles.attachButton} onPress={pickImage}>
             <MaterialCommunityIcons
               name="image-plus"
@@ -418,7 +416,7 @@ export default function ChatScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </ContainerComponent>
+      </View>
 
       {/* Image Zoom Modal */}
       <Modal

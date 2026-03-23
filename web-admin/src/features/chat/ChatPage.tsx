@@ -41,7 +41,15 @@ import { cn } from '@/lib/utils';
 
 const formatTime = (timestamp: any, t: (key: string) => string): string => {
   if (!timestamp) return '';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  let date: Date;
+  if (timestamp.toDate) {
+    date = timestamp.toDate();
+  } else if (timestamp._seconds !== undefined) {
+    date = new Date(timestamp._seconds * 1000);
+  } else {
+    date = new Date(timestamp);
+  }
+  if (isNaN(date.getTime())) return '';
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -80,10 +88,13 @@ export function ChatPage() {
   const location = useLocation();
   const { backendUser } = useAuth();
   const { conversations, loading: conversationsLoading } = useConversations();
+  const { data: allUsers, isLoading: usersLoading } = useChatUsers();
+  const createConversationMutation = useCreateConversation();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [newChatDialogOpen, setNewChatDialogOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'members' | 'staff'>('all');
+  const [creatingConversationWith, setCreatingConversationWith] = useState<string | null>(null);
 
   // Auto-select conversation from navigation state (e.g., from profile "Start Chat")
   useEffect(() => {
@@ -150,6 +161,56 @@ export function ChatPage() {
     return conv.unreadCounts[backendUser._id] || 0;
   };
 
+  // Get users that match search query but don't have existing conversations
+  const getMatchingUsersWithoutConversations = (): ChatUser[] => {
+    if (!searchQuery || !allUsers) return [];
+
+    const searchLower = searchQuery.toLowerCase();
+    const existingParticipantIds = new Set<string>();
+
+    // Collect all participant IDs from existing conversations
+    conversations.forEach((conv) => {
+      conv.participantIds.forEach((id) => {
+        if (id !== backendUser?._id) {
+          existingParticipantIds.add(id);
+        }
+      });
+    });
+
+    // Filter users that match search and don't have conversations
+    return allUsers.filter((user) => {
+      if (user._id === backendUser?._id) return false; // Exclude self
+      if (existingParticipantIds.has(user._id)) return false; // Exclude users with existing conversations
+      return user.fullName.toLowerCase().includes(searchLower) ||
+             user.email.toLowerCase().includes(searchLower);
+    });
+  };
+
+  const matchingUsers = getMatchingUsersWithoutConversations();
+
+  const startConversationWithUser = async (targetUser: ChatUser) => {
+    if (creatingConversationWith) return;
+    setCreatingConversationWith(targetUser._id);
+
+    try {
+      const result = await createConversationMutation.mutateAsync({
+        participantIds: [targetUser._id],
+        type: '1-on-1',
+      });
+      // Normalize the conversation data
+      const normalizedConversation: Conversation = {
+        ...result,
+        id: result.conversationId || result.id,
+      };
+      setSelectedConversation(normalizedConversation);
+      setSearchQuery(''); // Clear search after starting conversation
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+    } finally {
+      setCreatingConversationWith(null);
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-8rem)]">
       <div className="flex justify-between items-center mb-4">
@@ -170,7 +231,7 @@ export function ChatPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100%-5rem)]">
         {/* Conversations List */}
-        <Card className="lg:col-span-1 flex flex-col">
+        <Card className="lg:col-span-1 flex flex-col h-full max-h-full">
           <CardHeader className="pb-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -197,11 +258,11 @@ export function ChatPage() {
           </CardHeader>
           <CardContent className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-full">
-              {conversationsLoading ? (
+              {conversationsLoading || usersLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : filteredConversations.length === 0 ? (
+              ) : filteredConversations.length === 0 && matchingUsers.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground px-4">
                   <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>{t('chat.noConversations')}</p>
@@ -209,6 +270,7 @@ export function ChatPage() {
                 </div>
               ) : (
                 <div className="divide-y">
+                  {/* Existing Conversations */}
                   {filteredConversations.map((conv) => {
                     const name = getConversationName(conv);
                     const avatar = getConversationAvatar(conv);
@@ -266,6 +328,58 @@ export function ChatPage() {
                       </div>
                     );
                   })}
+
+                  {/* Matching Users Without Conversations */}
+                  {searchQuery && matchingUsers.length > 0 && (
+                    <>
+                      {filteredConversations.length > 0 && (
+                        <div className="px-4 py-2 bg-muted/50">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase">
+                            {t('chat.otherMembers')}
+                          </p>
+                        </div>
+                      )}
+                      {matchingUsers.map((user) => {
+                        const isCreating = creatingConversationWith === user._id;
+                        return (
+                          <div
+                            key={user._id}
+                            className={cn(
+                              'flex items-center gap-3 p-3 cursor-pointer hover:bg-accent transition-colors',
+                              isCreating && 'opacity-50 pointer-events-none'
+                            )}
+                            onClick={() => startConversationWithUser(user)}
+                          >
+                            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-semibold">
+                              {user.profileImage ? (
+                                <img
+                                  src={user.profileImage}
+                                  alt={user.fullName}
+                                  className="w-12 h-12 rounded-full object-cover"
+                                />
+                              ) : (
+                                getInitials(user.fullName)
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium truncate">{user.fullName}</span>
+                                <Badge className={cn('text-white text-xs', getRoleBadgeColor(user.role))}>
+                                  {user.role}
+                                </Badge>
+                              </div>
+                              <span className="text-sm text-muted-foreground truncate block">
+                                {user.email}
+                              </span>
+                            </div>
+                            {isCreating && (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
                 </div>
               )}
             </ScrollArea>
@@ -273,7 +387,7 @@ export function ChatPage() {
         </Card>
 
         {/* Chat View */}
-        <Card className="lg:col-span-2 flex flex-col">
+        <Card className="lg:col-span-2 flex flex-col h-full max-h-full">
           {selectedConversation ? (
             <ChatView
               conversation={selectedConversation}
@@ -314,13 +428,14 @@ function ChatView({
   const { t } = useTranslation();
   // Handle both id and conversationId (backend returns conversationId)
   const conversationId = conversation.id || conversation.conversationId;
-  const { messages, loading } = useMessages(conversationId || null);
+  const { messages, loading, loadingMore, hasMore, loadMore } = useMessages(conversationId || null);
   const sendMessageMutation = useSendMessage();
   const uploadImagesMutation = useUploadChatImages();
   const [inputText, setInputText] = useState('');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
@@ -356,6 +471,26 @@ function ChatView({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Infinite scroll: Auto-load more messages when scrolling to top
+  useEffect(() => {
+    if (!loadMoreTriggerRef.current || !hasMore || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(loadMoreTriggerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, loadingMore, loadMore]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -456,8 +591,8 @@ function ChatView({
       </CardHeader>
 
       {/* Messages */}
-      <CardContent className="flex-1 overflow-hidden p-0">
-        <ScrollArea className="h-full p-4">
+      <CardContent className="flex-1 overflow-hidden p-0 max-h-[calc(100vh-20rem)]">
+        <ScrollArea className="h-full max-h-full p-4">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -472,6 +607,16 @@ function ChatView({
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Infinite Scroll Trigger - invisible sentinel at top */}
+              {hasMore && (
+                <div ref={loadMoreTriggerRef} className="h-1" />
+              )}
+              {/* Loading indicator */}
+              {loadingMore && (
+                <div className="flex justify-center py-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
               {messages.map((message) => (
                 <MessageBubble
                   key={message.id}
@@ -612,7 +757,14 @@ function MessageBubble({
   onImageClick: (images: string[], index: number) => void;
   participantDetails?: Record<string, { name: string; avatar: string | null; role: string }>;
 }) {
-  const timestamp = message.timestamp?.toDate ? message.timestamp.toDate() : new Date(message.timestamp);
+  let timestamp: Date;
+  if (message.timestamp?.toDate) {
+    timestamp = message.timestamp.toDate();
+  } else if (message.timestamp?._seconds !== undefined) {
+    timestamp = new Date(message.timestamp._seconds * 1000);
+  } else {
+    timestamp = new Date(message.timestamp);
+  }
   // Prefer fresh avatar from participantDetails over stale per-message senderAvatar
   const avatarUrl = participantDetails?.[message.senderId]?.avatar || message.senderAvatar;
 

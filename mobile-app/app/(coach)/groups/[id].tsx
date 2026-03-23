@@ -14,13 +14,13 @@ import {
   Avatar,
   IconButton,
   Divider,
-  Menu,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
+import DropdownMenu from '@/components/DropdownMenu';
 import api from '@/services/api';
 import { Group, Member } from '@/types';
 
@@ -34,6 +34,11 @@ interface GroupMember {
     fullName: string;
     email: string;
   };
+  currentMonthPayment?: {
+    status: string;
+    paidAmount: number;
+    amount: number;
+  } | null;
 }
 
 export default function GroupDetailsScreen() {
@@ -75,7 +80,6 @@ export default function GroupDetailsScreen() {
   };
 
   const handleEditGroup = () => {
-    setMenuVisible(false);
     router.push({
       pathname: '/(coach)/groups/form',
       params: { id: group?._id },
@@ -83,7 +87,6 @@ export default function GroupDetailsScreen() {
   };
 
   const handleDeleteGroup = () => {
-    setMenuVisible(false);
     Alert.alert(
       t('groups.deleteGroup'),
       t('groups.deleteGroupConfirm'),
@@ -152,6 +155,20 @@ export default function GroupDetailsScreen() {
     return age;
   };
 
+  const getPaymentBadge = (member: GroupMember) => {
+    const payment = member.currentMonthPayment;
+    if (!payment) {
+      return { label: t('payments.unpaid'), color: Colors.error, bg: '#FFEBEE' };
+    }
+    if (payment.status === 'PAID') {
+      return { label: t('payments.paid'), color: '#2E7D32', bg: '#E8F5E9' };
+    }
+    if (payment.status === 'PARTIAL') {
+      return { label: `${t('payments.partial')} (${payment.paidAmount}/${payment.amount})`, color: '#F57C00', bg: '#FFF3E0' };
+    }
+    return { label: t('payments.unpaid'), color: Colors.error, bg: '#FFEBEE' };
+  };
+
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
@@ -183,9 +200,17 @@ export default function GroupDetailsScreen() {
         options={{
           title: group.name,
           headerRight: () => (
-            <Menu
+            <DropdownMenu
               visible={menuVisible}
               onDismiss={() => setMenuVisible(false)}
+              onSelect={(key) => {
+                if (key === 'edit') handleEditGroup();
+                else if (key === 'delete') handleDeleteGroup();
+              }}
+              items={[
+                { key: 'edit', title: t('groups.editGroup'), icon: 'pencil' },
+                { key: 'delete', title: t('groups.deleteGroup'), icon: 'delete', titleColor: Colors.error, divider: true },
+              ]}
               anchor={
                 <IconButton
                   icon="dots-vertical"
@@ -193,21 +218,7 @@ export default function GroupDetailsScreen() {
                   onPress={() => setMenuVisible(true)}
                 />
               }
-              contentStyle={styles.menuContent}
-            >
-              <Menu.Item
-                onPress={handleEditGroup}
-                title={t('groups.editGroup')}
-                leadingIcon="pencil"
-              />
-              <Divider />
-              <Menu.Item
-                onPress={handleDeleteGroup}
-                title={t('groups.deleteGroup')}
-                leadingIcon="delete"
-                titleStyle={{ color: Colors.error }}
-              />
-            </Menu>
+            />
           ),
         }}
       />
@@ -329,6 +340,16 @@ export default function GroupDetailsScreen() {
                           {t('roles.parent')}: {member.parentId.fullName}
                         </Text>
                       )}
+                      {(() => {
+                        const badge = getPaymentBadge(member);
+                        return (
+                          <View style={[styles.paymentBadge, { backgroundColor: badge.bg }]}>
+                            <Text style={[styles.paymentBadgeText, { color: badge.color }]}>
+                              {badge.label}
+                            </Text>
+                          </View>
+                        );
+                      })()}
                     </View>
 
                     <IconButton
@@ -375,9 +396,6 @@ const styles = StyleSheet.create({
   backButton: {
     marginTop: Spacing.lg,
     backgroundColor: Colors.primary,
-  },
-  menuContent: {
-    backgroundColor: Colors.surface,
   },
   infoCard: {
     backgroundColor: Colors.surface,
@@ -522,5 +540,16 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  paymentBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.xs,
+  },
+  paymentBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
   },
 });

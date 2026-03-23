@@ -135,6 +135,7 @@ export interface FinanceEntry {
   createdAt: string;
   groupId?: string;
   coachId?: string;
+  paymentMethod?: 'CASH' | 'CARD';
 }
 
 export interface CreateFinanceEntryData {
@@ -145,6 +146,7 @@ export interface CreateFinanceEntryData {
   date: string;
   groupId?: string;
   invoiceUrl?: string;
+  paymentMethod?: 'CASH' | 'CARD';
 }
 
 export interface FinanceSummary {
@@ -159,7 +161,7 @@ export interface FinanceFilters {
   dateRange: {
     startDate: string | null;
     endDate: string | null;
-    preset: 'all' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'custom';
+    preset: 'all' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'custom';
   };
   groupIds: string[];
   coachIds: string[];
@@ -236,7 +238,9 @@ export interface PaymentMethodBreakdown {
   totalBalance: number;
   methods: Array<{
     method: string;
-    amount: number;
+    income: number;
+    expense: number;
+    balance: number;
     count: number;
   }>;
 }

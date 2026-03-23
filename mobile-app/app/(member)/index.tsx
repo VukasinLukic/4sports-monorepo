@@ -181,7 +181,8 @@ export default function MemberHome() {
   const renderEventCard = (event: Event, isToday: boolean) => {
     const eventDate = new Date(event.startTime);
     const dayNumber = eventDate.getDate();
-    const dayName = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' });
+    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+    const dayName = t(`dateTime.days.${dayKeys[eventDate.getDay()]}`);
     const eventTypeColor = getEventTypeColor(event.type);
     const relativeTime = getRelativeTimeText(event.startTime, t);
 
@@ -225,11 +226,11 @@ export default function MemberHome() {
                 </View>
               ) : null}
 
-              {/* Relative time for upcoming events (not today) */}
-              {!isToday && relativeTime ? (
+              {/* Relative time */}
+              {relativeTime ? (
                 <View style={styles.eventMeta}>
-                  <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.primary} />
-                  <Text style={[styles.eventLocation, { color: Colors.primary, fontWeight: '500' }]}>{relativeTime}</Text>
+                  <MaterialCommunityIcons name="clock-outline" size={14} color={isToday ? Colors.success : Colors.primary} />
+                  <Text style={[styles.eventLocation, { color: isToday ? Colors.success : Colors.primary, fontWeight: '500' }]}>{relativeTime}</Text>
                 </View>
               ) : null}
 
@@ -289,7 +290,7 @@ export default function MemberHome() {
               <View style={[styles.rsvpDateBox, { backgroundColor: getEventTypeColor(nextEvent.type) }]}>
                 <Text style={styles.rsvpDateDay}>{new Date(nextEvent.startTime).getDate()}</Text>
                 <Text style={styles.rsvpDateMonth}>
-                  {new Date(nextEvent.startTime).toLocaleDateString('sr-RS', { weekday: 'short' })}
+                  {(() => { const dk = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const; return t(`dateTime.days.${dk[new Date(nextEvent.startTime).getDay()]}`); })()}
                 </Text>
               </View>
 

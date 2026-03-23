@@ -4,11 +4,12 @@ export interface ITransaction extends Document {
   _id: mongoose.Types.ObjectId;
   clubId: mongoose.Types.ObjectId;
   type: 'INCOME' | 'EXPENSE';
-  category: 'MEMBERSHIP_FEE' | 'EVENT_FEE' | 'EQUIPMENT' | 'SALARY' | 'RENT' | 'UTILITIES' | 'SPONSORSHIP' | 'OTHER';
+  category: 'MEMBERSHIP_FEE' | 'EVENT_FEE' | 'EQUIPMENT' | 'SALARY' | 'RENT' | 'UTILITIES' | 'SPONSORSHIP' | 'BALANCE_ADJUSTMENT' | 'OTHER';
   amount: number;
   currency: string;
   description: string;
   transactionDate: Date;
+  paymentMethod?: 'CASH' | 'CARD';
   groupId?: mongoose.Types.ObjectId;
   paymentId?: mongoose.Types.ObjectId;
   receiptUrl?: string;
@@ -34,10 +35,11 @@ const transactionSchema = new Schema<ITransaction, ITransactionModel>(
     type: { type: String, enum: ['INCOME', 'EXPENSE'], required: true },
     category: {
       type: String,
-      enum: ['MEMBERSHIP_FEE', 'EVENT_FEE', 'EQUIPMENT', 'SALARY', 'RENT', 'UTILITIES', 'SPONSORSHIP', 'OTHER'],
+      enum: ['MEMBERSHIP_FEE', 'EVENT_FEE', 'EQUIPMENT', 'SALARY', 'RENT', 'UTILITIES', 'SPONSORSHIP', 'BALANCE_ADJUSTMENT', 'OTHER'],
       required: true,
     },
     amount: { type: Number, required: true, min: 0 },
+    paymentMethod: { type: String, enum: ['CASH', 'CARD'] },
     currency: { type: String, default: 'RSD' },
     description: { type: String, required: true, trim: true, maxlength: 500 },
     transactionDate: { type: Date, required: true },
@@ -52,6 +54,7 @@ const transactionSchema = new Schema<ITransaction, ITransactionModel>(
 
 transactionSchema.index({ clubId: 1, transactionDate: -1 });
 transactionSchema.index({ clubId: 1, type: 1, category: 1 });
+transactionSchema.index({ clubId: 1, paymentMethod: 1 });
 
 transactionSchema.statics.findByClub = async function (clubId: mongoose.Types.ObjectId): Promise<ITransaction[]> {
   return this.find({ clubId }).sort({ transactionDate: -1 }).populate('createdBy', 'fullName');

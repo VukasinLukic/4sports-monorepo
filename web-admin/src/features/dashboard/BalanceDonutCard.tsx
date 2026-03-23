@@ -15,17 +15,15 @@ interface BalanceDonutCardProps {
   data: PaymentMethodBreakdown;
 }
 
-type FilterType = 'ALL' | 'CASH' | 'ELECTRONIC';
+type FilterType = 'ALL' | 'CASH' | 'CARD';
 
 const METHOD_COLORS: Record<string, string> = {
   CASH: '#22c55e',
   CARD: '#ef4444',
-  BANK_TRANSFER: '#3b82f6',
-  OTHER: '#f59e0b',
 };
 
 const getMethodColor = (method: string): string => {
-  return METHOD_COLORS[method] || METHOD_COLORS.OTHER;
+  return METHOD_COLORS[method] || '#f59e0b';
 };
 
 export const BalanceDonutCard = ({ data }: BalanceDonutCardProps) => {
@@ -38,37 +36,41 @@ export const BalanceDonutCard = ({ data }: BalanceDonutCardProps) => {
         return t('dashboard.cash');
       case 'CARD':
         return t('dashboard.credit');
-      case 'BANK_TRANSFER':
-        return t('dashboard.bankTransfer');
       default:
         return method;
     }
   };
 
   const filteredMethods = useMemo(() => {
+    const allowedMethods = data.methods.filter((m) => m.method === 'CASH' || m.method === 'CARD');
+
     if (filter === 'CASH') {
-      return data.methods.filter((m) => m.method === 'CASH');
+      return allowedMethods.filter((m) => m.method === 'CASH');
     }
-    if (filter === 'ELECTRONIC') {
-      return data.methods.filter((m) => m.method === 'CARD' || m.method === 'BANK_TRANSFER');
+    if (filter === 'CARD') {
+      return allowedMethods.filter((m) => m.method === 'CARD');
     }
-    return data.methods;
+    return allowedMethods;
   }, [data.methods, filter]);
 
   const chartData = useMemo(() => {
     return filteredMethods.map((m) => ({
+      method: m.method,
       name: getMethodLabel(m.method),
-      value: m.amount,
+      value: Math.abs(m.balance),
+      balance: m.balance,
+      income: m.income,
+      expense: m.expense,
       color: getMethodColor(m.method),
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredMethods, t]);
 
   const filteredTotal = useMemo(() => {
-    return filteredMethods.reduce((sum, m) => sum + m.amount, 0);
+    return filteredMethods.reduce((sum, m) => sum + m.balance, 0);
   }, [filteredMethods]);
 
-  const total = useMemo(() => {
+  const totalAbsolute = useMemo(() => {
     return chartData.reduce((sum, item) => sum + item.value, 0);
   }, [chartData]);
 
@@ -88,26 +90,26 @@ export const BalanceDonutCard = ({ data }: BalanceDonutCardProps) => {
           <SelectContent>
             <SelectItem value="ALL">{t('common.all')}</SelectItem>
             <SelectItem value="CASH">{t('dashboard.cash')}</SelectItem>
-            <SelectItem value="ELECTRONIC">{t('dashboard.credit')}</SelectItem>
+            <SelectItem value="CARD">{t('dashboard.credit')}</SelectItem>
           </SelectContent>
         </Select>
       </CardHeader>
       <CardContent>
-        {chartData.length === 0 || total === 0 ? (
-          <div className="h-[240px] flex items-center justify-center text-muted-foreground">
+        {chartData.length === 0 || totalAbsolute === 0 ? (
+          <div className="h-[180px] flex items-center justify-center text-muted-foreground">
             <p>{t('charts.noData')}</p>
           </div>
         ) : (
           <>
-            <div className="relative h-[220px]">
+            <div className="relative h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={chartData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
+                    innerRadius={50}
+                    outerRadius={75}
                     paddingAngle={2}
                     dataKey="value"
                     strokeWidth={0}
@@ -117,7 +119,10 @@ export const BalanceDonutCard = ({ data }: BalanceDonutCardProps) => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => [`${value.toLocaleString()} RSD`, '']}
+                    formatter={(_value: number, _name: string, props: any) => {
+                      const item = props.payload;
+                      return [`${item.balance.toLocaleString()} RSD`, item.name];
+                    }}
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
@@ -132,7 +137,7 @@ export const BalanceDonutCard = ({ data }: BalanceDonutCardProps) => {
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">{t('dashboard.totalBalance')}</p>
-                  <p className="text-lg font-bold text-foreground">
+                  <p className={`text-lg font-bold ${filteredTotal >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
                     {filteredTotal.toLocaleString()}
                   </p>
                   <p className="text-xs text-muted-foreground">RSD</p>
@@ -141,9 +146,9 @@ export const BalanceDonutCard = ({ data }: BalanceDonutCardProps) => {
             </div>
             <div className="space-y-2 mt-2">
               {chartData.map((item) => {
-                const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
+                const percentage = totalAbsolute > 0 ? ((item.value / totalAbsolute) * 100).toFixed(1) : '0';
                 return (
-                  <div key={item.name} className="flex items-center justify-between text-sm">
+                  <div key={item.method} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-block w-3 h-3 rounded-full flex-shrink-0"
@@ -151,7 +156,12 @@ export const BalanceDonutCard = ({ data }: BalanceDonutCardProps) => {
                       />
                       <span className="text-foreground">{item.name}</span>
                     </div>
-                    <span className="text-muted-foreground font-medium">{percentage}%</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium ${item.balance >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                        {item.balance.toLocaleString()} RSD
+                      </span>
+                      <span className="text-muted-foreground">({percentage}%)</span>
+                    </div>
                   </div>
                 );
               })}

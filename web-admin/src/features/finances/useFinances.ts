@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import api from '@/services/api';
 import { FinanceEntry, CreateFinanceEntryData, FinanceSummary, FinanceFilters, Group } from '@/types';
 import { useGroups } from '@/features/calendar/useEvents';
@@ -21,6 +20,7 @@ const transformTransaction = (transaction: any): FinanceEntry => ({
   createdAt: transaction.createdAt,
   groupId: transaction.groupId?._id || transaction.groupId,
   coachId: transaction.coachId,
+  paymentMethod: transaction.paymentMethod,
 });
 
 // Fetch all finance entries with filters
@@ -49,7 +49,6 @@ export const useFinances = (filters?: {
       }
 
       const response = await api.get<{ success: boolean; data: any[] }>(`/finances?${params.toString()}`);
-      console.log('✅ Finances API response:', response.data);
 
       // Transform backend data to frontend format
       return (response.data.data || []).map(transformTransaction);
@@ -57,29 +56,19 @@ export const useFinances = (filters?: {
   });
 };
 
-// Fetch finance summary stats (including membership payments)
+// Fetch finance summary stats - ALL TIME totals (Transaction is single source of truth)
 export const useFinanceSummary = () => {
   return useQuery({
     queryKey: ['finances-summary'],
     queryFn: async () => {
-      const response = await api.get<{ success: boolean; data: any }>('/finances/summary');
+      const params = new URLSearchParams();
+      params.append('startDate', '2020-01-01');
+      params.append('endDate', '2099-12-31');
+      const response = await api.get<{ success: boolean; data: any }>(`/finances/summary?${params.toString()}`);
       const data = response.data.data || {};
 
-      let totalIncome = data.totalIncome || 0;
+      const totalIncome = data.totalIncome || 0;
       const totalExpenses = data.totalExpense || 0;
-
-      // Also include membership payments in totals
-      try {
-        const paymentsResponse = await api.get<{ success: boolean; data: MembershipPayment[] }>('/payments/club');
-        const payments = paymentsResponse.data.data || [];
-        const membershipIncome = payments
-          .filter((p) => p.status === 'PAID' || p.status === 'PARTIAL')
-          .reduce((sum, p) => sum + (p.paidAmount || p.amount), 0);
-        totalIncome += membershipIncome;
-      } catch (error) {
-        console.error('Failed to fetch payments for summary:', error);
-      }
-
       const netProfit = totalIncome - totalExpenses;
 
       return {
@@ -106,6 +95,7 @@ export const useCreateFinanceEntry = () => {
         amount: data.amount,
         description: data.description,
         transactionDate: data.date,
+        paymentMethod: data.paymentMethod || undefined,
         groupId: data.groupId || undefined,
         receiptUrl: data.invoiceUrl,
       };
@@ -134,6 +124,7 @@ export const useUpdateFinanceEntry = () => {
       if (data.description) backendData.description = data.description;
       if (data.date) backendData.transactionDate = data.date;
       if (data.invoiceUrl !== undefined) backendData.receiptUrl = data.invoiceUrl;
+      if (data.paymentMethod !== undefined) backendData.paymentMethod = data.paymentMethod;
 
       const response = await api.put<{ success: boolean; data: any }>(`/finances/${id}`, backendData);
       return transformTransaction(response.data.data);
@@ -205,9 +196,6 @@ export const useDeleteFinanceEntry = () => {
 
 // Fetch filtered finances with all filters
 export const useFilteredFinances = (filters: FinanceFilters) => {
-  const { t } = useTranslation();
-  const monthNames = t('calendar.months', { returnObjects: true }) as string[];
-
   return useQuery({
     queryKey: ['finances', 'filtered', filters],
     queryFn: async () => {
@@ -242,12 +230,8 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
       }
 
       const url = `/finances?${params.toString()}`;
-      console.log('🔍 Fetching finances with URL:', url);
-      console.log('🔍 Applied filters:', filters);
 
       const response = await api.get<{ success: boolean; data: any[] }>(url);
-      console.log('✅ API returned transactions:', response.data.data?.length || 0);
-      console.log('✅ Full API response:', response.data);
 
       // Transform backend data to frontend format
       let manualEntries = (response.data.data || []).map(transformTransaction);
@@ -268,19 +252,16 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
           }
           return true;
         });
-        console.log('🔍 After date filter:', manualEntries.length, 'transactions');
       }
 
       // Filter by transaction type
       if (filters.transactionType !== 'ALL') {
         manualEntries = manualEntries.filter((entry) => entry.type === filters.transactionType);
-        console.log('🔍 After type filter:', manualEntries.length, 'transactions');
       }
 
       // Filter by categories
       if (filters.categories.length > 0) {
         manualEntries = manualEntries.filter((entry) => filters.categories.includes(entry.category));
-        console.log('🔍 After category filter:', manualEntries.length, 'transactions');
       }
 
       // Filter by groups
@@ -289,7 +270,6 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
           if (!entry.groupId) return false;
           return filters.groupIds.includes(entry.groupId);
         });
-        console.log('🔍 After group filter:', manualEntries.length, 'transactions');
       }
 
       // Filter by coaches: find groups that selected coaches train, then filter by those groupIds
@@ -305,107 +285,13 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
               return filters.coachIds.includes(coachId);
             }))
             .map((g: any) => g._id);
-          console.log('🔍 Coach filter: coaches', filters.coachIds, '=> groups', coachGroupIds);
 
           manualEntries = manualEntries.filter((entry) => {
             if (!entry.groupId) return false;
             return coachGroupIds.includes(entry.groupId);
           });
-          console.log('🔍 After coach filter:', manualEntries.length, 'transactions');
         } catch (error) {
           console.error('Failed to fetch groups for coach filter:', error);
-        }
-      }
-
-      // If showing income and membership category is included, fetch payments
-      const shouldIncludePayments =
-        (filters.transactionType === 'ALL' || filters.transactionType === 'INCOME') &&
-        (filters.categories.length === 0 || filters.categories.includes('MEMBERSHIP_FEE'));
-
-      if (shouldIncludePayments) {
-        try {
-          const paymentsResponse = await api.get<{ success: boolean; data: MembershipPayment[] }>('/payments/club');
-          const payments = paymentsResponse.data.data || [];
-
-          // Transform payments to finance entries
-          const paymentEntries: FinanceEntry[] = payments
-            .filter((p) => p.status === 'PAID' || p.status === 'PARTIAL')
-            .map((payment) => {
-              const memberName = typeof payment.memberId === 'object' ? payment.memberId.fullName : 'Member';
-              const amount = payment.paidAmount || payment.amount;
-              const periodStr = payment.period
-                ? `${monthNames[payment.period.month - 1]} ${payment.period.year}`
-                : '';
-              const createdByName = typeof payment.createdBy === 'object' ? payment.createdBy.fullName : 'Sistem';
-
-              // Extract groupId from payment
-              const groupId = typeof payment.groupId === 'object' ? payment.groupId._id : payment.groupId;
-
-              return {
-                id: payment._id,
-                type: 'INCOME' as const,
-                category: 'MEMBERSHIP_FEE',
-                description: `Membership - ${memberName}${periodStr ? ` (${periodStr})` : ''}`,
-                amount,
-                date: payment.paidDate || payment.paymentDate || payment.createdAt,
-                recordedBy: createdByName,
-                isManual: false,
-                createdAt: payment.createdAt,
-                groupId,
-              };
-            });
-
-          // Apply client-side filtering to payment entries too
-          let filteredPaymentEntries = paymentEntries;
-
-          // Filter by transaction type (payments are always INCOME)
-          if (filters.transactionType === 'EXPENSE') {
-            filteredPaymentEntries = []; // Exclude all payments if filtering for expenses only
-            console.log('🔍 After type filter (payments): 0 payments (filtering for EXPENSE)');
-          }
-
-          // Filter by date range
-          if (filters.dateRange.startDate || filters.dateRange.endDate) {
-            filteredPaymentEntries = filteredPaymentEntries.filter((entry) => {
-              const entryDate = new Date(entry.date);
-              if (filters.dateRange.startDate) {
-                const startDate = new Date(filters.dateRange.startDate);
-                if (entryDate < startDate) return false;
-              }
-              if (filters.dateRange.endDate) {
-                const endDate = new Date(filters.dateRange.endDate);
-                endDate.setHours(23, 59, 59, 999); // Include the entire end date
-                if (entryDate > endDate) return false;
-              }
-              return true;
-            });
-            console.log('🔍 After date filter (payments):', filteredPaymentEntries.length, 'payments');
-          }
-
-          if (filters.groupIds.length > 0 && filteredPaymentEntries.length > 0) {
-            filteredPaymentEntries = filteredPaymentEntries.filter((entry) => {
-              if (!entry.groupId) return false;
-              return filters.groupIds.includes(entry.groupId);
-            });
-            console.log('🔍 After group filter (payments):', filteredPaymentEntries.length, 'payments');
-          }
-
-          // Filter payments by coach (using coach's groups)
-          if (coachGroupIds.length > 0 && filteredPaymentEntries.length > 0) {
-            filteredPaymentEntries = filteredPaymentEntries.filter((entry) => {
-              if (!entry.groupId) return false;
-              return coachGroupIds.includes(entry.groupId);
-            });
-            console.log('🔍 After coach filter (payments):', filteredPaymentEntries.length, 'payments');
-          }
-
-          // Merge and sort by date
-          return [...manualEntries, ...filteredPaymentEntries].sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          );
-        } catch (error) {
-          console.error('Failed to fetch membership payments:', error);
-          return manualEntries;
         }
       }
 

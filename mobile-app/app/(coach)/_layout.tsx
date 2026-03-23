@@ -1,14 +1,15 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import TopHeader from '@/components/TopHeader';
+import CustomTabBar from '@/components/CustomTabBar';
 import { useChat } from '@/services/ChatContext';
+import { useLanguage } from '@/services/LanguageContext';
 
 export default function CoachLayout() {
   const { totalUnreadCount } = useChat();
-  const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
 
   return (
     <>
@@ -16,21 +17,8 @@ export default function CoachLayout() {
       <Tabs
         initialRouteName="index"
         backBehavior="initialRoute"
+        tabBar={(props) => <CustomTabBar {...props} />}
         screenOptions={{
-          tabBarActiveTintColor: Colors.primary,
-          tabBarInactiveTintColor: Colors.textSecondary,
-          tabBarStyle: {
-            backgroundColor: Colors.surface,
-            borderTopColor: Colors.border,
-            borderTopWidth: 1,
-            paddingBottom: 8 + insets.bottom,
-            paddingTop: 8,
-            height: 65 + insets.bottom,
-          },
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '500',
-          },
           headerShown: false,
         }}
       >
@@ -38,7 +26,7 @@ export default function CoachLayout() {
         <Tabs.Screen
           name="evidence"
           options={{
-            title: 'Evidencija',
+            title: t('navigation.evidence'),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="clipboard-check-outline"
@@ -53,7 +41,7 @@ export default function CoachLayout() {
         <Tabs.Screen
           name="calendar"
           options={{
-            title: 'Kalendar',
+            title: t('navigation.calendar'),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="calendar-month"
@@ -88,7 +76,6 @@ export default function CoachLayout() {
               />
             ),
             tabBarBadge: totalUnreadCount > 0 ? (totalUnreadCount > 99 ? '99+' : totalUnreadCount) : undefined,
-            tabBarBadgeStyle: styles.tabBadge,
           }}
         />
 
@@ -96,7 +83,7 @@ export default function CoachLayout() {
         <Tabs.Screen
           name="groups"
           options={{
-            title: 'Grupe',
+            title: t('navigation.groups'),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="account-group-outline"
@@ -107,84 +94,19 @@ export default function CoachLayout() {
           }}
         />
 
-        {/* Hidden screens - accessible via navigation but not in tab bar */}
-        <Tabs.Screen
-          name="profile"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="members"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="news"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="attendance"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="events"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="payments"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="medical"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="invites"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="notifications"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="club"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="users"
-          options={{
-            href: null,
-          }}
-        />
+        {/* Hidden screens */}
+        <Tabs.Screen name="profile" options={{ href: null }} />
+        <Tabs.Screen name="members" options={{ href: null }} />
+        <Tabs.Screen name="news" options={{ href: null }} />
+        <Tabs.Screen name="attendance" options={{ href: null }} />
+        <Tabs.Screen name="events" options={{ href: null }} />
+        <Tabs.Screen name="payments" options={{ href: null }} />
+        <Tabs.Screen name="medical" options={{ href: null }} />
+        <Tabs.Screen name="invites" options={{ href: null }} />
+        <Tabs.Screen name="notifications" options={{ href: null }} />
+        <Tabs.Screen name="club" options={{ href: null }} />
+        <Tabs.Screen name="users" options={{ href: null }} />
       </Tabs>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBadge: {
-    backgroundColor: Colors.error,
-    fontSize: 10,
-    fontWeight: '700',
-    minWidth: 18,
-    height: 18,
-  },
-});

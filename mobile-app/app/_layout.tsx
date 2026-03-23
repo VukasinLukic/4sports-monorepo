@@ -1,10 +1,12 @@
-import { View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Platform, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { PaperProvider, MD3DarkTheme } from 'react-native-paper';
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
+import * as NavigationBar from 'expo-navigation-bar';
 import { AppColors } from '@/constants/Colors';
 import { AuthProvider } from '@/services/AuthContext';
 import { ChatProvider } from '@/services/ChatContext';
@@ -13,6 +15,24 @@ import { NotificationBadgeProvider } from '@/services/NotificationBadgeContext';
 import NetworkStatus from '@/components/NetworkStatus';
 import { ToastProvider } from '@/components/Toast';
 import { AlertProvider } from '@/contexts/AlertContext';
+
+/**
+ * Freezes safe area insets after initial measurement to prevent layout shifts
+ * when the app returns from background (Android recalculates window insets on resume).
+ */
+function StableInsetsProvider({ children }: { children: React.ReactNode }) {
+  const insets = useSafeAreaInsets();
+  const frozen = useRef(insets);
+  // Update only if going from zero → real values (initial measurement)
+  if (frozen.current.top === 0 && frozen.current.bottom === 0 && (insets.top > 0 || insets.bottom > 0)) {
+    frozen.current = insets;
+  }
+  return (
+    <SafeAreaInsetsContext.Provider value={frozen.current}>
+      {children}
+    </SafeAreaInsetsContext.Provider>
+  );
+}
 
 // Setup online manager for React Query
 onlineManager.setEventListener((setOnline) => {
@@ -63,9 +83,17 @@ const theme = {
   },
 };
 
+// Set Android nav bar transparent BEFORE first render so SafeAreaProvider measures correct insets
+if (Platform.OS === 'android') {
+  NavigationBar.setBackgroundColorAsync('transparent');
+  NavigationBar.setPositionAsync('absolute');
+  NavigationBar.setButtonStyleAsync('light');
+}
+
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
+      <StableInsetsProvider>
       <LanguageProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
@@ -107,6 +135,7 @@ export default function RootLayout() {
           </AuthProvider>
         </QueryClientProvider>
       </LanguageProvider>
+    </StableInsetsProvider>
     </SafeAreaProvider>
   );
 }

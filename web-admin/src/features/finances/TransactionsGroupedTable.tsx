@@ -1,4 +1,4 @@
-import { GroupedTransactionData, GroupByOption } from '@/types';
+import { GroupedTransactionData, GroupByOption, FinanceEntry, Group } from '@/types';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TransactionsFlatTable } from './TransactionsFlatTable';
@@ -8,12 +8,20 @@ interface TransactionsGroupedTableProps {
   groupBy: GroupByOption;
   expandedGroups: Set<string>;
   onToggleGroup: (key: string) => void;
+  groups?: Group[];
+  onEdit?: (transaction: FinanceEntry) => void;
+  onDelete?: (id: string) => void;
+  onView?: (transaction: FinanceEntry) => void;
 }
 
 export function TransactionsGroupedTable({
   groupedData,
   expandedGroups,
   onToggleGroup,
+  groups,
+  onEdit,
+  onDelete,
+  onView,
 }: TransactionsGroupedTableProps) {
   const { t } = useTranslation();
 
@@ -80,7 +88,13 @@ export function TransactionsGroupedTable({
             {/* Group Body (Transactions Table) */}
             {isExpanded && (
               <div className="border-t">
-                <TransactionsFlatTable transactions={group.transactions} />
+                <TransactionsFlatTable
+                  transactions={group.transactions}
+                  groups={groups}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onView={onView}
+                />
               </div>
             )}
           </div>

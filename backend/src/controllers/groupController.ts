@@ -384,9 +384,39 @@ export const getGroupMembers = async (req: Request, res: Response) => {
 
     const members = await Member.findByGroup(group._id);
 
+    // Add current month payment status for each member
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const memberIds = members.map((m: any) => m._id);
+    const payments = await Payment.find({
+      memberId: { $in: memberIds },
+      'period.month': currentMonth,
+      'period.year': currentYear,
+    });
+
+    const paymentMap = new Map<string, { status: string; paidAmount: number; amount: number }>();
+    for (const p of payments) {
+      paymentMap.set(p.memberId.toString(), {
+        status: p.status,
+        paidAmount: p.paidAmount,
+        amount: p.amount,
+      });
+    }
+
+    const membersWithPayment = members.map((m: any) => {
+      const memberObj = m.toObject ? m.toObject() : m;
+      const payment = paymentMap.get(memberObj._id.toString());
+      return {
+        ...memberObj,
+        currentMonthPayment: payment || null,
+      };
+    });
+
     return res.status(200).json({
       success: true,
-      data: members,
+      data: membersWithPayment,
     });
   } catch (error: any) {
     console.error('❌ Get Group Members Error:', error);

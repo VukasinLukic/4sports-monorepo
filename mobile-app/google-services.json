@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "448424297604",
+    "project_id": "project4sports",
+    "storage_bucket": "project4sports.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:448424297604:android:e5bbe884366591ade32ed1",
+        "android_client_info": {
+          "package_name": "com.foursports.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAR8cWFa86UE-i3YWkcb3OwhD_G0Qf_juQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

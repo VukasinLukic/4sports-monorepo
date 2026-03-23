@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DollarSign, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Wallet } from 'lucide-react';
 import { useDashboardV2 } from './useDashboard';
 import { KPICard } from './KPICard';
 import { QuickLinks } from './QuickLinks';
@@ -40,12 +40,33 @@ export const DashboardPage = () => {
     );
   }
 
+  // Compute yearly totals from monthlyFinance array
+  const yearlyIncome = data?.monthlyFinance.reduce((acc, m) => acc + m.income, 0) ?? 0;
+  const yearlyExpense = data?.monthlyFinance.reduce((acc, m) => acc + m.expense, 0) ?? 0;
+  const yearlyProfit = yearlyIncome - yearlyExpense;
+
+  // "Ukupno u klubu" should match "Stanje" (total balance from all payments)
+  const totalBalance = data?.paymentMethodBreakdown.totalBalance ?? 0;
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h1>
-        <p className="text-muted-foreground">{t('dashboard.welcomeSubtitle')}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h1>
+          <p className="text-muted-foreground">{t('dashboard.welcomeSubtitle')}</p>
+        </div>
+        {data && (
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+            <Wallet className="h-5 w-5 text-muted-foreground" />
+            <div className="flex flex-col">
+              <span className="text-xs text-muted-foreground">{t('dashboard.totalBalance')}</span>
+              <span className={`text-lg font-bold ${totalBalance >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                {totalBalance.toLocaleString()} RSD
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ROW 1: KPI Cards + Quick Links */}
@@ -62,19 +83,19 @@ export const DashboardPage = () => {
             <>
               <KPICard
                 title={t('dashboard.incomeCard')}
-                value={`${data.kpiCards.totalIncome.toLocaleString()} RSD`}
+                value={`${yearlyIncome.toLocaleString()} RSD`}
                 icon={TrendingUp}
                 trend={data.kpiCards.incomeTrend}
               />
               <KPICard
                 title={t('dashboard.expenseCard')}
-                value={`${data.kpiCards.totalExpense.toLocaleString()} RSD`}
+                value={`${yearlyExpense.toLocaleString()} RSD`}
                 icon={TrendingDown}
                 trend={data.kpiCards.expenseTrend}
               />
               <KPICard
                 title={t('dashboard.profitCard')}
-                value={`${data.kpiCards.profit.toLocaleString()} RSD`}
+                value={`${yearlyProfit.toLocaleString()} RSD`}
                 icon={DollarSign}
                 trend={data.kpiCards.profitTrend}
               />
@@ -106,6 +127,9 @@ export const DashboardPage = () => {
               data={data.monthlyFinance}
               year={selectedYear}
               onYearChange={setSelectedYear}
+              totalIncome={yearlyIncome}
+              totalExpense={yearlyExpense}
+              profit={yearlyProfit}
             />
           ) : null}
         </div>

@@ -28,7 +28,6 @@ export const useMembers = (filters?: {
       }
 
       const response = await api.get<{ success: boolean; data: Member[] }>(`/members?${params.toString()}`);
-      console.log('✅ Members API response:', response.data);
       return response.data.data || [];
     },
   });

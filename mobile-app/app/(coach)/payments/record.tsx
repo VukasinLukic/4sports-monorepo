@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Text, TextInput, Button, ActivityIndicator, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -69,9 +69,18 @@ export default function RecordPaymentScreen() {
     return null;
   }, [member]);
 
-  // Monthly fee - use member's individual fee if available, otherwise default
+  // Monthly fee - use member's individual fee, then group fee, then default
   const DEFAULT_MONTHLY_FEE = 3000;
-  const monthlyFee = member?.membershipFee || DEFAULT_MONTHLY_FEE;
+  const getGroupFee = (): number | undefined => {
+    if (!member?.clubs?.length) return undefined;
+    for (const c of member.clubs) {
+      if (c.groupId && typeof c.groupId === 'object' && c.groupId.membershipFee) {
+        return c.groupId.membershipFee;
+      }
+    }
+    return undefined;
+  };
+  const monthlyFee = member?.membershipFee || getGroupFee() || DEFAULT_MONTHLY_FEE;
 
   // Get months with payment status (only months since member joined)
   const monthOptions = useMemo(() => {
@@ -106,8 +115,10 @@ export default function RecordPaymentScreen() {
         .filter((p: Payment) => p.status === 'PAID' || p.status === 'PARTIAL')
         .reduce((sum: number, p: Payment) => sum + (p.paidAmount ?? p.amount ?? 0), 0);
 
-      // Expected amount is the monthly fee
-      const expectedAmount = monthlyFee;
+      // Expected amount: use payment record's amount if exists, otherwise current fee
+      const expectedAmount = monthPayments.length > 0 && monthPayments[0].amount
+        ? monthPayments[0].amount
+        : monthlyFee;
       const remainingAmount = Math.max(0, expectedAmount - paidAmount);
 
       // Determine payment status based on amounts vs monthly fee
@@ -131,6 +142,20 @@ export default function RecordPaymentScreen() {
 
     return options;
   }, [memberPayments, months, currentMonth, currentYear, memberJoinDate, monthlyFee]);
+
+  // Auto-fill amount for the initially selected month
+  useEffect(() => {
+    if (monthOptions.length > 0 && !amount) {
+      const current = monthOptions.find(o => o.month === selectedMonth && o.year === selectedYear);
+      if (current) {
+        if (current.status === 'partial') {
+          setAmount(current.remainingAmount.toString());
+        } else if (current.status === 'unpaid') {
+          setAmount(current.expectedAmount.toString());
+        }
+      }
+    }
+  }, [monthOptions]);
 
   const selectedMonthLabel = `${months[selectedMonth]} ${selectedYear}`;
 
@@ -222,6 +247,12 @@ export default function RecordPaymentScreen() {
                   setSelectedMonth(option.month);
                   setSelectedYear(option.year);
                   setShowMonthPicker(false);
+                  // Auto-fill amount based on month status
+                  if (option.status === 'partial') {
+                    setAmount(option.remainingAmount.toString());
+                  } else if (option.status === 'unpaid') {
+                    setAmount(option.expectedAmount.toString());
+                  }
                 }}
               >
                 <Text style={[
@@ -331,20 +362,20 @@ export default function RecordPaymentScreen() {
           style={[
             styles.toggleButton,
             styles.toggleButtonRight,
-            paymentMethod === PaymentMethod.BANK_TRANSFER && styles.toggleButtonActive,
+            paymentMethod === PaymentMethod.CARD && styles.toggleButtonActive,
           ]}
-          onPress={() => setPaymentMethod(PaymentMethod.BANK_TRANSFER)}
+          onPress={() => setPaymentMethod(PaymentMethod.CARD)}
         >
           <MaterialCommunityIcons
-            name="bank"
+            name="credit-card"
             size={20}
-            color={paymentMethod === PaymentMethod.BANK_TRANSFER ? '#fff' : Colors.textSecondary}
+            color={paymentMethod === PaymentMethod.CARD ? '#fff' : Colors.textSecondary}
           />
           <Text style={[
             styles.toggleButtonText,
-            paymentMethod === PaymentMethod.BANK_TRANSFER && styles.toggleButtonTextActive,
+            paymentMethod === PaymentMethod.CARD && styles.toggleButtonTextActive,
           ]}>
-            {t('payments.bankTransfer')}
+            {t('payments.card')}
           </Text>
         </TouchableOpacity>
       </View>

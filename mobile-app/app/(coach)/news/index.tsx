@@ -3,6 +3,7 @@ import { View, StyleSheet, FlatList, RefreshControl, Alert } from 'react-native'
 import { Text, FAB, ActivityIndicator, Chip, Card, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Spacing, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
@@ -21,6 +22,7 @@ interface PostWithAuthor extends Omit<Post, 'authorId'> {
 }
 
 export default function CoachNewsFeed() {
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const { user } = useAuth();
   const { postId: scrollToPostId, openComments } = useLocalSearchParams<{ postId?: string; openComments?: string }>();
@@ -227,7 +229,7 @@ export default function CoachNewsFeed() {
       {/* Create Post FAB */}
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { bottom: (insets.bottom || 10) + 72 }]}
         onPress={() => router.push('/(coach)/news/create')}
         color={Colors.text}
       />
@@ -317,7 +319,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: Spacing.md,
     right: 0,
-    bottom: 0,
     backgroundColor: Colors.primary,
   },
 });

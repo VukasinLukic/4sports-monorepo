@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Card, FAB, Chip, ActivityIndicator, Menu, Button } from 'react-native-paper';
+import { Text, Card, FAB, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getFabBottom } from '@/components/CustomTabBar';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 import { useAuth } from '@/services/AuthContext';
 import EventCalendar from '@/components/EventCalendar';
+import DropdownMenu from '@/components/DropdownMenu';
 import api from '@/services/api';
 import { Event, Group } from '@/types';
 
@@ -49,6 +52,7 @@ const getEventTypeColorFromString = (type: string): string => {
 };
 
 export default function CoachCalendar() {
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
@@ -218,9 +222,20 @@ export default function CoachCalendar() {
 
         {/* Group Filter */}
         <View style={styles.groupFilterContainer}>
-          <Menu
+          <DropdownMenu
             visible={groupMenuVisible}
             onDismiss={() => setGroupMenuVisible(false)}
+            onSelect={(key) => {
+              setSelectedGroupId(key === 'all' ? null : key);
+            }}
+            items={[
+              { key: 'all', title: t('groups.allGroups'), selected: selectedGroupId === null },
+              ...groups.map(group => ({
+                key: group._id,
+                title: group.name,
+                selected: selectedGroupId === group._id,
+              })),
+            ]}
             anchor={
               <Button
                 mode="outlined"
@@ -232,28 +247,7 @@ export default function CoachCalendar() {
                 {getSelectedGroupName()}
               </Button>
             }
-            contentStyle={styles.menuContent}
-          >
-            <Menu.Item
-              onPress={() => {
-                setSelectedGroupId(null);
-                setGroupMenuVisible(false);
-              }}
-              title={t('groups.allGroups')}
-              leadingIcon={selectedGroupId === null ? 'check' : undefined}
-            />
-            {groups.map(group => (
-              <Menu.Item
-                key={group._id}
-                onPress={() => {
-                  setSelectedGroupId(group._id);
-                  setGroupMenuVisible(false);
-                }}
-                title={group.name}
-                leadingIcon={selectedGroupId === group._id ? 'check' : undefined}
-              />
-            ))}
-          </Menu>
+          />
         </View>
 
         {/* Type Filter Chips */}
@@ -308,7 +302,8 @@ export default function CoachCalendar() {
           sortedEvents.map(event => {
             const eventDate = new Date(event.date || event.startTime);
             const dayNumber = eventDate.getDate();
-            const dayName = eventDate.toLocaleDateString('sr-RS', { weekday: 'short' });
+            const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+            const dayName = t(`dateTime.days.${dayKeys[eventDate.getDay()]}`);
             const groupName = typeof event.groupId === 'object' ? event.groupId.name : '';
             const groupColor = typeof event.groupId === 'object' ? event.groupId.color : Colors.primary;
             const relativeTime = getRelativeTimeText(eventDate);
@@ -365,7 +360,7 @@ export default function CoachCalendar() {
       {/* FAB for creating new event */}
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { bottom: getFabBottom(insets.bottom) }]}
         color={Colors.text}
         onPress={() => router.push({
           pathname: '/(coach)/events/create',
@@ -401,9 +396,6 @@ const styles = StyleSheet.create({
   },
   groupFilterButton: {
     borderColor: Colors.border,
-  },
-  menuContent: {
-    backgroundColor: Colors.surface,
   },
   filterRow: {
     flexDirection: 'row',
@@ -525,7 +517,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: Spacing.md,
-    bottom: Spacing.md,
     backgroundColor: Colors.primary,
   },
 });

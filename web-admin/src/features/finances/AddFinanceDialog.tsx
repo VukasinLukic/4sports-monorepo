@@ -37,6 +37,7 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
     description: '',
     amount: 0,
     date: new Date().toISOString().split('T')[0],
+    paymentMethod: undefined,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -77,6 +78,7 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
         description: '',
         amount: 0,
         date: new Date().toISOString().split('T')[0],
+        paymentMethod: undefined,
       });
       setErrors({});
     } catch (error: any) {
@@ -97,6 +99,7 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
     { value: 'EVENT_FEE', label: t('finances.categories.eventFee') },
     { value: 'SPONSORSHIP', label: t('finances.categories.sponsorship') },
     { value: 'EQUIPMENT', label: t('finances.categories.equipmentSales') },
+    { value: 'BALANCE_ADJUSTMENT', label: t('finances.categories.balanceAdjustment') },
     { value: 'OTHER', label: t('finances.categories.otherIncome') },
   ];
 
@@ -105,6 +108,7 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
     { value: 'RENT', label: t('finances.categories.facilityRent') },
     { value: 'SALARY', label: t('finances.categories.coachSalary') },
     { value: 'UTILITIES', label: t('finances.categories.utilities') },
+    { value: 'BALANCE_ADJUSTMENT', label: t('finances.categories.balanceAdjustment') },
     { value: 'OTHER', label: t('finances.categories.otherExpense') },
   ];
 
@@ -182,6 +186,26 @@ export function AddFinanceDialog({ open, onOpenChange }: AddFinanceDialogProps) 
                       {g.name}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payment Method */}
+            <div className="grid gap-2">
+              <Label htmlFor="paymentMethod">
+                {t('finances.paymentMethod')}
+              </Label>
+              <Select
+                value={formData.paymentMethod || 'NONE'}
+                onValueChange={(value) => handleChange('paymentMethod', value === 'NONE' ? undefined : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">{t('finances.noPaymentMethod')}</SelectItem>
+                  <SelectItem value="CASH">{t('finances.cash')}</SelectItem>
+                  <SelectItem value="CARD">{t('finances.card')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

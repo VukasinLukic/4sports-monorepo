@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import {
   registerForPushNotificationsAsync,
@@ -10,12 +11,16 @@ import {
   NotificationType,
 } from '@/services/pushNotifications';
 
+const NOTIFICATION_PREF_KEY = '@push_notifications_enabled';
+const PUSH_TOKEN_KEY = '@push_token';
+
 interface UsePushNotificationsResult {
   expoPushToken: string | null;
   notification: Notifications.Notification | null;
   isRegistered: boolean;
   isLoading: boolean;
   error: string | null;
+  debugInfo: string;
   registerForNotifications: () => Promise<void>;
   unregisterFromNotifications: () => Promise<void>;
 }
@@ -23,12 +28,21 @@ interface UsePushNotificationsResult {
 export function usePushNotifications(): UsePushNotificationsResult {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(true); // Default ON
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('Initializing...');
 
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
+  const hasInitialized = useRef(false);
+
+  const updateDebugInfo = useCallback((token: string | null, registered: boolean, err: string | null) => {
+    const tokenInfo = token ? `Token: ${token.substring(0, 25)}...` : 'Token: none';
+    const regInfo = `Registered: ${registered}`;
+    const errInfo = err ? `Error: ${err}` : '';
+    setDebugInfo([tokenInfo, regInfo, errInfo].filter(Boolean).join(' | '));
+  }, []);
 
   // Handle notification navigation based on type
   const handleNotificationNavigation = useCallback((data: NotificationData) => {
@@ -86,55 +100,81 @@ export function usePushNotifications(): UsePushNotificationsResult {
     setError(null);
 
     try {
-      const token = await registerForPushNotificationsAsync();
+      const result = await registerForPushNotificationsAsync();
 
-      if (token) {
-        setExpoPushToken(token);
+      if (result.token) {
+        setExpoPushToken(result.token);
+        await AsyncStorage.setItem(PUSH_TOKEN_KEY, result.token);
 
         // Send token to backend
-        const success = await sendTokenToBackend(token);
+        const success = await sendTokenToBackend(result.token);
         setIsRegistered(success);
+        await AsyncStorage.setItem(NOTIFICATION_PREF_KEY, success ? 'true' : 'false');
 
         if (!success) {
           setError('Failed to register with server');
         }
+        updateDebugInfo(result.token, success, success ? null : 'Backend failed');
       } else {
-        // Token is null - push notifications not available (Expo Go or missing projectId)
-        // This is expected in development, not an error
-        console.log('Push notifications not available in this environment');
-        setIsRegistered(false);
-        // Don't set error - this is expected behavior in Expo Go
+        console.log('Push registration failed:', result.error);
+        setError(result.error);
+        updateDebugInfo(null, false, result.error);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error registering for notifications:', err);
-      setError('Failed to register for notifications');
+      const errMsg = err?.message || 'Unknown error';
+      setError(errMsg);
+      updateDebugInfo(null, false, errMsg);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [updateDebugInfo]);
 
   // Unregister from push notifications
   const unregisterFromNotifications = useCallback(async () => {
-    if (expoPushToken) {
-      await removeTokenFromBackend(expoPushToken);
-      setIsRegistered(false);
+    // Use stored token if state is empty
+    const token = expoPushToken || await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+    if (token) {
+      await removeTokenFromBackend(token);
     }
-  }, [expoPushToken]);
+    setIsRegistered(false);
+    await AsyncStorage.setItem(NOTIFICATION_PREF_KEY, 'false');
+    updateDebugInfo(token, false, null);
+  }, [expoPushToken, updateDebugInfo]);
 
-  // Setup notification listeners
+  // Load saved preference and setup listeners
   useEffect(() => {
-    // Register for notifications on mount
-    registerForNotifications();
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    const init = async () => {
+      // Load saved preference (default to true)
+      const saved = await AsyncStorage.getItem(NOTIFICATION_PREF_KEY);
+      const savedToken = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+      const enabled = saved === null ? true : saved === 'true';
+
+      setIsRegistered(enabled);
+      if (savedToken) {
+        setExpoPushToken(savedToken);
+      }
+
+      updateDebugInfo(savedToken, enabled, null);
+
+      // Auto-register if enabled
+      if (enabled) {
+        registerForNotifications().catch((err) => console.error('Push registration failed:', err));
+      }
+    };
+
+    init();
 
     // Listener for notifications received while app is foregrounded
-    notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      console.log('Notification received in foreground:', notification);
-      setNotification(notification);
+    notificationListener.current = Notifications.addNotificationReceivedListener((notif) => {
+      setNotification(notif);
     });
 
     // Listener for when user taps on notification
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log('Notification tapped:', response);
       const data = parseNotificationData(response.notification);
       if (data) {
         handleNotificationNavigation(data);
@@ -150,7 +190,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
         responseListener.current.remove();
       }
     };
-  }, [registerForNotifications, handleNotificationNavigation]);
+  }, [registerForNotifications, handleNotificationNavigation, updateDebugInfo]);
 
   return {
     expoPushToken,
@@ -158,6 +198,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
     isRegistered,
     isLoading,
     error,
+    debugInfo,
     registerForNotifications,
     unregisterFromNotifications,
   };

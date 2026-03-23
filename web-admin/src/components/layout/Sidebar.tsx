@@ -15,8 +15,6 @@ import {
   Users,
   DollarSign,
   Settings,
-  ChevronLeft,
-  ChevronRight,
   Newspaper,
   CalendarDays,
   MessageCircle,
@@ -30,9 +28,10 @@ import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   collapsed: boolean;
-  onToggle: () => void;
   mobileOpen: boolean;
   onClose: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 interface NavItem {
@@ -60,7 +59,7 @@ const pathToPageKey: Record<string, string> = {
   '/settings': 'settings',
 };
 
-export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarProps) => {
+export const Sidebar = ({ collapsed, mobileOpen, onClose, onMouseEnter, onMouseLeave }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -97,7 +96,7 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
 
   const handleClubProfile = () => {
     handleNavClick();
-    navigate('/settings');
+    navigate('/club-profile');
   };
 
   return (
@@ -109,12 +108,14 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
           collapsed ? 'w-16' : 'w-64',
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         )}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className={cn(
-            'flex items-center border-b border-border',
-            collapsed ? 'justify-between p-2' : 'justify-between p-4'
+            'flex items-center border-b border-border p-4',
+            collapsed && 'justify-center'
           )}>
             <a
               href="https://4sports.rs"
@@ -131,12 +132,6 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
                 <h1 className="text-xl font-bold text-primary truncate">4Sports</h1>
               )}
             </a>
-            <button
-              onClick={onToggle}
-              className="p-1.5 rounded-lg hover:bg-accent transition-colors shrink-0"
-            >
-              {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-            </button>
           </div>
 
           {/* Navigation */}
@@ -168,7 +163,7 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
                       </span>
                     )}
                   </div>
-                  {!collapsed && <span className="font-medium">{name}</span>}
+                  {!collapsed && <span className="font-medium whitespace-nowrap overflow-hidden">{name}</span>}
                   {!collapsed && item.path === '/chat' && totalUnread > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center leading-none">
                       {totalUnread > 99 ? '99+' : totalUnread}
@@ -193,7 +188,7 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
                   title={collapsed ? t('sidebar.help') : undefined}
                 >
                   <HelpCircle size={20} className="shrink-0" />
-                  {!collapsed && <span className="font-medium">{t('sidebar.help')}</span>}
+                  {!collapsed && <span className="font-medium whitespace-nowrap overflow-hidden">{t('sidebar.help')}</span>}
                 </button>
               </PopoverTrigger>
               <PopoverContent side="right" align="end" className="w-56 p-2 space-y-1">
@@ -232,7 +227,7 @@ export const Sidebar = ({ collapsed, onToggle, mobileOpen, onClose }: SidebarPro
             >
               <Building2 size={20} className="shrink-0" />
               {!collapsed && (
-                <span className="font-medium truncate">
+                <span className="font-medium whitespace-nowrap overflow-hidden">
                   {clubSettings?.clubName || t('sidebar.clubProfile')}
                 </span>
               )}

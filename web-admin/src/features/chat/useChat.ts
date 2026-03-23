@@ -9,6 +9,11 @@ import {
   orderBy,
   onSnapshot,
   Unsubscribe,
+  limit,
+  startAfter,
+  getDocs,
+  DocumentData,
+  QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { useAuth } from '@/features/auth/AuthContext';
 
@@ -126,25 +131,83 @@ export const useConversations = () => {
   return { conversations, loading, error };
 };
 
-// Hook for real-time messages in a conversation
+// Hook for real-time messages in a conversation with pagination
 export const useMessages = (conversationId: string | null) => {
   const { backendUser } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [oldestDoc, setOldestDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
 
   const markAsReadTimer = useRef<ReturnType<typeof setTimeout>>();
+  const MESSAGES_PER_PAGE = 25;
+
+  // Load older messages (pagination)
+  const loadMore = useCallback(async () => {
+    if (!conversationId || !db || !oldestDoc || loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    try {
+      const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+      const q = query(
+        messagesRef,
+        orderBy('timestamp', 'desc'),
+        startAfter(oldestDoc),
+        limit(MESSAGES_PER_PAGE)
+      );
+
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        setHasMore(false);
+        setLoadingMore(false);
+        return;
+      }
+
+      const olderMessages: Message[] = [];
+      snapshot.forEach((doc) => {
+        olderMessages.push({
+          id: doc.id,
+          ...doc.data(),
+        } as Message);
+      });
+
+      // Reverse to get ascending order
+      olderMessages.reverse();
+
+      setMessages((prev) => [...olderMessages, ...prev]);
+      setOldestDoc(snapshot.docs[snapshot.docs.length - 1]);
+      setHasMore(snapshot.docs.length === MESSAGES_PER_PAGE);
+    } catch (err) {
+      console.error('Error loading more messages:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [conversationId, oldestDoc, loadingMore, hasMore]);
 
   useEffect(() => {
     if (!conversationId || !db) {
       setMessages([]);
       setLoading(false);
+      setHasMore(false);
+      setOldestDoc(null);
       return;
     }
 
+    setLoading(true);
+    setMessages([]);
+    setOldestDoc(null);
+
     try {
       const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-      const q = query(messagesRef, orderBy('timestamp', 'asc'));
+      // Fetch latest messages in descending order, then reverse
+      const q = query(
+        messagesRef,
+        orderBy('timestamp', 'desc'),
+        limit(MESSAGES_PER_PAGE)
+      );
 
       const unsubscribe: Unsubscribe = onSnapshot(
         q,
@@ -156,8 +219,21 @@ export const useMessages = (conversationId: string | null) => {
               ...doc.data(),
             } as Message);
           });
+
+          // Reverse to get ascending order (oldest first)
+          newMessages.reverse();
+
           setMessages(newMessages);
           setLoading(false);
+
+          // Set pagination state
+          if (snapshot.docs.length > 0) {
+            // The oldest doc is at index 0 after we fetched in desc order
+            setOldestDoc(snapshot.docs[snapshot.docs.length - 1]);
+            setHasMore(snapshot.docs.length === MESSAGES_PER_PAGE);
+          } else {
+            setHasMore(false);
+          }
 
           // Debounce mark as read to avoid request storms
           if (backendUser?._id && conversationId) {
@@ -185,7 +261,7 @@ export const useMessages = (conversationId: string | null) => {
     }
   }, [conversationId, backendUser?._id]);
 
-  return { messages, loading, error };
+  return { messages, loading, loadingMore, error, hasMore, loadMore };
 };
 
 // Hook to get users for new conversations
