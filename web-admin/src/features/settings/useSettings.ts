@@ -24,7 +24,6 @@ export const useClubSettings = () => {
     queryKey: ['club-settings'],
     queryFn: async () => {
       const response = await api.get<{ success: boolean; data: any }>('/settings/club');
-      console.log('✅ Club Settings API response:', response.data);
       return transformClubSettings(response.data.data);
     },
   });
@@ -68,7 +67,6 @@ export const useUserProfile = () => {
     queryKey: ['user-profile'],
     queryFn: async () => {
       const response = await api.get<{ success: boolean; data: any }>('/settings/profile');
-      console.log('✅ User Profile API response:', response.data);
       return transformUserProfile(response.data.data);
     },
   });
@@ -103,7 +101,6 @@ export const useSubscription = () => {
     queryKey: ['subscription'],
     queryFn: async () => {
       const response = await api.get<{ success: boolean; data: any }>('/settings/subscription');
-      console.log('✅ Subscription API response:', response.data);
       return transformSubscription(response.data.data);
     },
   });

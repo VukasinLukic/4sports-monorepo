@@ -17,7 +17,6 @@ export const registerWithEmail = async (
 ): Promise<UserCredential> => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    console.log('User registered successfully:', userCredential.user.uid);
     return userCredential;
   } catch (error: any) {
     console.error('Registration error:', error.code, error.message);
@@ -34,7 +33,6 @@ export const loginWithEmail = async (
 ): Promise<UserCredential> => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    console.log('User logged in successfully:', userCredential.user.uid);
     return userCredential;
   } catch (error: any) {
     console.error('Login error:', error.code, error.message);
@@ -48,7 +46,6 @@ export const loginWithEmail = async (
 export const logout = async (): Promise<void> => {
   try {
     await signOut(auth);
-    console.log('User logged out successfully');
   } catch (error: any) {
     console.error('Logout error:', error.code, error.message);
     throw error;

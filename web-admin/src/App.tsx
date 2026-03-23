@@ -26,9 +26,11 @@ import { Layout } from './components/layout/Layout';
 import { DevModeBanner } from './components/shared/DevModeBanner';
 import { TutorialTooltip } from './components/shared/TutorialTooltip';
 import { Toaster } from './components/ui/toaster';
+import { ErrorBoundary } from './components/shared/ErrorBoundary';
 
 function App() {
   return (
+    <ErrorBoundary>
     <ThemeProvider defaultTheme="dark">
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -179,6 +181,7 @@ function App() {
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
     </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

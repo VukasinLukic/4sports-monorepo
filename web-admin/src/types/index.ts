@@ -161,7 +161,7 @@ export interface FinanceFilters {
   dateRange: {
     startDate: string | null;
     endDate: string | null;
-    preset: 'all' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'custom';
+    preset: 'all' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'custom';
   };
   groupIds: string[];
   coachIds: string[];

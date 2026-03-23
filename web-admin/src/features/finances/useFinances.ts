@@ -49,7 +49,6 @@ export const useFinances = (filters?: {
       }
 
       const response = await api.get<{ success: boolean; data: any[] }>(`/finances?${params.toString()}`);
-      console.log('✅ Finances API response:', response.data);
 
       // Transform backend data to frontend format
       return (response.data.data || []).map(transformTransaction);
@@ -231,12 +230,8 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
       }
 
       const url = `/finances?${params.toString()}`;
-      console.log('🔍 Fetching finances with URL:', url);
-      console.log('🔍 Applied filters:', filters);
 
       const response = await api.get<{ success: boolean; data: any[] }>(url);
-      console.log('✅ API returned transactions:', response.data.data?.length || 0);
-      console.log('✅ Full API response:', response.data);
 
       // Transform backend data to frontend format
       let manualEntries = (response.data.data || []).map(transformTransaction);
@@ -257,19 +252,16 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
           }
           return true;
         });
-        console.log('🔍 After date filter:', manualEntries.length, 'transactions');
       }
 
       // Filter by transaction type
       if (filters.transactionType !== 'ALL') {
         manualEntries = manualEntries.filter((entry) => entry.type === filters.transactionType);
-        console.log('🔍 After type filter:', manualEntries.length, 'transactions');
       }
 
       // Filter by categories
       if (filters.categories.length > 0) {
         manualEntries = manualEntries.filter((entry) => filters.categories.includes(entry.category));
-        console.log('🔍 After category filter:', manualEntries.length, 'transactions');
       }
 
       // Filter by groups
@@ -278,7 +270,6 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
           if (!entry.groupId) return false;
           return filters.groupIds.includes(entry.groupId);
         });
-        console.log('🔍 After group filter:', manualEntries.length, 'transactions');
       }
 
       // Filter by coaches: find groups that selected coaches train, then filter by those groupIds
@@ -294,13 +285,11 @@ export const useFilteredFinances = (filters: FinanceFilters) => {
               return filters.coachIds.includes(coachId);
             }))
             .map((g: any) => g._id);
-          console.log('🔍 Coach filter: coaches', filters.coachIds, '=> groups', coachGroupIds);
 
           manualEntries = manualEntries.filter((entry) => {
             if (!entry.groupId) return false;
             return coachGroupIds.includes(entry.groupId);
           });
-          console.log('🔍 After coach filter:', manualEntries.length, 'transactions');
         } catch (error) {
           console.error('Failed to fetch groups for coach filter:', error);
         }

@@ -13,6 +13,7 @@ import {
 import type { MemberPayment, AttendanceRecord, MemberDetail } from './useProfile';
 import { useCreateConversation } from '@/features/chat/useChat';
 import { EditMemberDialog } from '@/features/members/EditMemberDialog';
+import { CoachProfilePage } from './CoachProfilePage';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -177,7 +178,12 @@ export function ProfilePage() {
     );
   }
 
-  // ─── Coach/Owner profile (not a member) ────────────
+  // ─── Coach profile (enhanced dashboard) ────────────
+  if (!member && userProfile && userProfile.role === 'COACH' && userId) {
+    return <CoachProfilePage userId={userId} />;
+  }
+
+  // ─── Owner profile (basic view) ────────────
   if (!member && userProfile) {
     return (
       <div className="space-y-6 max-w-4xl mx-auto">

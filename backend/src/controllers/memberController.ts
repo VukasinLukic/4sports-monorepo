@@ -223,8 +223,6 @@ export const getAllMembers = async (req: Request, res: Response) => {
     // Check for groupId filter in query params
     const { groupId } = req.query;
 
-    console.log('👥 Club members list requested for club:', clubId, groupId ? `(filtered by group: ${groupId})` : '');
-
     // Build query - filter by groupId if provided
     const query: any = {
       'clubs.clubId': clubId,
@@ -305,7 +303,6 @@ export const getAllMembers = async (req: Request, res: Response) => {
       };
     });
 
-    console.log(`✅ Found ${enrichedMembers.length} members`);
     return res.status(200).json({ success: true, data: enrichedMembers });
   } catch (error: any) {
     console.error('❌ Get Members Error:', error);

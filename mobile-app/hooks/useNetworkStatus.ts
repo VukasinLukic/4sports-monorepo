@@ -86,8 +86,8 @@ export function useNetworkStatus(): UseNetworkStatusResult {
                   status: record.status,
                 });
                 syncedIds.push(record.id);
-              } catch {
-                // Keep for later sync
+              } catch (syncError) {
+                console.error(`Error syncing individual attendance record ${record.id}:`, syncError);
               }
             }
           }

@@ -27,11 +27,9 @@ export const protect = async (
   res: Response,
   next: NextFunction
 ): Promise<any> => {
-  console.log('🔐 Auth middleware called for:', req.path);
   try {
     // 1. Extract token from Authorization header
     const authHeader = req.headers.authorization;
-    console.log('🔐 Auth header present:', !!authHeader);
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
@@ -58,29 +56,23 @@ export const protect = async (
     // 2. Verify Firebase token
     let firebaseUid: string;
     try {
-      console.log('🔐 Verifying Firebase token...');
       const auth = getAuth();
       const decodedToken = await auth.verifyIdToken(token);
       firebaseUid = decodedToken.uid;
-      console.log('🔐 Token verified, uid:', firebaseUid);
     } catch (firebaseError: any) {
-      console.log('🔐 Token verification failed:', firebaseError.message);
       return res.status(401).json({
         success: false,
         error: {
           code: 'INVALID_TOKEN',
           message: 'Invalid or expired Firebase token',
-          details: firebaseError.message,
         },
       });
     }
 
     // 3. Find user in MongoDB
-    console.log('🔐 Finding user in MongoDB...');
     const user = await User.findOne({ firebaseUid }).select('-__v');
 
     if (!user) {
-      console.log('🔐 User not found in MongoDB');
       return res.status(404).json({
         success: false,
         error: {
@@ -91,12 +83,10 @@ export const protect = async (
       });
     }
 
-    console.log('🔐 User found:', user.email, 'clubId:', user.clubId);
     // 4. Attach user to request object
     req.user = user;
 
     // 5. Continue to next middleware/controller
-    console.log('🔐 Calling next()...');
     next();
   } catch (error: any) {
     console.error('❌ Auth Middleware Error:', error);
@@ -105,7 +95,6 @@ export const protect = async (
       error: {
         code: 'SERVER_ERROR',
         message: 'Authentication failed',
-        details: error.message,
       },
     });
   }
