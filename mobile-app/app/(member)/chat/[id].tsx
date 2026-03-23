@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Image,
   ActivityIndicator,
@@ -302,13 +303,6 @@ export default function ChatScreen() {
     );
   }
 
-  // iOS: KAV pushes content above keyboard
-  // Android: softwareKeyboardLayoutMode="resize" resizes the window automatically
-  const ContainerComponent = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
-  const containerProps = Platform.OS === 'ios'
-    ? { behavior: 'padding' as const, keyboardVerticalOffset: 88 }
-    : {};
-
   return (
     <>
       <Stack.Screen
@@ -358,7 +352,7 @@ export default function ChatScreen() {
         }}
       />
 
-      <ContainerComponent style={styles.container} {...containerProps}>
+      <View style={styles.container}>
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -422,7 +416,7 @@ export default function ChatScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </ContainerComponent>
+      </View>
 
       {/* Image Zoom Modal */}
       <Modal

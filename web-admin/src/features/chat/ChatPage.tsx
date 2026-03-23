@@ -41,7 +41,15 @@ import { cn } from '@/lib/utils';
 
 const formatTime = (timestamp: any, t: (key: string) => string): string => {
   if (!timestamp) return '';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  let date: Date;
+  if (timestamp.toDate) {
+    date = timestamp.toDate();
+  } else if (timestamp._seconds !== undefined) {
+    date = new Date(timestamp._seconds * 1000);
+  } else {
+    date = new Date(timestamp);
+  }
+  if (isNaN(date.getTime())) return '';
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -749,7 +757,14 @@ function MessageBubble({
   onImageClick: (images: string[], index: number) => void;
   participantDetails?: Record<string, { name: string; avatar: string | null; role: string }>;
 }) {
-  const timestamp = message.timestamp?.toDate ? message.timestamp.toDate() : new Date(message.timestamp);
+  let timestamp: Date;
+  if (message.timestamp?.toDate) {
+    timestamp = message.timestamp.toDate();
+  } else if (message.timestamp?._seconds !== undefined) {
+    timestamp = new Date(message.timestamp._seconds * 1000);
+  } else {
+    timestamp = new Date(message.timestamp);
+  }
   // Prefer fresh avatar from participantDetails over stale per-message senderAvatar
   const avatarUrl = participantDetails?.[message.senderId]?.avatar || message.senderAvatar;
 

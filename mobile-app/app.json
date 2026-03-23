@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "4Sports",
-    "slug": "foursports-mobile",
-    "version": "1.0.0",
+    "name": "4sports",
+    "slug": "app-4sports",
+    "version": "1.0.1",
     "scheme": "foursports",
     "orientation": "portrait",
     "icon": "./assets/mobile_icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "owner": "simica67",
+    "owner": "org-4sports",
     "description": "Sports club management app for coaches and parents. Manage attendance, payments, medical checks, events and more.",
     "splash": {
       "image": "./assets/mobile_icon.png",
@@ -39,7 +39,8 @@
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/mobile_icon.png"
@@ -72,7 +73,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "4df7cb9d-efe8-4ec7-9d9f-6f4d560d734e"
+        "projectId": "41c3dc4d-4720-4c36-bb5e-6196025f89a5"
       }
     }
   }

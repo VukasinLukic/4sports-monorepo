@@ -747,7 +747,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   headerSpacer: { width: 32 },
-  content: { padding: Spacing.md, paddingBottom: Spacing.xxl },
+  content: { padding: Spacing.md, paddingBottom: 120 },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   loadingText: { fontSize: FontSize.md, color: Colors.textSecondary, marginTop: Spacing.md },
   label: { fontSize: FontSize.sm, fontWeight: '500', color: Colors.textSecondary, marginBottom: Spacing.xs, marginTop: Spacing.md },

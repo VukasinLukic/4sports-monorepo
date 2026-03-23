@@ -107,7 +107,6 @@ function TabItem({
 
 export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  console.log('🔍 INSETS:', JSON.stringify(insets));
   const bottomOffset = insets.bottom || DOCK_MARGIN_BOTTOM;
 
   // Hide tab bar when inside a chat conversation (nested beyond index)

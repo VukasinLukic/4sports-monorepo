@@ -3,12 +3,14 @@ import { Text, Button, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Spacing, BorderRadius, FontSize } from '@/constants/Layout';
 import { useLanguage } from '@/services/LanguageContext';
 
 export default function EventQRCodeScreen() {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const { eventId, eventTitle, qrCode } = useLocalSearchParams<{
     eventId: string;
     eventTitle: string;
@@ -16,7 +18,7 @@ export default function EventQRCodeScreen() {
   }>();
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + Spacing.xl }]}>
       <Card style={styles.card}>
         <Card.Content style={styles.content}>
           {/* Title */}
