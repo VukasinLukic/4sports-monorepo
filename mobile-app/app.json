@@ -20,7 +20,8 @@
       "bundleIdentifier": "com.foursports.mobile",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow 4Sports to access your camera for QR code scanning.",
-        "NSPhotoLibraryUsageDescription": "Allow 4Sports to access your photo library to upload profile pictures and media."
+        "NSPhotoLibraryUsageDescription": "Allow 4Sports to access your photo library to upload profile pictures and media.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

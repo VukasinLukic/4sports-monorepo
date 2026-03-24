@@ -4,7 +4,8 @@ import { auth } from './firebase';
 import { loginWithEmail, registerWithEmail, logout as logoutUser } from './auth';
 import api from './api';
 import { User, UserRole } from '@/types';
-import { registerForPushNotificationsAsync, sendTokenToBackend } from './pushNotifications';
+import { registerForPushNotificationsAsync, sendTokenToBackend, removeTokenFromBackend } from './pushNotifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   StoredAccount,
   getStoredAccounts,
@@ -298,6 +299,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Logout function - use useCallback to prevent infinite loops
   const logout = useCallback(async (): Promise<void> => {
     try {
+      // Remove push token from backend before logout
+      const savedToken = await AsyncStorage.getItem('@push_token_current');
+      if (savedToken) {
+        await removeTokenFromBackend(savedToken).catch(() => {});
+        await AsyncStorage.removeItem('@push_token_current');
+      }
       await logoutUser();
       setUser(null);
       setFirebaseUser(null);

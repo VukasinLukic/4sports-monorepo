@@ -480,18 +480,34 @@ export const getClubUsersForChat = async (req: Request, res: Response): Promise<
 
 export const updateFCMToken = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { token } = req.body;
+    const { token, remove } = req.body;
     const userId = req.user!._id;
 
-    // Allow empty/null token to clear (unregister from push notifications)
-    await User.findByIdAndUpdate(userId, {
-      pushToken: token || null,
-    });
+    if (remove && token) {
+      // Remove specific token (logout from device)
+      await User.findByIdAndUpdate(userId, {
+        $pull: { pushTokens: token },
+      });
+    } else if (token) {
+      // Add token (login on device) — $addToSet prevents duplicates
+      // Also migrate old pushToken field if it exists
+      const user = await User.findById(userId);
+      if (user && (user as any).pushToken) {
+        await User.findByIdAndUpdate(userId, {
+          $addToSet: { pushTokens: { $each: [(user as any).pushToken, token] } },
+          $unset: { pushToken: '' },
+        });
+      } else {
+        await User.findByIdAndUpdate(userId, {
+          $addToSet: { pushTokens: token },
+        });
+      }
+    }
 
     return res.status(200).json({
       success: true,
       data: {
-        message: 'FCM token updated successfully',
+        message: 'Push token updated successfully',
       },
     });
   } catch (error: any) {
