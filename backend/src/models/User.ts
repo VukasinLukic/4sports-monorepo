@@ -13,7 +13,7 @@ export interface IUser extends Document {
   profileImage?: string;
   role: 'OWNER' | 'COACH' | 'PARENT' | 'MEMBER';
   clubId: mongoose.Types.ObjectId;
-  pushToken?: string;
+  pushTokens: string[];
   createdAt: Date;
   updatedAt: Date;
 
@@ -99,9 +99,9 @@ const userSchema = new Schema<IUser, IUserModel>(
     },
 
     // Push Notifications
-    pushToken: {
-      type: String,
-      trim: true,
+    pushTokens: {
+      type: [String],
+      default: [],
     },
   },
   {

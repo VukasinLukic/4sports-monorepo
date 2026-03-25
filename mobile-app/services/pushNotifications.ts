@@ -2,7 +2,10 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './api';
+
+const PUSH_TOKEN_KEY = '@push_token_current';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -99,6 +102,7 @@ export async function sendTokenToBackend(token: string): Promise<boolean> {
     await api.post('/chat/fcm-token', {
       token,
     });
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
     console.log('Push token registered with backend');
     return true;
   } catch (error) {
@@ -112,7 +116,7 @@ export async function sendTokenToBackend(token: string): Promise<boolean> {
  */
 export async function removeTokenFromBackend(token: string): Promise<boolean> {
   try {
-    await api.post('/chat/fcm-token', { token: '' });
+    await api.post('/chat/fcm-token', { token, remove: true });
     console.log('Push token removed from backend');
     return true;
   } catch (error) {

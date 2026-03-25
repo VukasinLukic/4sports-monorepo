@@ -39,15 +39,15 @@ export const sendPushNotification = async (
     // Get users with push tokens
     const users = await User.find({
       _id: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) },
-      pushToken: { $exists: true, $ne: null },
-    }).select('pushToken');
+      pushTokens: { $exists: true, $not: { $size: 0 } },
+    }).select('pushTokens');
 
     if (users.length === 0) {
       console.log('⚠️  No users with push tokens found');
       return;
     }
 
-    const tokens = users.map((user) => user.pushToken).filter((token): token is string => !!token);
+    const tokens = users.flatMap((user) => user.pushTokens || []).filter(Boolean);
 
     console.log(`📱 Push: sending to ${userIds.length} users, found ${users.length} with tokens, ${tokens.length} valid tokens`);
     console.log(`📱 Push: tokens = ${tokens.map(t => t.substring(0, 30) + '...').join(', ')}`);
@@ -102,8 +102,8 @@ export const sendPushNotification = async (
     // Clean up invalid tokens
     if (invalidTokens.length > 0) {
       await User.updateMany(
-        { pushToken: { $in: invalidTokens } },
-        { $unset: { pushToken: '' } }
+        { pushTokens: { $in: invalidTokens } },
+        { $pull: { pushTokens: { $in: invalidTokens } } }
       );
       console.log(`🧹 Removed ${invalidTokens.length} invalid push tokens`);
     }

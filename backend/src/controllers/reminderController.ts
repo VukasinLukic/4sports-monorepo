@@ -28,8 +28,8 @@ const getMembersWithUnpaidMembership = async (
   }
 
   const members = await Member.find(memberQuery)
-    .populate('parentId', 'fullName pushToken')
-    .populate('userId', 'fullName pushToken');
+    .populate('parentId', 'fullName pushTokens')
+    .populate('userId', 'fullName pushTokens');
 
   // Filter members who don't have a PAID membership payment for current period
   const membersWithUnpaid: IMember[] = [];
@@ -72,8 +72,8 @@ const getMembersWithInvalidMedical = async (
   }
 
   const members = await Member.find(memberQuery)
-    .populate('parentId', 'fullName pushToken')
-    .populate('userId', 'fullName pushToken');
+    .populate('parentId', 'fullName pushTokens')
+    .populate('userId', 'fullName pushTokens');
 
   // Filter members who don't have a valid medical check
   const membersWithInvalidMedical: IMember[] = [];
@@ -130,8 +130,8 @@ export const sendPaymentReminderToMember = async (
       'clubs.clubId': clubId,
       'clubs.status': 'ACTIVE',
     })
-      .populate('parentId', 'fullName pushToken')
-      .populate('userId', 'fullName pushToken');
+      .populate('parentId', 'fullName pushTokens')
+      .populate('userId', 'fullName pushTokens');
 
     if (!member) {
       res.status(404).json({
@@ -217,8 +217,8 @@ export const sendMedicalReminderToMember = async (
       'clubs.clubId': clubId,
       'clubs.status': 'ACTIVE',
     })
-      .populate('parentId', 'fullName pushToken')
-      .populate('userId', 'fullName pushToken');
+      .populate('parentId', 'fullName pushTokens')
+      .populate('userId', 'fullName pushTokens');
 
     if (!member) {
       res.status(404).json({
